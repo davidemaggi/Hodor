@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { KeyRound, Play, RotateCw, ScrollText, Square } from 'lucide-react';
 import type { RunningForward, RunningTemplate, TemplateSummary } from '../../../shared/api';
 import { api, errorMessage } from '../api';
-import { useRunning, useTemplates } from '../queries';
+import { useProduction, useRunning, useTemplates } from '../queries';
 import { Empty, ErrorBlock, Skeleton } from '../components/states';
 import { Command, CopyButton } from '../components/command';
 import { ConfirmDialog } from '../components/confirm-dialog';
@@ -20,7 +20,11 @@ function doorState(f: RunningForward): DoorState {
   return f.listening ? 'running' : 'closed';
 }
 
-const Door: React.FC<{ run: RunningTemplate; forward: RunningForward }> = ({ run, forward }) => {
+const Door: React.FC<{ run: RunningTemplate; forward: RunningForward; prod: boolean }> = ({
+  run,
+  forward,
+  prod,
+}) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   // Design-review hook for the browser preview only (?panel=logs|values opens it on the postgres forward)
@@ -84,7 +88,11 @@ const Door: React.FC<{ run: RunningTemplate; forward: RunningForward }> = ({ run
               onClick={() => setPanel(panel === 'values' ? null : 'values')}
             >
               <KeyRound aria-hidden="true" />
-              {t('running.values', { count: linked })}
+              {forward.secrets.length && forward.configMaps.length
+                ? t('running.valuesBoth', { count: linked })
+                : forward.secrets.length
+                  ? t('running.valuesSecrets', { count: linked })
+                  : t('running.valuesConfigMaps', { count: linked })}
             </button>
           )}
           {run.controllable && (
@@ -104,6 +112,11 @@ const Door: React.FC<{ run: RunningTemplate; forward: RunningForward }> = ({ run
               className="btn ghost"
               onClick={() => toggle.mutate()}
               disabled={toggle.isPending}
+              aria-label={
+                state === 'running'
+                  ? t('running.stopForwardLabel', { port: forward.localPort })
+                  : t('running.startForwardLabel', { port: forward.localPort })
+              }
             >
               {state === 'running' ? <Square aria-hidden="true" /> : <Play aria-hidden="true" />}
               {state === 'running' ? t('running.stopForward') : t('running.startForward')}
@@ -114,7 +127,9 @@ const Door: React.FC<{ run: RunningTemplate; forward: RunningForward }> = ({ run
       </div>
       {toggle.isError && <p className="inline-error door-note">{errorMessage(toggle.error)}</p>}
       {panel === 'logs' && <LogsPanel templateId={run.templateId} forward={forward.name} />}
-      {panel === 'values' && <ValuesPanel templateId={run.templateId} forward={forward.name} />}
+      {panel === 'values' && (
+        <ValuesPanel templateId={run.templateId} forward={forward.name} prod={prod} />
+      )}
     </div>
   );
 };
@@ -137,12 +152,20 @@ const Run: React.FC<{ run: RunningTemplate }> = ({ run }) => {
   const errors = run.forwards.filter(
     (f) => doorState(f) === 'error' || doorState(f) === 'closed'
   ).length;
+  const prod = useProduction().isProduction(run.clusterId);
 
   return (
-    <article className="run" aria-labelledby={`run-${run.templateId}`}>
+    <article
+      className="run"
+      data-prod={prod || undefined}
+      aria-labelledby={`run-${run.templateId}`}
+    >
       <div className="run-head">
         <div>
-          <h2 id={`run-${run.templateId}`}>{run.templateName}</h2>
+          <h2 id={`run-${run.templateId}`} className="name-line">
+            {run.templateName}
+            {prod && <span className="tag prod">{t('clusters.prodTag')}</span>}
+          </h2>
           <p className="meta num">
             {t(run.source === 'app' ? 'running.metaApp' : 'running.metaCli', {
               cluster: run.clusterName,
@@ -179,7 +202,7 @@ const Run: React.FC<{ run: RunningTemplate }> = ({ run }) => {
       )}
       {!run.controllable && <p className="hint run-note">{t('running.fromTerminal')}</p>}
       {run.forwards.map((f) => (
-        <Door key={f.name} run={run} forward={f} />
+        <Door key={f.name} run={run} forward={f} prod={prod} />
       ))}
     </article>
   );
@@ -303,6 +326,7 @@ export const RunningView: React.FC = () => {
         open={confirmStopAll}
         title={t('running.stopAllTitle')}
         body={<p>{t('running.stopAllBody', { count: list.length })}</p>}
+        tone="danger"
         confirmLabel={t('running.stopAll')}
         cancelLabel={t('merge.cancel')}
         busy={stopAll.isPending}

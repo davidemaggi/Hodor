@@ -389,3 +389,23 @@ kbd { margin-left: auto; padding: 1px 6px; border: 1px solid var(--control); bor
 }
 .value-group ul { margin: 0; padding: 0; list-style: none; }
 .log-lines li { grid-template-columns: max-content 48px minmax(0, 1fr); }
+
+/* ---------- review fixes (Impeccable critique 0.8-0.9) ---------- */
+.btn.danger-fill { background: var(--negative); border-color: transparent; color: #fff; }
+.btn.danger-fill:hover { background: color-mix(in srgb, var(--negative) 88%, #000); }
+:root[data-theme="dark"] .btn.danger-fill { color: #131415; }
+.notice-prod { margin: 0; padding: 8px 12px; border-radius: var(--radius-control); background: var(--pill-warning-bg); color: var(--pill-warning-ink); font-size: 13px; }
+.dialog .notice-prod { margin-top: 16px; }
+.run[data-prod] { padding-left: 16px; border-left: 2px solid var(--pill-warning-ink); }
+.run-head .actions { display: flex; align-items: center; gap: 8px; }
+.dialog-inline { margin-top: 12px; }
+.tags-field::placeholder { color: var(--faint); }
+.start-list li { grid-template-columns: minmax(0, 1fr) auto; }
+.port-list > span { white-space: nowrap; }
+.palette-more { padding: 8px 10px 0; }
+.log-lines:focus-visible { outline-offset: 4px; }
+@media (max-width: 1180px) {
+  .templates-table .col-updated, .templates-table .col-tags { display: none; }
+  .templates-table .label-wide { display: none; }
+  .templates-table .row-actions .btn.ghost { padding: 0 8px; }
+}

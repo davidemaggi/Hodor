@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import type { TemplateSummary } from '../../../shared/api';
 import { api, errorMessage } from '../api';
-import { useTemplates } from '../queries';
+import { useProduction, useRunning, useTemplates } from '../queries';
 import { ErrorBlock, Skeleton } from '../components/states';
 import { Command } from '../components/command';
 import { CommandsPanel } from '../components/commands-panel';
@@ -45,6 +45,10 @@ export const TemplatesView: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const templates = useTemplates();
+  const runs = useRunning();
+  const production = useProduction();
+  const runOf = (id: string) => runs.data?.find((r) => r.templateId === id);
+  const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -61,15 +65,22 @@ export const TemplatesView: React.FC = () => {
     },
   });
 
-  // Design-review hook for the browser preview only (?cmd=1); dropped from real builds
+  // ?run=<id> (from the command palette) opens the Run dialog for that template
   useEffect(() => {
-    if (
-      import.meta.env.MODE === 'fixtures' &&
-      new URLSearchParams(window.location.search).has('cmd') &&
-      templates.data?.[0]
-    ) {
-      setOpen(templates.data[0].id);
+    const id = params.get('run');
+    const target = id && templates.data?.find((x) => x.id === id);
+    if (target) {
+      setStarting(target);
+      setParams({}, { replace: true });
     }
+  }, [params, templates.data, setParams]);
+
+  // Design-review hooks for the browser preview only (?cmd=1, ?start=1); dropped from real builds
+  useEffect(() => {
+    if (import.meta.env.MODE !== 'fixtures' || !templates.data?.[1]) return;
+    const preview = new URLSearchParams(window.location.search);
+    if (preview.has('cmd')) setOpen(templates.data[0].id);
+    if (preview.has('start')) setStarting(templates.data[1]);
   }, [templates.data]);
 
   const all = templates.data ?? [];
@@ -287,8 +298,8 @@ export const TemplatesView: React.FC = () => {
                   </th>
                   <th>{t('templates.colName')}</th>
                   <th>{t('templates.colPorts')}</th>
-                  <th>{t('templates.colTags')}</th>
-                  <th className="n">{t('templates.colUpdated')}</th>
+                  <th className="col-tags">{t('templates.colTags')}</th>
+                  <th className="n col-updated">{t('templates.colUpdated')}</th>
                   <th>
                     <span className="visually-hidden">{t('templates.colActions')}</span>
                   </th>
@@ -351,8 +362,17 @@ export const TemplatesView: React.FC = () => {
                             {tpl.name}
                           </Link>
                           {tpl.running && (
-                            <span className="pill pos">{t('templates.running')}</span>
+                            <span className="pill pos nowrap">
+                              {runOf(tpl.id)
+                                ? t('templates.runningOn', { cluster: runOf(tpl.id)!.clusterName })
+                                : t('templates.running')}
+                            </span>
                           )}
+                          {tpl.running &&
+                            runOf(tpl.id) &&
+                            production.isProduction(runOf(tpl.id)!.clusterId) && (
+                              <span className="tag prod">{t('clusters.prodTag')}</span>
+                            )}
                         </span>
                         {tpl.description && <span className="sub truncate">{tpl.description}</span>}
                       </td>
@@ -366,7 +386,7 @@ export const TemplatesView: React.FC = () => {
                           ))}
                         </span>
                       </td>
-                      <td>
+                      <td className="col-tags">
                         {tpl.tags.length ? (
                           <span className="tags">
                             {tpl.tags.map((tag) => (
@@ -379,7 +399,7 @@ export const TemplatesView: React.FC = () => {
                           <span className="muted">{t('common.dash')}</span>
                         )}
                       </td>
-                      <td className="n num nowrap">{formatRelative(tpl.updatedAt)}</td>
+                      <td className="n num nowrap col-updated">{formatRelative(tpl.updatedAt)}</td>
                       <td className="row-actions">
                         {tpl.running ? (
                           <button
@@ -405,11 +425,12 @@ export const TemplatesView: React.FC = () => {
                           type="button"
                           className="btn ghost"
                           aria-expanded={open === tpl.id}
+                          aria-label={t('templates.commandsFor', { name: tpl.name })}
                           aria-controls={`commands-${tpl.id}`}
                           onClick={() => setOpen(open === tpl.id ? null : tpl.id)}
                         >
                           <SquareTerminal aria-hidden="true" />
-                          {t('templates.kubectl')}
+                          <span className="label-wide">{t('templates.kubectl')}</span>
                         </button>
                         <button
                           type="button"
@@ -456,7 +477,22 @@ export const TemplatesView: React.FC = () => {
       <ConfirmDialog
         open={!!deleting}
         title={t('templates.deleteTitle', { name: deleting?.name })}
-        body={<p>{deleting?.running ? t('templates.deleteRunning') : t('templates.deleteBody')}</p>}
+        tone="danger"
+        body={
+          <>
+            <p>{deleting?.running ? t('templates.deleteRunning') : t('templates.deleteBody')}</p>
+            {deleting && (
+              <button
+                type="button"
+                className="btn dialog-inline"
+                onClick={() => doExport([deleting.id])}
+              >
+                <Download aria-hidden="true" />
+                {t('templates.exportFirst')}
+              </button>
+            )}
+          </>
+        }
         confirmLabel={deleting?.running ? t('templates.deleteStop') : t('templates.deleteYes')}
         cancelLabel={t('merge.cancel')}
         busy={remove.isPending}

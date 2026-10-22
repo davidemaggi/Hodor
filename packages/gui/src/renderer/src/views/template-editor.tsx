@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, GripVertical, Plus, Search, X } from 'lucide-react';
@@ -39,6 +39,8 @@ function uniqueName(base: string, taken: string[]): string {
 interface ForwardRowProps {
   forward: PortForwardConfig;
   issues: ForwardIssues;
+  /** Only after the row was edited or a save was attempted */
+  showIssues: boolean;
   index: number;
   count: number;
   linkables?: { secrets: string[] | null; configMaps: string[] | null };
@@ -49,7 +51,8 @@ interface ForwardRowProps {
 
 const ForwardRow: React.FC<ForwardRowProps> = ({
   forward: f,
-  issues,
+  issues: allIssues,
+  showIssues,
   index,
   linkables,
   onChange,
@@ -58,6 +61,8 @@ const ForwardRow: React.FC<ForwardRowProps> = ({
 }) => {
   const { t } = useTranslation();
   const id = `fwd-${index}`;
+  const issues: ForwardIssues = showIssues ? allIssues : {};
+  const describedBy = Object.keys(issues).length ? `${id}-problems` : undefined;
   const set = <K extends keyof PortForwardConfig>(key: K, value: PortForwardConfig[K]) =>
     onChange({ ...f, [key]: value });
   const problems = Object.entries(issues).map(([field, kind]) =>
@@ -86,6 +91,7 @@ const ForwardRow: React.FC<ForwardRowProps> = ({
               value={Number.isNaN(f.localPort) ? '' : f.localPort}
               onChange={(e) => set('localPort', Number(e.target.value.replace(/\D/g, '')))}
               aria-invalid={!!issues.localPort && issues.localPort !== 'privileged'}
+              aria-describedby={describedBy}
             />
           </label>
           <label className="grow">
@@ -96,6 +102,7 @@ const ForwardRow: React.FC<ForwardRowProps> = ({
               placeholder={t('editor.forwardName')}
               onChange={(e) => set('name', e.target.value)}
               aria-invalid={!!issues.name}
+              aria-describedby={describedBy}
               spellCheck={false}
             />
           </label>
@@ -418,7 +425,11 @@ export const TemplateEditorView: React.FC = () => {
   const [draft, setDraft] = useState<TemplateInput>(EMPTY);
   const [baseline, setBaseline] = useState<string>(JSON.stringify(EMPTY));
   const [clusterId, setClusterId] = useState('');
-  const [discarding, setDiscarding] = useState(false);
+  // Stable identities for forwards, so reordering never moves focus or field state onto another row
+  const [keys, setKeys] = useState<number[]>([]);
+  const nextKey = useRef(0);
+  const [touched, setTouched] = useState<Set<number>>(new Set());
+  const allowLeave = useRef(false);
   const [restartFor, setRestartFor] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
@@ -431,6 +442,7 @@ export const TemplateEditorView: React.FC = () => {
         forwards: existing.data.forwards,
       };
       setDraft(loaded);
+      setKeys(loaded.forwards.map(() => nextKey.current++));
       setBaseline(JSON.stringify(loaded));
     }
   }, [existing.data]);
@@ -472,7 +484,20 @@ export const TemplateEditorView: React.FC = () => {
   );
 
   const setForwards = (forwards: PortForwardConfig[]) => setDraft((d) => ({ ...d, forwards }));
-  const { handleProps } = useReorder((from, to) => setForwards(moveItem(draft.forwards, from, to)));
+  const { handleProps } = useReorder((from, to) => {
+    setForwards(moveItem(draft.forwards, from, to));
+    setKeys((k) => moveItem(k, from, to));
+  });
+
+  // Any navigation away with unsaved edits asks first: sidebar, shortcuts, palette, Back
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      dirty && !allowLeave.current && currentLocation.pathname !== nextLocation.pathname
+  );
+  const leaveSaved = (to: string) => {
+    allowLeave.current = true;
+    navigate(to);
+  };
 
   const addForward = (target: Omit<PortForwardConfig, 'name' | 'localPort'>, baseName: string) => {
     const taken = [
@@ -490,6 +515,7 @@ export const TemplateEditorView: React.FC = () => {
         localPort: suggestLocalPort(target.remotePort, taken),
       },
     ]);
+    setKeys((k) => [...k, nextKey.current++]);
   };
 
   const save = useMutation({
@@ -512,6 +538,7 @@ export const TemplateEditorView: React.FC = () => {
       setBaseline(JSON.stringify(draft));
       queryClient.invalidateQueries({ queryKey: ['templates'] });
       queryClient.setQueryData(['template', template.id], template);
+      allowLeave.current = true;
       if (running) setRestartFor(template.id);
       else navigate('/templates');
     },
@@ -519,7 +546,7 @@ export const TemplateEditorView: React.FC = () => {
 
   const restart = useMutation({
     mutationFn: (templateId: string) => api.running.restart(templateId),
-    onSettled: () => navigate('/templates'),
+    onSettled: () => leaveSaved('/templates'),
   });
 
   if (!isNew && existing.isError) {
@@ -534,7 +561,7 @@ export const TemplateEditorView: React.FC = () => {
     );
   }
 
-  const leave = () => (dirty ? setDiscarding(true) : navigate('/templates'));
+  const leave = () => navigate('/templates');
 
   return (
     <section className="view editor" aria-labelledby="editor-title">
@@ -589,7 +616,9 @@ export const TemplateEditorView: React.FC = () => {
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 aria-invalid={submitted && !!nameProblem}
-                aria-describedby="name-error"
+                aria-describedby={
+                  (submitted || nameTaken) && nameProblem ? 'name-error' : undefined
+                }
                 maxLength={100}
                 spellCheck={false}
                 autoFocus={isNew}
@@ -638,16 +667,21 @@ export const TemplateEditorView: React.FC = () => {
             <div className="forward-list">
               {draft.forwards.map((f, index) => (
                 <ForwardRow
-                  key={index}
+                  key={keys[index] ?? index}
                   forward={f}
                   index={index}
                   count={draft.forwards.length}
                   issues={issues[index]}
+                  showIssues={submitted || touched.has(keys[index])}
                   linkables={linkables.data?.[f.namespace]}
-                  onChange={(next) =>
-                    setForwards(draft.forwards.map((x, i) => (i === index ? next : x)))
-                  }
-                  onRemove={() => setForwards(draft.forwards.filter((_, i) => i !== index))}
+                  onChange={(next) => {
+                    setForwards(draft.forwards.map((x, i) => (i === index ? next : x)));
+                    setTouched((t) => new Set(t).add(keys[index]));
+                  }}
+                  onRemove={() => {
+                    setForwards(draft.forwards.filter((_, i) => i !== index));
+                    setKeys((k) => k.filter((_, i) => i !== index));
+                  }}
                   handleProps={handleProps(index, draft.forwards.length)}
                 />
               ))}
@@ -694,13 +728,14 @@ export const TemplateEditorView: React.FC = () => {
       </form>
 
       <ConfirmDialog
-        open={discarding}
+        open={blocker.state === 'blocked'}
+        tone="danger"
         title={t('editor.discardTitle')}
         body={<p>{t('editor.discardBody')}</p>}
         confirmLabel={t('editor.discard')}
         cancelLabel={t('editor.keepEditing')}
-        onConfirm={() => navigate('/templates')}
-        onCancel={() => setDiscarding(false)}
+        onConfirm={() => blocker.proceed?.()}
+        onCancel={() => blocker.reset?.()}
       />
       <ConfirmDialog
         open={!!restartFor}
@@ -710,7 +745,7 @@ export const TemplateEditorView: React.FC = () => {
         cancelLabel={t('editor.later')}
         busy={restart.isPending}
         onConfirm={() => restartFor && restart.mutate(restartFor)}
-        onCancel={() => navigate('/templates')}
+        onCancel={() => leaveSaved('/templates')}
       />
     </section>
   );

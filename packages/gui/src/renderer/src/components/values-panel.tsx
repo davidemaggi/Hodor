@@ -8,17 +8,27 @@ import { api, errorMessage } from '../api';
 const HIDE_AFTER_MS = 30_000;
 
 /** One key: masked until asked, hidden again after 30 seconds; copied by the main process */
-const ValueRow: React.FC<{ valueRef: ValueRef }> = ({ valueRef }) => {
+const ValueRow: React.FC<{ valueRef: ValueRef; autoReveal?: boolean }> = ({
+  valueRef,
+  autoReveal = false,
+}) => {
   const { t } = useTranslation();
   const [shown, setShown] = useState<RevealedValue | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Config maps aren't secret: show them straight away. Secrets hide again after 30 seconds.
   useEffect(() => {
-    if (!shown) return;
+    if (!autoReveal) return;
+    api.running.reveal(valueRef).then(setShown, (e) => setError(errorMessage(e)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoReveal]);
+
+  useEffect(() => {
+    if (!shown || autoReveal) return;
     const timer = setTimeout(() => setShown(null), HIDE_AFTER_MS);
     return () => clearTimeout(timer);
-  }, [shown]);
+  }, [shown, autoReveal]);
 
   const toggle = async () => {
     setError(null);
@@ -87,12 +97,12 @@ const Group: React.FC<{
   const { t } = useTranslation();
   return (
     <section className="value-group">
-      <h4>
+      <h3>
         <span className="muted">
           {kind === 'secret' ? t('values.secret') : t('values.configMap')}
         </span>{' '}
         <span className="mono">{entry.name}</span>
-      </h4>
+      </h3>
       {!entry.keys ? (
         <p className="field-error">{t('values.unreadable', { error: entry.error })}</p>
       ) : entry.keys.length === 0 ? (
@@ -100,7 +110,11 @@ const Group: React.FC<{
       ) : (
         <ul>
           {entry.keys.map((key) => (
-            <ValueRow key={key} valueRef={{ templateId, forward, kind, name: entry.name, key }} />
+            <ValueRow
+              key={key}
+              valueRef={{ templateId, forward, kind, name: entry.name, key }}
+              autoReveal={kind === 'configMap'}
+            />
           ))}
         </ul>
       )}
@@ -109,9 +123,10 @@ const Group: React.FC<{
 };
 
 /** Secret and config map values linked to a forward. Values are fetched one at a time, on request. */
-export const ValuesPanel: React.FC<{ templateId: string; forward: string }> = ({
+export const ValuesPanel: React.FC<{ templateId: string; forward: string; prod?: boolean }> = ({
   templateId,
   forward,
+  prod,
 }) => {
   const { t } = useTranslation();
   const linked = useQuery({
@@ -124,6 +139,7 @@ export const ValuesPanel: React.FC<{ templateId: string; forward: string }> = ({
   if (!linked.data) return <p className="hint">{t('values.loading')}</p>;
   return (
     <div className="values-panel">
+      {prod && <p className="notice-prod">{t('values.prod')}</p>}
       {linked.data.secrets.map((e) => (
         <Group
           key={`s-${e.name}`}

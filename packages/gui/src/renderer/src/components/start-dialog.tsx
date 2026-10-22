@@ -100,7 +100,11 @@ export const StartDialog: React.FC<StartDialogProps> = ({ template, onClose }) =
             ))}
           </ul>
 
-          {isProd && <p className="hint warn-text">{t('start.prod')}</p>}
+          {isProd && (
+            <p className="notice-prod" role="alert">
+              {t('start.prod')}
+            </p>
+          )}
           {clashes.length > 0 && (
             <p className="hint warn-text">
               {t('start.clash', {
@@ -108,7 +112,11 @@ export const StartDialog: React.FC<StartDialogProps> = ({ template, onClose }) =
               })}
             </p>
           )}
-          {start.isError && <p className="inline-error">{errorMessage(start.error)}</p>}
+          {start.isError && (
+            <p className="inline-error" role="alert">
+              {errorMessage(start.error)}
+            </p>
+          )}
 
           <div className="dialog-actions">
             <button type="button" className="btn" onClick={() => onClose(false)}>
@@ -116,7 +124,13 @@ export const StartDialog: React.FC<StartDialogProps> = ({ template, onClose }) =
             </button>
             <button type="submit" className="btn primary" disabled={!clusterId || start.isPending}>
               <Play aria-hidden="true" />
-              {start.isPending ? t('start.starting') : t('start.run')}
+              {start.isPending
+                ? t('start.starting')
+                : isProd
+                  ? t('start.runOn', {
+                      cluster: clusters.data?.find((c) => c.id === clusterId)?.name,
+                    })
+                  : t('start.run')}
             </button>
           </div>
         </form>

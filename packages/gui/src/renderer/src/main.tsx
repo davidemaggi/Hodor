@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, RouterProvider, createHashRouter } from 'react-router-dom';
 import { ClusterDetailView } from './views/cluster-detail';
 import { TemplateEditorView } from './views/template-editor';
 import { clusterPath } from './views/clusters';
@@ -37,27 +37,28 @@ const Start: React.FC = () => {
 window.addEventListener('dragover', (e) => e.preventDefault());
 window.addEventListener('drop', (e) => e.preventDefault());
 
+// A data router, so views can block navigation (unsaved template edits)
+const router = createHashRouter([
+  {
+    element: <Shell />,
+    children: [
+      { path: '/clusters', element: <ClustersView /> },
+      { path: '/clusters/:id', element: <ClusterDetailView /> },
+      { path: '/templates', element: <TemplatesView /> },
+      { path: '/templates/new', element: <TemplateEditorView key="new" /> },
+      { path: '/templates/:id', element: <TemplateEditorView /> },
+      { path: '/running', element: <RunningView /> },
+      { path: '/settings', element: <SettingsView /> },
+      { path: '/', element: <Start /> },
+      { path: '*', element: <Navigate to="/clusters" replace /> },
+    ],
+  },
+]);
+
 const App: React.FC = () => {
   const settings = useSettings();
   useTheme(settings.data?.theme);
-
-  return (
-    <HashRouter>
-      <Routes>
-        <Route element={<Shell />}>
-          <Route path="/clusters" element={<ClustersView />} />
-          <Route path="/clusters/:id" element={<ClusterDetailView />} />
-          <Route path="/templates" element={<TemplatesView />} />
-          <Route path="/templates/new" element={<TemplateEditorView key="new" />} />
-          <Route path="/templates/:id" element={<TemplateEditorView />} />
-          <Route path="/running" element={<RunningView />} />
-          <Route path="/settings" element={<SettingsView />} />
-          <Route path="/" element={<Start />} />
-          <Route path="*" element={<Navigate to="/clusters" replace />} />
-        </Route>
-      </Routes>
-    </HashRouter>
-  );
+  return <RouterProvider router={router} />;
 };
 
 createRoot(document.getElementById('root')!).render(

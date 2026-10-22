@@ -7,6 +7,8 @@ interface ConfirmDialogProps {
   confirmLabel: string;
   cancelLabel: string;
   busy?: boolean;
+  /** "danger" for actions that delete or stop things */
+  tone?: 'default' | 'danger';
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -21,6 +23,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   confirmLabel,
   cancelLabel,
   busy,
+  tone = 'default',
   onConfirm,
   onCancel,
 }) => {
@@ -49,7 +52,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <button type="button" className="btn" onClick={onCancel} autoFocus>
               {cancelLabel}
             </button>
-            <button type="submit" className="btn primary" disabled={busy}>
+            <button
+              type="submit"
+              className={tone === 'danger' ? 'btn danger-fill' : 'btn primary'}
+              disabled={busy}
+            >
               {confirmLabel}
             </button>
           </div>

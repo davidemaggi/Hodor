@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react';
-import { useClusters, useTemplates } from '../queries';
+import { api } from '../api';
+import { useClusters, useRunning, useTemplates } from '../queries';
 import { clusterPath } from '../views/clusters';
 import { templatePath } from '../views/templates';
 
@@ -10,8 +11,13 @@ interface Item {
   id: string;
   label: string;
   hint: string;
-  to: string;
+  /** Extra words that match the item, e.g. its ports */
+  keywords?: string;
+  to?: string;
+  run?: () => void | Promise<unknown>;
 }
+
+const LIMIT = 12;
 
 /** ⌘K / Ctrl+K: jump to any section, cluster or template */
 export const Palette: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
@@ -19,6 +25,7 @@ export const Palette: React.FC<{ open: boolean; onClose: () => void }> = ({ open
   const navigate = useNavigate();
   const clusters = useClusters();
   const templates = useTemplates();
+  const running = useRunning();
   const ref = useRef<HTMLDialogElement>(null);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -52,22 +59,52 @@ export const Palette: React.FC<{ open: boolean; onClose: () => void }> = ({ open
         hint: t('palette.cluster'),
         to: clusterPath(c.id),
       })),
+      ...(running.data ?? []).flatMap((r) =>
+        r.forwards.map((f) => ({
+          id: `p-${r.templateId}-${f.name}`,
+          label: t('palette.copy', { address: `127.0.0.1:${f.localPort}`, name: f.name }),
+          hint: r.templateName,
+          keywords: `${f.localPort} ${f.name}`,
+          run: () => navigator.clipboard.writeText(`127.0.0.1:${f.localPort}`),
+        }))
+      ),
+      ...(templates.data ?? []).map((x): Item =>
+        x.running
+          ? {
+              id: `s-${x.id}`,
+              label: t('palette.stop', { name: x.name }),
+              hint: t('palette.action'),
+              run: () => api.running.stop(x.id),
+            }
+          : {
+              id: `r-${x.id}`,
+              label: t('palette.run', { name: x.name }),
+              hint: t('palette.action'),
+              keywords: x.forwards.map((f) => f.localPort).join(' '),
+              to: `/templates?run=${x.id}`,
+            }
+      ),
       ...(templates.data ?? []).map((x) => ({
         id: `t-${x.id}`,
         label: x.name,
         hint: t('palette.template'),
+        keywords: x.forwards.map((f) => f.localPort).join(' '),
         to: templatePath(x.id),
       })),
     ],
-    [clusters.data, templates.data, t]
+    [clusters.data, templates.data, running.data, t]
   );
 
   const q = query.trim().toLowerCase();
-  const shown = (q ? items.filter((i) => i.label.toLowerCase().includes(q)) : items).slice(0, 12);
+  const matching = q
+    ? items.filter((i) => `${i.label} ${i.keywords ?? ''}`.toLowerCase().includes(q))
+    : items;
+  const shown = matching.slice(0, LIMIT);
   const go = (item?: Item) => {
     if (!item) return;
     onClose();
-    navigate(item.to);
+    if (item.run) void item.run();
+    if (item.to) navigate(item.to);
   };
 
   return (
@@ -89,7 +126,7 @@ export const Palette: React.FC<{ open: boolean; onClose: () => void }> = ({ open
               value={query}
               placeholder={t('palette.placeholder')}
               role="combobox"
-              aria-expanded="true"
+              aria-expanded={shown.length > 0}
               aria-controls="palette-list"
               aria-activedescendant={shown[active] ? `pal-${shown[active].id}` : undefined}
               onChange={(e) => {
@@ -127,6 +164,11 @@ export const Palette: React.FC<{ open: boolean; onClose: () => void }> = ({ open
               </li>
             ))}
           </ul>
+          {matching.length > LIMIT && (
+            <p className="hint palette-more">
+              {t('palette.more', { count: matching.length - LIMIT })}
+            </p>
+          )}
         </>
       )}
     </dialog>

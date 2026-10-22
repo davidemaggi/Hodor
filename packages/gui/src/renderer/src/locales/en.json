@@ -69,7 +69,7 @@
     "stepImport": "Or import one",
     "stepImportDesc": "A teammate exported theirs? It has no cluster details, so it's safe to share.",
     "stepRun": "Run it anywhere",
-    "stepRunDesc": "Choose the cluster when you start it. From the terminal for now; the app learns it next.",
+    "stepRunDesc": "Choose the cluster when you start it, here or from the terminal.",
     "subEmpty": "Nothing saved yet",
     "new": "New template",
     "import": "Import",
@@ -77,7 +77,7 @@
     "exportSelected_other": "Export {{count}}",
     "exportOne": "Export {{name}}",
     "delete": "Delete {{name}}",
-    "kubectl": "kubectl",
+    "kubectl": "Commands",
     "search": "Search names, tags, ports",
     "filterTags": "Filter by tag",
     "shown": "{{shown}} of {{count}}",
@@ -98,7 +98,10 @@
     "deleteBody": "It's gone for good. Export it first if you might want it back.",
     "deleteRunning": "It's running right now. Hodor stops its forwards, then deletes it.",
     "deleteYes": "Delete",
-    "deleteStop": "Stop and delete"
+    "deleteStop": "Stop and delete",
+    "runningOn": "Running on {{cluster}}",
+    "exportFirst": "Export it first",
+    "commandsFor": "kubectl commands for {{name}}"
   },
   "running": {
     "title": "Running",
@@ -119,8 +122,8 @@
     "metaApp": "on {{cluster}} · since {{time}} · started here",
     "notListening": "Not listening",
     "notListeningHint": "Nothing answers on {{address}}. The forward may have stopped; check the terminal it runs in.",
-    "subClosed_one": "1 not listening",
-    "subClosed_other": "{{count}} not listening",
+    "subClosed_one": "1 needs a look",
+    "subClosed_other": "{{count}} need a look",
     "error_state": "Error",
     "stopped_state": "Stopped",
     "connections_one": "1 connection",
@@ -142,7 +145,15 @@
     "stopAll": "Stop everything",
     "stopAllTitle": "Stop everything?",
     "stopAllBody_one": "The running template stops and its ports close, including one started from the terminal.",
-    "stopAllBody_other": "All {{count}} running templates stop and their ports close, including ones started from the terminal."
+    "stopAllBody_other": "All {{count}} running templates stop and their ports close, including ones started from the terminal.",
+    "valuesBoth_one": "1 secret or config map",
+    "valuesBoth_other": "Secrets & config maps ({{count}})",
+    "valuesSecrets_one": "Secret",
+    "valuesSecrets_other": "Secrets ({{count}})",
+    "valuesConfigMaps_one": "Config map",
+    "valuesConfigMaps_other": "Config maps ({{count}})",
+    "stopForwardLabel": "Stop :{{port}}",
+    "startForwardLabel": "Start :{{port}}"
   },
   "settings": {
     "title": "Settings",
@@ -254,7 +265,7 @@
     "forwards": "Forwards",
     "forwardCount_one": "1 forward",
     "forwardCount_other": "{{count}} forwards",
-    "noForwards": "No forwards yet. Pick ports from the cluster on the right, or add one by hand.",
+    "noForwards": "No forwards yet. Pick ports under “Add from a cluster”, or add one by hand.",
     "addManually": "Add a forward by hand",
     "localPort": "Local port",
     "forwardName": "Name",
@@ -313,14 +324,14 @@
   },
   "commands": {
     "platform": "Platform",
-    "linux": "Linux",
-    "macos": "macOS",
-    "windows": "PowerShell",
+    "linux": "Linux (bash)",
+    "macos": "macOS (bash)",
+    "windows": "Windows (PowerShell)",
     "forward": "Forward",
     "allForwards_one": "The forward",
     "allForwards_other": "All {{count}}",
     "context": "Context",
-    "currentContext": "kubectl's current",
+    "currentContext": "kubectl's current context",
     "script": "Full script",
     "copy": "Copy commands",
     "copyScript": "Copy script",
@@ -329,13 +340,17 @@
   },
   "palette": {
     "title": "Go to",
-    "placeholder": "Search sections, clusters, templates",
+    "placeholder": "Search sections, clusters, templates, ports",
     "open": "Search",
     "section": "Section",
     "action": "Action",
     "cluster": "Cluster",
     "template": "Template",
-    "nothing": "Nothing matches."
+    "nothing": "Nothing matches.",
+    "copy": "Copy {{address}} ({{name}})",
+    "run": "Run {{name}}…",
+    "stop": "Stop {{name}}",
+    "more": "{{count}} more: type to narrow"
   },
   "start": {
     "title": "Run {{name}}",
@@ -344,8 +359,9 @@
     "cluster": "Cluster",
     "run": "Run",
     "starting": "Starting…",
-    "prod": "This cluster is marked as production.",
-    "clash": "Already in use by another running template: {{list}}. Those forwards will fail."
+    "prod": "Production cluster. These forwards reach real services and real data.",
+    "clash": "Already in use by another running template: {{list}}. Those forwards will fail.",
+    "runOn": "Run on {{cluster}}"
   },
   "values": {
     "secret": "Secret",
@@ -360,6 +376,7 @@
     "unreadable": "Can't read it: {{error}}",
     "noKeys": "No keys.",
     "loading": "Loading…",
-    "hint": "Values are read from the cluster when you ask and never stored by Hodor. Copied values are wiped from the clipboard after 30 seconds."
+    "hint": "Values are read from the cluster when you ask and never stored by Hodor. Copied values are wiped from the clipboard after 30 seconds.",
+    "prod": "Production values. Handle with care."
   }
 }

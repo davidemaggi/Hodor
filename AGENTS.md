@@ -63,9 +63,10 @@ User data lives in `~/.hodor/` (templates, settings, run registry, kubeconfig ba
   - `HODOR_KEYCHAIN_IT=1 …` touches the real OS keychain under a throwaway service name
 - **Manual CLI checks**: run with `HOME` pointing at a temp dir containing a _copy_ of the kubeconfig, so `ctx`/`ns`/`merge` never touch the real one.
 - **GUI checks**:
-  - `pnpm --filter @hodor/gui preview:web` serves the renderer in a browser with sample data (`fixtures.ts`). Query flags: `?theme=light|dark`, `?empty=1` (first run), `?idle=1` (nothing running). Fixtures never reach a real build; check with `grep -r northwind packages/gui/out`.
+  - `pnpm --filter @hodor/gui preview:web` serves the renderer in a browser with sample data (`fixtures.ts`). Query flags: `?theme=light|dark`, `?empty=1` (first run), `?idle=1` (nothing running), `?cli=1` (run started from the terminal), `?merge=1`, `?palette=1`, `?cmd=1`, `?start=1`, `?panel=logs|values`. Fixtures never reach a real build; check with `grep -r northwind packages/gui/out`.
   - The real app: `pnpm --filter @hodor/gui build`, then run Electron with `--remote-debugging-port` and a sandboxed `HOME` to drive it over the DevTools protocol.
   - If Electron starts as plain Node ("Cannot read properties of undefined (reading 'enableSandbox')"), the shell has `ELECTRON_RUN_AS_NODE=1` (set by VS Code/Electron-based terminals). Run with `env -u ELECTRON_RUN_AS_NODE`.
+- Native gestures (tray menu clicks, the window's close button, file dialogs) can't be driven over CDP and macOS blocks synthetic keystrokes: keep their decisions in small pure functions with unit tests (e.g. `close-policy.ts`) and say they weren't clicked.
 - **E2E** (Playwright for the GUI) comes last, before the 1.0 release.
 
 ## Security rules

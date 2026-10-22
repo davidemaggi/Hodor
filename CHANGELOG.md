@@ -22,6 +22,15 @@ Nothing has been released yet: everything below lives on `develop`.
 
 - Templates started in the app are registered with `source: "app"`: `hodor template:stop` asks the app to stop them instead of terminating the app process
 
+#### Changed (after the Impeccable review of 0.8-0.9, 27/40)
+
+- Production stays visible after Run: prod tag and amber edge on the run, "Running on <cluster>" in Templates, "Run on <cluster>" and an announced warning in the Run dialog, a note above production values
+- Unsaved template edits are protected on every way out (sidebar, shortcuts, palette, Back)
+- The command palette acts: run or stop a template, copy any running address; it matches ports
+- Templates table fits the 960px minimum window (tags and updated move out, actions go icon-only)
+- Config map values show straight away; secrets stay masked until asked
+- Logs follow the tail and no longer flood screen readers; destructive confirmations are red; clearer labels ("Commands", "Secrets (2)", "Windows (PowerShell)")
+
 #### Security
 
 - The app can only read secrets and config maps linked to the running forward in its template; values are fetched one at a time on request and never stored
