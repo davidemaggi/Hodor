@@ -23,20 +23,20 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 - [x] Development branch workflow
 - [x] README and ROADMAP
 
-#### Milestone 0.2.0 - Core Package
-- [ ] Kubernetes client wrapper
-  - [ ] SDK integration (@kubernetes/client-node)
-  - [ ] kubectl binary fallback detection
-  - [ ] Version compatibility layer
-- [ ] Kubeconfig management
-  - [ ] Read all configs from ~/.kube
-  - [ ] Parse clusters, contexts, namespaces
-  - [ ] Merge kubeconfig files
-- [ ] Storage layer
-  - [ ] Secure storage implementation (keytar)
-  - [ ] Template persistence
-  - [ ] Settings persistence
-  - [ ] Last-used cluster memory
+#### Milestone 0.2.0 - Core Package ✅
+- [x] Kubernetes client wrapper
+  - [x] SDK integration (@kubernetes/client-node)
+  - [x] kubectl binary fallback detection
+  - [x] Version compatibility layer
+- [x] Kubeconfig management
+  - [x] Read all configs from ~/.kube
+  - [x] Parse clusters, contexts, namespaces
+  - [x] Merge kubeconfig files
+- [x] Storage layer
+  - [x] Secure storage implementation (keytar)
+  - [x] Template persistence
+  - [x] Settings persistence
+  - [x] Last-used cluster memory
 
 #### Milestone 0.3.0 - Port-Forward Engine
 - [ ] Port-forward manager

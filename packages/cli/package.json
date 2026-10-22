@@ -1,6 +1,6 @@
 {
   "name": "@hodor/cli",
-  "version": "0.1.0-dev",
+  "version": "0.2.0-dev",
   "description": "Hodor command-line interface",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
