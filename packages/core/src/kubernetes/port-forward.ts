@@ -1,5 +1,6 @@
 import * as k8s from '@kubernetes/client-node';
 import { EventEmitter } from 'events';
+import { LogCapture } from './log-capture';
 
 export interface PortForwardOptions {
   namespace: string;
@@ -8,14 +9,25 @@ export interface PortForwardOptions {
   deploymentName?: string;
   localPort: number;
   remotePort: number;
+  autoRestart?: boolean;
+  maxRestartAttempts?: number;
 }
 
 export interface PortForwardStatus {
   id: string;
-  status: 'running' | 'stopped' | 'error';
+  status: 'running' | 'stopped' | 'error' | 'restarting';
   localPort: number;
   remotePort: number;
   error?: string;
+  restartAttempts?: number;
+}
+
+interface ActiveForward {
+  server: any;
+  forward: k8s.PortForward;
+  options: PortForwardOptions;
+  restartAttempts: number;
+  restartTimer?: NodeJS.Timeout;
 }
 
 /**
@@ -23,11 +35,13 @@ export interface PortForwardStatus {
  */
 export class PortForwardManager extends EventEmitter {
   private kc: k8s.KubeConfig;
-  private activeForwards: Map<string, any> = new Map();
+  private activeForwards: Map<string, ActiveForward> = new Map();
+  private logCapture: LogCapture;
 
-  constructor(kubeConfig: k8s.KubeConfig) {
+  constructor(kubeConfig: k8s.KubeConfig, logCapture?: LogCapture) {
     super();
     this.kc = kubeConfig;
+    this.logCapture = logCapture || new LogCapture();
   }
 
   /**
@@ -68,13 +82,151 @@ export class PortForwardManager extends EventEmitter {
         server,
         forward,
         options,
+        restartAttempts: 0,
       });
 
+      this.logCapture.log(id, 'info', `Port-forward started: ${options.localPort} -> ${options.remotePort}`);
       this.emit('started', id);
+
+      // Setup error handling for auto-restart
+      if (server && options.autoRestart) {
+        server.on('error', (error: Error) => {
+          this.handleForwardError(id, error);
+        });
+
+        server.on('close', () => {
+          this.handleForwardClose(id);
+        });
+      }
     } catch (error) {
+      this.logCapture.log(id, 'error', `Failed to start port-forward: ${error}`);
       this.emit('error', id, error);
       throw error;
     }
+  }
+
+  /**
+   * Handle port-forward error
+   */
+  private async handleForwardError(id: string, error: Error): Promise<void> {
+    const forward = this.activeForwards.get(id);
+    if (!forward) return;
+
+    this.logCapture.log(id, 'error', `Port-forward error: ${error.message}`);
+    this.emit('error', id, error);
+
+    // Attempt restart if enabled
+    if (forward.options.autoRestart) {
+      await this.attemptRestart(id);
+    }
+  }
+
+  /**
+   * Handle port-forward close
+   */
+  private async handleForwardClose(id: string): Promise<void> {
+    const forward = this.activeForwards.get(id);
+    if (!forward) return;
+
+    this.logCapture.log(id, 'warn', 'Port-forward connection closed');
+    this.emit('closed', id);
+
+    // Attempt restart if enabled and not manually stopped
+    if (forward.options.autoRestart) {
+      await this.attemptRestart(id);
+    }
+  }
+
+  /**
+   * Attempt to restart a port-forward
+   */
+  private async attemptRestart(id: string): Promise<void> {
+    const forward = this.activeForwards.get(id);
+    if (!forward) return;
+
+    const maxAttempts = forward.options.maxRestartAttempts || 3;
+
+    if (forward.restartAttempts >= maxAttempts) {
+      this.logCapture.log(
+        id,
+        'error',
+        `Max restart attempts (${maxAttempts}) reached, giving up`
+      );
+      this.emit('restart-failed', id);
+      return;
+    }
+
+    forward.restartAttempts++;
+    const delay = Math.min(1000 * Math.pow(2, forward.restartAttempts - 1), 30000); // Exponential backoff, max 30s
+
+    this.logCapture.log(
+      id,
+      'info',
+      `Attempting restart ${forward.restartAttempts}/${maxAttempts} in ${delay}ms`
+    );
+    this.emit('restarting', id, forward.restartAttempts, maxAttempts);
+
+    forward.restartTimer = setTimeout(async () => {
+      try {
+        // Clean up old forward
+        if (forward.server && forward.server.close) {
+          forward.server.close();
+        }
+
+        // Start new forward
+        const newForward = new k8s.PortForward(this.kc);
+        let podName = forward.options.podName;
+
+        if (!podName) {
+          if (forward.options.serviceName) {
+            podName = await this.getPodFromService(
+              forward.options.namespace,
+              forward.options.serviceName
+            );
+          } else if (forward.options.deploymentName) {
+            podName = await this.getPodFromDeployment(
+              forward.options.namespace,
+              forward.options.deploymentName
+            );
+          }
+        }
+
+        if (!podName) {
+          throw new Error('Unable to determine pod name for restart');
+        }
+
+        const server = await newForward.portForward(
+          forward.options.namespace,
+          podName,
+          [forward.options.remotePort],
+          undefined,
+          undefined,
+          forward.options.localPort
+        );
+
+        // Update the forward
+        forward.server = server;
+        forward.forward = newForward;
+
+        // Setup error handlers again
+        if (server && forward.options.autoRestart) {
+          server.on('error', (error: Error) => {
+            this.handleForwardError(id, error);
+          });
+
+          server.on('close', () => {
+            this.handleForwardClose(id);
+          });
+        }
+
+        this.logCapture.log(id, 'info', 'Port-forward restarted successfully');
+        this.emit('restarted', id);
+      } catch (error) {
+        this.logCapture.log(id, 'error', `Restart failed: ${error}`);
+        // Try again if attempts remain
+        await this.attemptRestart(id);
+      }
+    }, delay);
   }
 
   /**
@@ -88,12 +240,18 @@ export class PortForwardManager extends EventEmitter {
     }
 
     try {
+      // Clear any pending restart timer
+      if (forward.restartTimer) {
+        clearTimeout(forward.restartTimer);
+      }
+
       // Close the server
       if (forward.server && forward.server.close) {
         forward.server.close();
       }
 
       this.activeForwards.delete(id);
+      this.logCapture.log(id, 'info', 'Port-forward stopped');
       this.emit('stopped', id);
     } catch (error) {
       this.emit('error', id, error);
@@ -126,12 +284,40 @@ export class PortForwardManager extends EventEmitter {
       return null;
     }
 
+    let status: PortForwardStatus['status'] = 'running';
+
+    if (forward.restartTimer) {
+      status = 'restarting';
+    }
+
     return {
       id,
-      status: 'running',
+      status,
       localPort: forward.options.localPort,
       remotePort: forward.options.remotePort,
+      restartAttempts: forward.restartAttempts,
     };
+  }
+
+  /**
+   * Get logs for a port-forward
+   */
+  getLogs(id: string) {
+    return this.logCapture.getLogs(id);
+  }
+
+  /**
+   * Get the log capture instance
+   */
+  getLogCapture(): LogCapture {
+    return this.logCapture;
+  }
+
+  /**
+   * Clear logs for a port-forward
+   */
+  clearLogs(id: string): void {
+    this.logCapture.clearLogs(id);
   }
 
   /**

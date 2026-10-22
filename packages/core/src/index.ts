@@ -13,5 +13,8 @@ export * from './storage';
 // Templates
 export * from './templates';
 
+// Utilities
+export * from './utils';
+
 // Version
-export const VERSION = '0.2.0-dev';
+export const VERSION = '0.3.0-dev';

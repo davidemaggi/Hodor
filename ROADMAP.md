@@ -38,18 +38,18 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
   - [x] Settings persistence
   - [x] Last-used cluster memory
 
-#### Milestone 0.3.0 - Port-Forward Engine
-- [ ] Port-forward manager
-  - [ ] Start/stop individual forwards
-  - [ ] Multiple concurrent forwards
-  - [ ] Status monitoring
-  - [ ] Error handling and auto-restart
-  - [ ] Log capture
-- [ ] Template data model
-  - [ ] Template CRUD operations
-  - [ ] Tag system
-  - [ ] Import/export functionality
-  - [ ] Template validation
+#### Milestone 0.3.0 - Port-Forward Engine ✅
+- [x] Port-forward manager
+  - [x] Start/stop individual forwards
+  - [x] Multiple concurrent forwards
+  - [x] Status monitoring
+  - [x] Error handling and auto-restart
+  - [x] Log capture
+- [x] Template data model
+  - [x] Template CRUD operations
+  - [x] Tag system
+  - [x] Import/export functionality
+  - [x] Template validation
 
 #### Milestone 0.4.0 - CLI Foundation
 - [ ] CLI framework setup (Commander.js)
