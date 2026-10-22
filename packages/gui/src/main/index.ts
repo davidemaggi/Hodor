@@ -89,7 +89,11 @@ app.whenReady().then(async () => {
   await settings.initialize();
   applyTheme(settings.getAll());
 
-  registerIpc(isTrustedSender, (next) => applyTheme(next));
+  registerIpc(
+    isTrustedSender,
+    (next) => applyTheme(next),
+    () => mainWindow
+  );
 
   nativeTheme.on('updated', () => {
     if (!mainWindow || process.platform === 'darwin') return;

@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import YAML from 'yaml';
 import { KubeConfigParser, KubeConfigFile, writeFileAtomic } from './parser';
+import { KubeConfigMerger } from './merger';
 
 export interface ContextManagerOptions {
   /** Kubeconfig to manage. Defaults to the file kubectl writes to. */
@@ -112,7 +113,43 @@ export class ContextManager {
   }
 
   /**
-   * Replace the whole kubeconfig (used by merge). Backs up first.
+   * Merge kubeconfig files into this one. Existing entries win on name conflicts; new clusters,
+   * users and contexts are appended to the YAML document, so comments and formatting survive.
+   * Backs up first. Returns the backup path and the context names added.
+   */
+  async mergeFiles(files: string[]): Promise<{ backup: string | null; added: string[] }> {
+    const plan = await new KubeConfigMerger().planMerge(this.configPath, files);
+
+    if (!(await this.parser.configExists(this.configPath))) {
+      await this.parser.writeConfig(this.configPath, plan.config);
+      return { backup: null, added: plan.added };
+    }
+
+    const content = await fs.readFile(this.configPath, 'utf-8');
+    const doc = YAML.parseDocument(content);
+    const current = this.parser.parseContent(content);
+
+    for (const kind of ['clusters', 'users', 'contexts'] as const) {
+      const existing = new Set((current[kind] as Array<{ name: string }>).map((e) => e.name));
+      const incoming = (plan.config[kind] as Array<{ name: string }>).filter(
+        (e) => !existing.has(e.name)
+      );
+      if (incoming.length === 0) continue;
+      if (!YAML.isSeq(doc.get(kind))) doc.set(kind, doc.createNode([]));
+      for (const entry of incoming) doc.addIn([kind], doc.createNode(entry));
+    }
+
+    if (!current['current-context'] && plan.config['current-context']) {
+      doc.set('current-context', plan.config['current-context']);
+    }
+
+    const backup = await this.backupConfig();
+    await writeFileAtomic(this.configPath, doc.toString());
+    return { backup, added: plan.added };
+  }
+
+  /**
+   * Replace the whole kubeconfig. Backs up first. Prefer mergeFiles(), which keeps comments.
    */
   async replaceConfig(config: KubeConfigFile): Promise<string | null> {
     const backup = (await this.parser.configExists(this.configPath))

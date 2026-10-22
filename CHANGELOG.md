@@ -7,6 +7,24 @@ Nothing has been released yet: everything below lives on `develop`.
 
 ## [Unreleased]
 
+### 0.7.0-dev
+
+#### Added
+
+- Desktop app, Clusters: open a cluster to browse its namespaces, services and pods with their ports; filter by name or port; reopened on restart
+- Make a context kubectl's default and set its default namespace from the app (needs kubectl)
+- Merge kubeconfigs from the app: pick or drop files, preview, confirm; or merge the file a context comes from in one click
+- Core: `ResourceBrowser` (pods/services/namespaces summaries), `KubeConfigMerger.planMerge`, `ContextManager.mergeFiles`, `KubernetesApiError` keeping the HTTP status
+
+#### Fixed
+
+- Merging a kubeconfig (CLI and app) no longer drops the comments and formatting of your existing kubeconfig
+
+#### Security
+
+- Merges go through a single-use preview token: the renderer can never ask to write an arbitrary path
+- Dropped files are checked in the main process (absolute path, regular file, under 5 MB, valid kubeconfig)
+
 ### 0.6.0-dev
 
 #### Added

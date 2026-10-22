@@ -1,6 +1,6 @@
 {
   "name": "@hodor/gui",
-  "version": "0.6.0-dev",
+  "version": "0.7.0-dev",
   "private": true,
   "description": "Hodor desktop app",
   "author": "Davide Maggi <davide.maggi@live.com>",

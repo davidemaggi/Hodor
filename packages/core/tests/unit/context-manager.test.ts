@@ -69,3 +69,36 @@ describe('ContextManager', () => {
     expect(await manager.getClusterInfo('ghost')).toBeNull();
   });
 });
+
+describe('ContextManager.mergeFiles', () => {
+  it('appends new entries, keeps comments and existing entries, and backs up', async () => {
+    const { configPath, backupDir, manager } = await setup();
+    const download = path.join(path.dirname(configPath), 'download.yaml');
+    await fs.writeFile(
+      download,
+      kubeconfig({ contexts: [{ name: 'prod', namespace: 'evil' }, { name: 'qa' }] })
+    );
+
+    const result = await manager.mergeFiles([download]);
+
+    const text = await fs.readFile(configPath, 'utf-8');
+    expect(result.added).toEqual(['qa']);
+    expect(text).toContain('# my precious kubeconfig comment');
+    expect(await manager.getContextNamespace('prod')).toBe('web'); // existing entry wins
+    expect((await manager.listContexts()).map((c) => c.name)).toEqual(['dev', 'prod', 'qa']);
+    expect(await manager.getCurrentContext()).toBe('dev');
+    expect(await fs.readdir(backupDir)).toHaveLength(1);
+    expect(result.backup).toMatch(/\.bak$/);
+  });
+
+  it('creates the kubeconfig when there is none yet', async () => {
+    const dir = await tmpDir();
+    const configPath = path.join(dir, 'config');
+    const download = path.join(dir, 'download.yaml');
+    await fs.writeFile(download, kubeconfig({ contexts: [{ name: 'qa' }] }));
+    const manager = new ContextManager({ configPath, backupDir: path.join(dir, 'b') });
+
+    expect(await manager.mergeFiles([download])).toEqual({ backup: null, added: ['qa'] });
+    expect(await manager.getCurrentContext()).toBe('qa');
+  });
+});

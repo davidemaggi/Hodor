@@ -2,7 +2,7 @@
 
 Where Hodor is, and where it's going. No made-up dates: things ship when they work.
 
-**Now:** `0.6.0-dev` · **Next stop:** `1.0.0 "Aerys"`
+**Now:** `0.7.0-dev` · **Next stop:** `1.0.0 "Aerys"`
 
 Legend: ✅ done and tested · 🔜 next · 📋 planned · 💭 maybe
 
@@ -61,14 +61,15 @@ What exists today and has been exercised against a real cluster.
 - ✅ Designed with **Taste** (framed-sheet style); checked with its inspector in both themes
 - 🔜 **Impeccable** review: waiting for the skill to be installed for Claude Code
 
-## 🔜 0.7 · Clusters page
+## ✅ 0.7 · Clusters page
 
-- All contexts from all kubeconfigs, live status, ★ kubectl default, last used preselected on restart
-- Change kubectl default context / namespace (hidden when kubectl is missing)
-- Merge kubeconfigs (drop a file, preview, confirm)
-- Pick a cluster → browse pods and services with their exposed ports
+- ✅ All contexts from all kubeconfigs, live status, ★ kubectl default; the cluster you pick is remembered and reopened on restart
+- ✅ Make a context kubectl's default and set its default namespace (only when kubectl is installed; contexts from other files are offered a one-click merge first)
+- ✅ Merge kubeconfigs: pick or drop files, preview what's new and what's skipped, confirm; comments in your kubeconfig survive, a backup is taken first
+- ✅ Browse a cluster: namespaces (or type one when you may not list them), services and pods with their ports, status, readiness, restarts and age, filter by name or port
+- ✅ Unreachable cluster: what Hodor tried, plus the `kubectl cluster-info` command to see why
 
-## 📋 0.8 · Templates page
+## 🔜 0.8 · Templates page
 
 - Build templates by picking pods/services and ports from the selected cluster
 - Name, optional description, tags

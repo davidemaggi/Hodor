@@ -1,11 +1,17 @@
 import { useIsFetching, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { History, RotateCw, Star } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { FilePlus2, History, RotateCw, Star } from 'lucide-react';
 import type { Cluster } from '@hodor/core';
 import { api, errorMessage } from '../api';
 import { useClusterHealth, useClusters, useSettings } from '../queries';
 import { Empty, ErrorBlock, Skeleton } from '../components/states';
 import { formatTime, tildify } from '../format';
+import { MergeDialog } from '../components/merge-dialog';
+import { useMergeFlow } from '../merge';
+
+export const clusterPath = (id: string) => `/clusters/${encodeURIComponent(id)}`;
 
 const HealthCell: React.FC<{ cluster: Cluster }> = ({ cluster }) => {
   const { t } = useTranslation();
@@ -29,6 +35,19 @@ export const ClustersView: React.FC = () => {
   const clusters = useClusters();
   const settings = useSettings();
   const checking = useIsFetching({ queryKey: ['health'] }) > 0;
+  const navigate = useNavigate();
+  const merge = useMergeFlow();
+  const [dragging, setDragging] = useState(false);
+
+  // Design-review hook for the browser preview only (?merge=1); dropped from real builds
+  useEffect(() => {
+    if (
+      import.meta.env.MODE === 'fixtures' &&
+      new URLSearchParams(window.location.search).has('merge')
+    )
+      merge.choose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const list = clusters.data ?? [];
   const healths = useQueries({
@@ -59,7 +78,30 @@ export const ClustersView: React.FC = () => {
   }
 
   return (
-    <section className="view" aria-labelledby="clusters-title">
+    <section
+      className={dragging ? 'view dropping' : 'view'}
+      aria-labelledby="clusters-title"
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes('Files')) return;
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length) merge.dropped(files);
+      }}
+    >
+      {dragging && (
+        <div className="drop-hint" aria-hidden="true">
+          <FilePlus2 />
+          {t('clusters.dropHint')}
+        </div>
+      )}
       <div className="title-row">
         <div>
           <h1 id="clusters-title">{t('clusters.title')}</h1>
@@ -75,8 +117,28 @@ export const ClustersView: React.FC = () => {
             <RotateCw aria-hidden="true" />
             {t('common.refresh')}
           </button>
+          <button type="button" className="btn" onClick={merge.choose} disabled={merge.busy}>
+            <FilePlus2 aria-hidden="true" />
+            {t('clusters.merge')}
+          </button>
         </div>
       </div>
+
+      {merge.error && (
+        <p className="inline-error" role="alert">
+          {t('merge.failed', { message: merge.error })}
+        </p>
+      )}
+      {merge.outcome && (
+        <p className="inline-success" role="status">
+          {merge.outcome.added.length
+            ? t('merge.done', {
+                count: merge.outcome.added.length,
+                names: merge.outcome.added.join(', '),
+              })
+            : t('merge.doneNothing')}
+        </p>
+      )}
 
       {clusters.isError ? (
         <ErrorBlock
@@ -116,7 +178,15 @@ export const ClustersView: React.FC = () => {
                   </tr>
                 ))
               : list.map((cluster) => (
-                  <tr key={cluster.id}>
+                  <tr
+                    key={cluster.id}
+                    className="clickable"
+                    aria-selected={cluster.id === settings.data?.lastUsedCluster}
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest('a')) return;
+                      navigate(clusterPath(cluster.id));
+                    }}
+                  >
                     <td className="mark">
                       {cluster.isDefault ? (
                         <span
@@ -137,12 +207,14 @@ export const ClustersView: React.FC = () => {
                       ) : null}
                     </td>
                     <td className="identity">
-                      <span
-                        className="truncate"
-                        style={{ fontWeight: cluster.isDefault ? 500 : 400 }}
+                      <Link
+                        to={clusterPath(cluster.id)}
+                        className={
+                          cluster.isDefault ? 'row-link strong truncate' : 'row-link truncate'
+                        }
                       >
                         {cluster.name}
-                      </span>
+                      </Link>
                       <span className="sub truncate">{cluster.server}</span>
                     </td>
                     <td>{cluster.namespace ?? 'default'}</td>
@@ -155,6 +227,7 @@ export const ClustersView: React.FC = () => {
           </tbody>
         </table>
       )}
+      <MergeDialog preview={merge.preview} onClose={merge.close} />
     </section>
   );
 };

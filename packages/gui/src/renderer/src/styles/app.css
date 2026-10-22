@@ -108,6 +108,7 @@ code { font-family: var(--mono); font-size: 13px; padding: 1px 4px; border-radiu
 /* ---------- settings: label column beside a panel ---------- */
 .setting { display: grid; grid-template-columns: minmax(220px, 360px) minmax(0, 640px); gap: var(--gap); padding: 32px 0; border-top: 1px solid var(--rule); }
 .setting:first-of-type { border-top: 0; padding-top: 8px; }
+.error + .setting { margin-top: var(--gap); }
 .setting h2 { font-size: var(--fs-section); font-weight: 500; line-height: 24px; }
 .setting .desc { margin-top: 4px; color: var(--muted); }
 .panel { display: grid; gap: 16px; align-content: start; padding: 16px; border-radius: var(--radius-sheet); background: var(--raised); }
@@ -143,3 +144,83 @@ code { font-family: var(--mono); font-size: 13px; padding: 1px 4px; border-radiu
   .steps li > .command { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
   .steps li + li { border-left: 0; border-top: 1px solid var(--border); }
 }
+
+/* ---------- browser surfaces, themed ---------- */
+::selection { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--text); }
+input, select { caret-color: var(--accent); accent-color: var(--accent); }
+* { scrollbar-width: thin; scrollbar-color: var(--control) transparent; }
+
+/* ---------- shared bits ---------- */
+.muted { color: var(--muted); }
+.hint { color: var(--muted); font-size: 13px; }
+.spacer { flex: 1; }
+.nowrap { white-space: nowrap; }
+.btn.primary { background: var(--primary); color: var(--primary-ink); border-color: transparent; }
+.btn.primary:hover { background: color-mix(in srgb, var(--primary) 88%, var(--surface)); }
+.btn.primary:disabled { background: var(--active); color: var(--muted); }
+.pill.warn { background: var(--pill-warning-bg); color: var(--pill-warning-ink); }
+.input { height: var(--control-height); padding: 0 10px; border: 1px solid var(--control); border-radius: var(--radius-control); background: var(--surface); }
+.input::placeholder { color: var(--faint); }
+.select { height: var(--control-height); min-width: 180px; }
+.inline-error { margin: 0 0 var(--gap); color: var(--negative); }
+.inline-success { margin: 0 0 var(--gap); color: var(--positive); }
+.status-note { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+
+/* ---------- sidebar: the selected cluster sits under Clusters ---------- */
+.nav-item.nav-sub { height: 30px; padding-left: 34px; font-size: 13px; }
+.nav-item.nav-sub[aria-current="page"] { background: var(--active); }
+
+/* ---------- cluster list: rows open the cluster ---------- */
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: var(--raised); }
+tr[aria-selected="true"] td { background: var(--raised); }
+tr.clickable td:first-child { border-top-left-radius: 0; }
+.row-link { display: block; }
+.row-link.strong { font-weight: 500; }
+.row-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.view.dropping { position: relative; }
+.drop-hint { position: absolute; inset: 12px; z-index: 5; display: grid; place-content: center; justify-items: center; gap: 8px; border: 2px dashed var(--accent); border-radius: var(--radius-card); background: color-mix(in srgb, var(--surface) 92%, var(--accent)); color: var(--text); font-weight: 500; pointer-events: none; }
+.drop-hint svg { width: 24px; height: 24px; color: var(--accent); }
+
+/* ---------- cluster detail ---------- */
+.back { display: inline-flex; align-items: center; gap: 2px; margin: -4px 0 12px -4px; color: var(--muted); }
+.back svg { width: 16px; height: 16px; }
+.back:hover { color: var(--text); }
+.toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.field-inline { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+.search { position: relative; display: inline-flex; align-items: center; }
+.search svg { position: absolute; left: 10px; width: 14px; height: 14px; color: var(--faint); pointer-events: none; }
+.search .input { width: 260px; padding-left: 30px; }
+.block { margin-top: 32px; }
+.block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.block-head h2 { font-size: var(--fs-section); font-weight: 600; }
+.empty-line { padding: 16px 0; border-top: 1px solid var(--rule); color: var(--muted); }
+td .name { font-weight: 500; }
+.mono-id { font-family: var(--mono); font-size: 13px; font-weight: 400; }
+.port-name { color: var(--muted); font-family: var(--font); font-size: 12px; }
+
+/* ---------- dialog: only for confirming a kubeconfig write ---------- */
+.dialog { width: min(520px, calc(100vw - 48px)); padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-sheet); background: var(--surface); color: var(--text); box-shadow: 0 4px 12px rgb(0 0 0 / 0.06); }
+.dialog::backdrop { background: rgb(10 12 14 / 0.4); }
+.dialog h2 { font-size: 18px; line-height: 24px; font-weight: 600; overflow-wrap: anywhere; }
+.dialog .sub { margin-top: 4px; color: var(--muted); overflow-wrap: anywhere; }
+.dialog-block { margin-top: 20px; }
+.dialog-block h3 { font-size: var(--fs-body); font-weight: 500; margin-bottom: 8px; }
+.dialog .hint { margin-top: 16px; }
+.name-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.name-list li { padding: 2px 8px; border-radius: 4px; background: var(--raised); font-family: var(--mono); font-size: 13px; }
+.name-list.muted li { font-family: var(--font); color: var(--muted); }
+.name-list.muted strong { color: var(--text); font-weight: 500; }
+.dialog .inline-error { margin: 16px 0 0; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+@media (prefers-reduced-motion: no-preference) {
+  .dialog[open] { animation: dialog-in 160ms var(--ease-out); }
+  @keyframes dialog-in { from { opacity: 0; transform: translateY(6px) scale(0.99); } }
+}
+
+/* narrow windows: label column above its panel; commands in panels wrap instead of hiding their end */
+@media (max-width: 1100px) {
+  .setting { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+}
+.panel .command { align-items: flex-start; }
+.panel .command code { white-space: normal; overflow-wrap: anywhere; padding-top: 4px; }

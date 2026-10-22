@@ -19,11 +19,16 @@ export async function configMergeCommand(
     const parser = new KubeConfigParser();
     const manager = new ContextManager();
     const target = options.output || manager.getConfigPath();
-    const targetExists = await parser.configExists(target);
 
-    // Existing target first, so its entries win on conflicts
-    const inputs = targetExists && !options.output ? [target, ...files] : files;
-    const { config, skipped } = await new KubeConfigMerger().mergeFiles(inputs);
+    // With -o the inputs are merged on their own; otherwise into the default kubeconfig
+    const plan = options.output
+      ? {
+          ...(await new KubeConfigMerger().mergeFiles(files)),
+          inputs: files,
+          added: [] as string[],
+        }
+      : await new KubeConfigMerger().planMerge(target, files);
+    const { config, skipped, inputs } = plan;
 
     console.log(chalk.cyan('\nMerge preview'));
     console.log(chalk.dim(`  Target:   ${target}`));
@@ -56,7 +61,7 @@ export async function configMergeCommand(
     if (options.output) {
       await parser.writeConfig(target, config);
     } else {
-      const backup = await manager.replaceConfig(config);
+      const { backup } = await manager.mergeFiles(files);
       if (backup) console.log(chalk.dim(`  Backup: ${backup}`));
     }
 

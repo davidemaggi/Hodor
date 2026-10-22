@@ -6,6 +6,15 @@ export interface MergeResult {
   skipped: Array<{ kind: 'cluster' | 'user' | 'context'; name: string; source: number }>;
 }
 
+export interface MergePlan extends MergeResult {
+  /** File that will be written */
+  target: string;
+  /** Files read, in priority order (the target first when it exists) */
+  inputs: string[];
+  /** Context names that are new in the target */
+  added: string[];
+}
+
 /**
  * Merges multiple kubeconfig files into one. The first config wins on name conflicts,
  * matching kubectl's KUBECONFIG merge rules.
@@ -80,6 +89,26 @@ export class KubeConfigMerger {
       configs.push(await this.parser.parseFile(filePath));
     }
     return this.mergeWithReport(configs);
+  }
+
+  /**
+   * Work out what merging `files` into `target` would do, without writing anything.
+   * Entries already in the target win on name conflicts.
+   */
+  async planMerge(target: string, files: string[]): Promise<MergePlan> {
+    const targetExists = await this.parser.configExists(target);
+    const inputs = targetExists ? [target, ...files.filter((f) => f !== target)] : files;
+    const result = await this.mergeFiles(inputs);
+    const before = new Set(
+      targetExists ? (await this.parser.parseFile(target)).contexts.map((c) => c.name) : []
+    );
+
+    return {
+      ...result,
+      target,
+      inputs,
+      added: result.config.contexts.map((c) => c.name).filter((name) => !before.has(name)),
+    };
   }
 
   /**

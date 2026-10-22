@@ -5,6 +5,25 @@ import * as os from 'os';
 import * as fs from 'fs/promises';
 
 /**
+ * An API error that keeps the HTTP status and the server's own message
+ */
+export class KubernetesApiError extends Error {
+  constructor(
+    message: string,
+    public statusCode?: number
+  ) {
+    super(message);
+    this.name = 'KubernetesApiError';
+  }
+}
+
+function apiError(prefix: string, error: any): KubernetesApiError {
+  const status = error?.response?.statusCode ?? error?.statusCode;
+  const detail = error?.body?.message || error?.message || String(error);
+  return new KubernetesApiError(`${prefix}: ${detail}`, status);
+}
+
+/**
  * Kubernetes client wrapper around @kubernetes/client-node
  */
 export class KubernetesClient {
@@ -125,7 +144,7 @@ export class KubernetesClient {
       const response = await api.listNamespacedPod(namespace);
       return response.body.items;
     } catch (error) {
-      throw new Error(`Failed to list pods in namespace '${namespace}': ${error}`);
+      throw apiError(`Failed to list pods in namespace '${namespace}'`, error);
     }
   }
 
@@ -138,7 +157,7 @@ export class KubernetesClient {
       const response = await api.listNamespacedService(namespace);
       return response.body.items;
     } catch (error) {
-      throw new Error(`Failed to list services in namespace '${namespace}': ${error}`);
+      throw apiError(`Failed to list services in namespace '${namespace}'`, error);
     }
   }
 
@@ -151,7 +170,7 @@ export class KubernetesClient {
       const response = await api.listNamespace();
       return response.body.items;
     } catch (error) {
-      throw new Error(`Failed to list namespaces: ${error}`);
+      throw apiError('Failed to list namespaces', error);
     }
   }
 

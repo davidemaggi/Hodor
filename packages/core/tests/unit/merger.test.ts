@@ -32,3 +32,27 @@ describe('KubeConfigMerger', () => {
     expect(() => merger.merge([])).toThrow();
   });
 });
+
+describe('KubeConfigMerger.planMerge', () => {
+  it('previews what merging into an existing kubeconfig adds and skips', async () => {
+    const { tmpDir, kubeconfig: kc } = await import('../helpers/tmp');
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const dir = await tmpDir();
+    const target = path.join(dir, 'config');
+    const download = path.join(dir, 'download.yaml');
+    await fs.writeFile(target, kc({ contexts: [{ name: 'dev' }] }));
+    await fs.writeFile(download, kc({ contexts: [{ name: 'dev' }, { name: 'staging' }] }));
+
+    const plan = await new KubeConfigMerger().planMerge(target, [download]);
+    expect(plan.inputs).toEqual([target, download]);
+    expect(plan.added).toEqual(['staging']);
+    expect(plan.skipped.map((s) => `${s.kind}:${s.name}`)).toEqual([
+      'cluster:dev',
+      'user:me',
+      'context:dev',
+    ]);
+    // nothing written
+    expect(await fs.readFile(target, 'utf-8')).not.toContain('staging');
+  });
+});

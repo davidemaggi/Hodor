@@ -2,13 +2,16 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { DoorOpen, Layers, Server, Settings, Star } from 'lucide-react';
 import { Mark } from './components/mark';
-import { useAppInfo, useClusters, useRunning } from './queries';
+import { useAppInfo, useClusters, useRunning, useSettings } from './queries';
+import { clusterPath } from './views/clusters';
 
 export const Shell: React.FC = () => {
   const { t } = useTranslation();
   const info = useAppInfo();
   const clusters = useClusters();
   const running = useRunning();
+  const settings = useSettings();
+  const selected = clusters.data?.find((c) => c.id === settings.data?.lastUsedCluster);
 
   const kubectlDefault = clusters.data?.find((c) => c.isDefault);
   const doors = running.data?.reduce((sum, r) => sum + r.forwards.length, 0) ?? 0;
@@ -31,10 +34,19 @@ export const Shell: React.FC = () => {
       </header>
 
       <nav className="sidebar" aria-label={t('nav.label')}>
-        <NavLink to="/clusters" className="nav-item">
+        <NavLink to="/clusters" end className="nav-item">
           <Server aria-hidden="true" />
           {t('nav.clusters')}
         </NavLink>
+        {selected && (
+          <NavLink
+            to={clusterPath(selected.id)}
+            className="nav-item nav-sub"
+            title={t('nav.selectedCluster')}
+          >
+            <span className="truncate">{selected.name}</span>
+          </NavLink>
+        )}
         <NavLink to="/templates" className="nav-item">
           <Layers aria-hidden="true" />
           {t('nav.templates')}
