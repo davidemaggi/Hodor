@@ -2,7 +2,7 @@
 
 Where Hodor is, and where it's going. No made-up dates: things ship when they work.
 
-**Now:** `0.7.0-dev` · **Next stop:** `1.0.0 "Aerys"`
+**Now:** `0.8.0-dev` · **Next stop:** `1.0.0 "Aerys"`
 
 Legend: ✅ done and tested · 🔜 next · 📋 planned · 💭 maybe
 
@@ -71,24 +71,23 @@ What exists today and has been exercised against a real cluster.
 - ✅ Production clusters: confirm before kubectl points at them, amber top bar while it does; Undo after every kubectl change
 - ✅ Impeccable review (25/40) acted on: P1s and P2s fixed; keyboard shortcuts move to 0.8, live forward status to 0.9
 
-## 🔜 0.8 · Templates page
+## ✅ 0.8 · Templates page
 
-- Keyboard shortcuts: `/` to filter, ⌘K command palette, ⌘1-4 for the sections
+- ✅ Build templates by clicking ports of services and pods on a cluster; local ports suggested (80 → 10080, 5432 → 15432) avoiding ports other templates use; pods owned by a Deployment are forwarded through the Deployment
+- ✅ Edit everything: name, description, tags, forwards (kind, name, namespace, ports), linked secret and config map names (suggested from the cluster)
+- ✅ Inline validation: duplicate local ports or names, invalid names and ports, ports shared with other templates
+- ✅ Search (names, tags, ports), tag filters, drag & drop (or Alt+↑/↓) to reorder templates and forwards
+- ✅ kubectl commands for a template or one forward, for bash (Linux/macOS) or PowerShell, any context, single commands or a full script, one click to copy
+- ✅ Import and export one or many templates; imports keep only template fields, so files can't smuggle cluster details in
+- ✅ Edit a running template → "Restart now?"; delete a running one → stops it first
+- ✅ Keyboard: `/` to search, ⌘/Ctrl+K palette, ⌘/Ctrl+1-4 sections
 
-- Build templates by picking pods/services and ports from the selected cluster
-- Name, optional description, tags
-- Search, tag filters
-- Drag & drop to reorder templates and forwards (needs an explicit order in storage)
-- Generate kubectl commands for a template or a single forward, per OS, copy to clipboard
-- Import / export
-
-## 📋 0.9 · Running templates, secrets & config maps
+## 🔜 0.9 · Running templates, secrets & config maps
 
 - Run a template on a cluster chosen at launch
 - Start/stop a single forward, a template, or everything (GUI and CLI)
 - Live logs per forward
 - Link secrets / config maps to a forward; view values and copy them to the clipboard while it runs (values never written to disk or logs)
-- Edit a running template → "restart now?"
 
 **Tray**
 

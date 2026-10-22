@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ClusterDetailView } from './views/cluster-detail';
+import { TemplateEditorView } from './views/template-editor';
 import { clusterPath } from './views/clusters';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@fontsource/ibm-plex-sans/400.css';
@@ -47,6 +48,8 @@ const App: React.FC = () => {
           <Route path="/clusters" element={<ClustersView />} />
           <Route path="/clusters/:id" element={<ClusterDetailView />} />
           <Route path="/templates" element={<TemplatesView />} />
+          <Route path="/templates/new" element={<TemplateEditorView key="new" />} />
+          <Route path="/templates/:id" element={<TemplateEditorView />} />
           <Route path="/running" element={<RunningView />} />
           <Route path="/settings" element={<SettingsView />} />
           <Route path="/" element={<Start />} />

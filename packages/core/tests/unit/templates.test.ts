@@ -83,6 +83,64 @@ describe('TemplateManager', () => {
     expect((await m.addForward(t.id, fwd('d', 4))).forwards).toHaveLength(3);
   });
 
+  it('drops unknown fields on import, so a file cannot smuggle cluster details in', async () => {
+    const { m } = await manager();
+    const file = JSON.stringify({
+      templates: [
+        {
+          name: 'x',
+          server: 'https://evil',
+          context: 'prod',
+          tags: [],
+          forwards: [{ ...fwd('a', 18000), token: 'secret' }],
+        },
+      ],
+    });
+    const [imported] = await m.importTemplates(file);
+    expect(JSON.stringify(imported)).not.toMatch(/evil|prod|token|secret/);
+  });
+
+  it('rejects invalid template files with a readable message', async () => {
+    const { m } = await manager();
+    await expect(m.importTemplates('nope')).rejects.toThrow(/Not a JSON file/);
+    await expect(m.importTemplates('{"foo":1}')).rejects.toThrow(/Not a Hodor template file/);
+    await expect(
+      m.importTemplates(
+        JSON.stringify({ templates: [{ name: 'bad', forwards: [{ ...fwd('a', 70000) }] }] })
+      )
+    ).rejects.toThrow(/Template 'bad': forwards.0.localPort/);
+    await expect(
+      m.importTemplates(
+        JSON.stringify({
+          templates: [{ name: 'ns', forwards: [{ ...fwd('a', 1), namespace: 'Bad NS' }] }],
+        })
+      )
+    ).rejects.toThrow(/namespace/);
+  });
+
+  it('renames imports whose name already exists', async () => {
+    const { m } = await manager();
+    await m.create({ name: 'stack', forwards: [fwd('a', 1)] });
+    const file = m.exportMultiple(m.getAll().map((t) => t.id));
+    const [again, third] = await m.importTemplates(file + '');
+    expect(again.name).toBe('stack (2)');
+    expect((await m.importTemplates(file))[0].name).toBe('stack (3)');
+    expect(third).toBeUndefined();
+  });
+
+  it('keeps an explicit order', async () => {
+    const { m, file } = await manager();
+    const a = await m.create({ name: 'a', forwards: [fwd('a', 1)] });
+    const b = await m.create({ name: 'b', forwards: [fwd('b', 2)] });
+    const c = await m.create({ name: 'c', forwards: [fwd('c', 3)] });
+    await m.reorder([c.id, a.id]);
+    expect(m.getAll().map((t) => t.name)).toEqual(['c', 'a', 'b']);
+    const reloaded = new TemplateStorage(file);
+    await reloaded.initialize();
+    expect(reloaded.getAll().map((t) => t.name)).toEqual(['c', 'a', 'b']);
+    expect(b).toBeDefined();
+  });
+
   it('exports templates without any cluster details and imports them as new', async () => {
     const { m } = await manager();
     const t = await m.create({
@@ -92,7 +150,8 @@ describe('TemplateManager', () => {
     });
 
     const json = m.export(t.id);
-    expect(json).not.toMatch(/server|context|cluster|token/i);
+    expect(json).not.toMatch(/server|context|cluster|token|"id"|createdAt/i);
+    expect(JSON.parse(json)).toMatchObject({ kind: 'hodor-templates', version: 1 });
 
     const { m: other } = await manager();
     const imported = await other.import(json);

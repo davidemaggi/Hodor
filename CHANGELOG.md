@@ -7,6 +7,23 @@ Nothing has been released yet: everything below lives on `develop`.
 
 ## [Unreleased]
 
+### 0.8.0-dev
+
+#### Added
+
+- Desktop app, Templates: create and edit templates by clicking ports on a cluster, with suggested local ports, linked secret/config map names, validation and conflict warnings
+- Search, tag filters, drag & drop or Alt+↑/↓ reordering of templates and forwards (the order is saved)
+- kubectl commands panel per template: bash or PowerShell, one forward or all, any context, full script
+- Import/export of one or many templates from the app (native file dialogs)
+- Editing a running template offers to restart it; deleting one stops it first
+- Keyboard: `/` search, ⌘/Ctrl+K command palette, ⌘/Ctrl+1-4 sections
+- Core: `ResourceBrowser.linkables` (secret and config map names only), `TemplateStorage.reorder`, template file schema, `suggestLocalPort`, `findPortConflicts`
+
+#### Changed
+
+- Template export format is now `{ "kind": "hodor-templates", "version": 1, "templates": [...] }` without ids or timestamps; old exports still import
+- Imports are validated field by field and unknown fields are dropped; a name that already exists gets a ` (2)` suffix
+
 ### 0.7.0-dev
 
 #### Added

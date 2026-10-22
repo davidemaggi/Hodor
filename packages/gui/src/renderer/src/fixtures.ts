@@ -1,5 +1,5 @@
 import type { Cluster, ClusterHealth, PodView, ServiceView, Settings } from '@hodor/core';
-import type { HodorApi, MergePreview, RunningTemplate, TemplateSummary } from '../../shared/api';
+import type { HodorApi, MergePreview, RunningTemplate, TemplateDetail } from '../../shared/api';
 
 // Sample data for the browser preview only. Believable, small, and consistent with itself.
 const params = new URLSearchParams(window.location.search);
@@ -55,7 +55,7 @@ const health: Record<string, ClusterHealth> = {
   [clusters[3].id]: { reachable: true, version: 'v1.32.4' },
 };
 
-const templates: TemplateSummary[] = [
+const templates: TemplateDetail[] = [
   {
     id: 'a1f3c09e2b7d4e51',
     name: 'shop-dev',
@@ -79,6 +79,8 @@ const templates: TemplateSummary[] = [
         resourceName: 'postgres',
         localPort: 15432,
         remotePort: 5432,
+        secrets: ['postgres-credentials'],
+        configMaps: ['shop-db-config'],
       },
       {
         name: 'redis',
@@ -326,6 +328,16 @@ export const fixtureApi: HodorApi = {
         : Promise.reject(new Error('getaddrinfo ENOTFOUND k8s.staging.northwind.dev')),
     pods: (_id, ns) => later(ns === 'shop' ? pods : [], 500),
     services: (_id, ns) => later(ns === 'shop' ? services : [], 400),
+    linkables: (_id, ns) =>
+      later(
+        ns === 'shop'
+          ? {
+              secrets: ['postgres-credentials', 'redis-auth', 'stripe-api-key'],
+              configMaps: ['shop-api-config', 'shop-db-config'],
+            }
+          : { secrets: [], configMaps: [] },
+        300
+      ),
   },
   kubectl: {
     setContext: async (clusterId) => {
@@ -362,7 +374,52 @@ export const fixtureApi: HodorApi = {
         400
       ),
   },
-  templates: { list: () => later(templates) },
+  templates: {
+    list: () => later(templates),
+    get: (id) => {
+      const t = templates.find((x) => x.id === id);
+      return t ? later(t, 150) : Promise.reject(new Error('Template not found'));
+    },
+    create: async (input) => {
+      const t: TemplateDetail = {
+        ...input,
+        id: Math.random().toString(16).slice(2, 18).padEnd(16, '0'),
+        updatedAt: new Date().toISOString(),
+        running: false,
+      };
+      templates.push(t);
+      return later(t, 250);
+    },
+    update: async (id, input) => {
+      const i = templates.findIndex((x) => x.id === id);
+      templates[i] = { ...templates[i], ...input, updatedAt: new Date().toISOString() };
+      return later({ template: templates[i], running: templates[i].running }, 250);
+    },
+    remove: async (id) => {
+      templates.splice(
+        templates.findIndex((x) => x.id === id),
+        1
+      );
+      running = running.filter((r) => r.templateId !== id);
+    },
+    reorder: async (ids) => {
+      templates.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+    },
+    exportToFile: (ids) =>
+      later(`${home}/${ids.length === 1 ? 'shop-dev' : 'templates'}.hodor.json`, 300),
+    importFromFile: () => later(['qa-smoke'], 300),
+    commands: async (id, options) => {
+      const t = templates.find((x) => x.id === id)!;
+      const ctx = options.context ? ` --context ${options.context}` : '';
+      return t.forwards
+        .filter((f) => !options.forward || f.name === options.forward)
+        .map(
+          (f) =>
+            `kubectl port-forward${ctx} -n ${f.namespace} ${f.resourceType}/${f.resourceName} ${f.localPort}:${f.remotePort}`
+        )
+        .join('\n');
+    },
+  },
   running: {
     list: () => later(running),
     stop: async (templateId) => {
@@ -371,6 +428,7 @@ export const fixtureApi: HodorApi = {
       if (t) t.running = false;
       return later(true, 300);
     },
+    restart: () => later(true, 200),
   },
   settings: {
     get: () => later(settings, 50),

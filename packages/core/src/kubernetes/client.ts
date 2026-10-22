@@ -175,6 +175,37 @@ export class KubernetesClient {
   }
 
   /**
+   * Names of the secrets in a namespace. Values are dropped right here and never returned.
+   */
+  async listSecretNames(namespace: string): Promise<string[]> {
+    try {
+      const response = await this.getCoreV1Api().listNamespacedSecret(namespace);
+      return response.body.items
+        .filter((s) => s.type !== 'kubernetes.io/service-account-token')
+        .map((s) => s.metadata?.name || '')
+        .filter(Boolean)
+        .sort();
+    } catch (error) {
+      throw apiError(`Failed to list secrets in namespace '${namespace}'`, error);
+    }
+  }
+
+  /**
+   * Names of the config maps in a namespace
+   */
+  async listConfigMapNames(namespace: string): Promise<string[]> {
+    try {
+      const response = await this.getCoreV1Api().listNamespacedConfigMap(namespace);
+      return response.body.items
+        .map((c) => c.metadata?.name || '')
+        .filter((name) => name && name !== 'kube-root-ca.crt')
+        .sort();
+    } catch (error) {
+      throw apiError(`Failed to list config maps in namespace '${namespace}'`, error);
+    }
+  }
+
+  /**
    * Get a secret by name
    */
   async getSecret(name: string, namespace: string): Promise<k8s.V1Secret | null> {

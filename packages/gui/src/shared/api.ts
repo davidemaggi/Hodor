@@ -1,6 +1,7 @@
 import type {
   Cluster,
   ClusterHealth,
+  LinkableNames,
   NamespaceList,
   PodView,
   PortForwardConfig,
@@ -25,6 +26,8 @@ export interface HodorApi {
     namespaces(clusterId: string): Promise<NamespaceList>;
     pods(clusterId: string, namespace: string): Promise<PodView[]>;
     services(clusterId: string, namespace: string): Promise<ServiceView[]>;
+    /** Names only: secret and config map values never leave the main process here */
+    linkables(clusterId: string, namespace: string): Promise<LinkableNames>;
   };
   kubectl: {
     /** Make a context kubectl's default. Only for contexts in the default kubeconfig. */
@@ -44,10 +47,27 @@ export interface HodorApi {
   };
   templates: {
     list(): Promise<TemplateSummary[]>;
+    get(id: string): Promise<TemplateDetail>;
+    create(input: TemplateInput): Promise<TemplateDetail>;
+    /** Returns whether the template is running, so the UI can offer a restart */
+    update(
+      id: string,
+      input: TemplateInput
+    ): Promise<{ template: TemplateDetail; running: boolean }>;
+    /** Stops it first when it's running */
+    remove(id: string): Promise<void>;
+    reorder(ids: string[]): Promise<void>;
+    /** Save dialog; returns the file written, or null if cancelled */
+    exportToFile(ids: string[]): Promise<string | null>;
+    /** Open dialog; returns the names imported, or null if cancelled */
+    importFromFile(): Promise<string[] | null>;
+    commands(id: string, options: CommandRequest): Promise<string>;
   };
   running: {
     list(): Promise<RunningTemplate[]>;
     stop(templateId: string): Promise<boolean>;
+    /** Ask the process running it to reload the template and restart its forwards */
+    restart(templateId: string): Promise<boolean>;
   };
   settings: {
     get(): Promise<Settings>;
@@ -97,6 +117,29 @@ export interface TemplateSummary {
   running: boolean;
 }
 
+export type TemplateInput = {
+  name: string;
+  description?: string;
+  tags: string[];
+  forwards: PortForwardConfig[];
+};
+
+export interface TemplateDetail extends TemplateInput {
+  id: string;
+  updatedAt: string;
+  running: boolean;
+}
+
+export interface CommandRequest {
+  platform: 'linux' | 'macos' | 'windows';
+  /** Only this forward */
+  forward?: string;
+  /** kubectl context to target */
+  context?: string;
+  /** A full script instead of one command per line */
+  script?: boolean;
+}
+
 export interface RunningForward extends ForwardSummary {
   /** Whether something answers on 127.0.0.1:localPort right now */
   listening: boolean;
@@ -131,6 +174,16 @@ export const CHANNELS = {
   clustersNamespaces: 'hodor:clusters:namespaces',
   clustersPods: 'hodor:clusters:pods',
   clustersServices: 'hodor:clusters:services',
+  clustersLinkables: 'hodor:clusters:linkables',
+  templatesGet: 'hodor:templates:get',
+  templatesCreate: 'hodor:templates:create',
+  templatesUpdate: 'hodor:templates:update',
+  templatesRemove: 'hodor:templates:remove',
+  templatesReorder: 'hodor:templates:reorder',
+  templatesExport: 'hodor:templates:export',
+  templatesImport: 'hodor:templates:import',
+  templatesCommands: 'hodor:templates:commands',
+  runningRestart: 'hodor:running:restart',
   kubectlSetContext: 'hodor:kubectl:set-context',
   kubectlSetNamespace: 'hodor:kubectl:set-namespace',
   kubeconfigChoose: 'hodor:kubeconfig:choose',

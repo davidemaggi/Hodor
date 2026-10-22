@@ -14,7 +14,7 @@ Port-forwards you can save, share, and run on any cluster, without seven termina
 
 ---
 
-> ⚠️ **Early days.** The CLI works; the desktop app is taking shape (clusters with their pods, services and ports, kubectl context switching, kubeconfig merging, templates and running forwards). There's no release to download: you build it from source. See the [roadmap](ROADMAP.md).
+> ⚠️ **Early days.** The CLI works; the desktop app is taking shape (clusters with their pods, services and ports, kubectl context switching, kubeconfig merging, a template editor, running forwards). There's no release to download: you build it from source. See the [roadmap](ROADMAP.md).
 
 ## Why
 
@@ -60,7 +60,7 @@ Ctrl+C to stop · add --logs to watch what happens
 
 ## Coming next
 
-In the desktop app: building templates by clicking, starting them, linked secrets and config maps you can copy with one click, drag & drop everywhere. Then installers and package managers. It's all in the [roadmap](ROADMAP.md).
+In the desktop app: starting templates from the app, starting them, linked secrets and config maps you can copy with one click, drag & drop everywhere. Then installers and package managers. It's all in the [roadmap](ROADMAP.md).
 
 ## Build it yourself
 

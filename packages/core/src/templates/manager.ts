@@ -232,6 +232,20 @@ export class TemplateManager {
   }
 
   /**
+   * Import every template in a file
+   */
+  async importTemplates(json: string): Promise<Template[]> {
+    return await this.storage.importTemplates(json);
+  }
+
+  /**
+   * Reorder templates
+   */
+  async reorder(ids: string[]): Promise<void> {
+    await this.storage.reorder(ids);
+  }
+
+  /**
    * Import a template
    */
   async import(json: string): Promise<Template> {

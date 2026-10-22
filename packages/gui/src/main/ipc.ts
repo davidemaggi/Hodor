@@ -7,7 +7,10 @@ import * as path from 'path';
 import { z } from 'zod';
 import {
   ClusterDiscovery,
+  CommandGenerator,
   ContextManager,
+  TemplateManager,
+  portableTemplateSchema,
   KubeConfigMerger,
   KubeConfigParser,
   ResourceBrowser,
@@ -16,9 +19,11 @@ import {
   TemplateStorage,
   VERSION,
   findKubectl,
+  type Template,
 } from '@hodor/core';
 import {
   CHANNELS,
+  type TemplateDetail,
   type ForwardSummary,
   type MergeOutcome,
   type MergePreview,
@@ -37,7 +42,17 @@ const droppedPathsSchema = z.array(z.string().min(1).max(4096)).min(1).max(10);
 const tokenSchema = z.string().uuid();
 const MAX_KUBECONFIG_BYTES = 5 * 1024 * 1024;
 const MERGE_TTL_MS = 10 * 60 * 1000;
+const commandRequestSchema = z
+  .object({
+    platform: z.enum(['linux', 'macos', 'windows']),
+    forward: z.string().max(63).optional(),
+    context: z.string().max(253).optional(),
+    script: z.boolean().optional(),
+  })
+  .strict();
+
 const templateIdSchema = z.string().regex(/^[a-f0-9]{8,64}$/);
+const templateIdsSchema = z.array(templateIdSchema).max(1000);
 const settingsPatchSchema = z
   .object({
     theme: z.enum(['system', 'light', 'dark']).optional(),
@@ -258,6 +273,141 @@ export function registerIpc(
       updatedAt: t.updatedAt.toISOString(),
       running: runningIds.has(t.id),
     }));
+  });
+
+  const toDetail = (t: Template, running: boolean): TemplateDetail => ({
+    id: t.id,
+    name: t.name,
+    description: t.description,
+    tags: t.tags,
+    forwards: t.forwards,
+    updatedAt: t.updatedAt.toISOString(),
+    running,
+  });
+
+  const managerAndRunning = async () => {
+    const [storage, running] = await Promise.all([templateStore(), registry.list()]);
+    return {
+      manager: new TemplateManager(storage),
+      runningIds: new Set(running.map((r) => r.templateId)),
+    };
+  };
+
+  const requireTemplate = (manager: TemplateManager, id: string) => {
+    const template = manager.get(id);
+    if (!template)
+      throw new Error('Template not found. It may have been deleted from the terminal.');
+    return template;
+  };
+
+  handle(CHANNELS.templatesGet, async (arg) => {
+    const { manager, runningIds } = await managerAndRunning();
+    const template = requireTemplate(manager, templateIdSchema.parse(arg));
+    return toDetail(template, runningIds.has(template.id));
+  });
+
+  handle(CHANNELS.templatesCreate, async (arg) => {
+    const input = portableTemplateSchema.parse(arg);
+    const { manager } = await managerAndRunning();
+    if (manager.nameExists(input.name))
+      throw new Error(`A template called '${input.name}' already exists`);
+    return toDetail(await manager.create(input), false);
+  });
+
+  handle(CHANNELS.templatesUpdate, async (arg) => {
+    const { id, input } = z
+      .object({ id: templateIdSchema, input: z.unknown() })
+      .strict()
+      .parse(arg);
+    const data = portableTemplateSchema.parse(input);
+    const { manager, runningIds } = await managerAndRunning();
+    requireTemplate(manager, id);
+    if (manager.nameExists(data.name, id))
+      throw new Error(`A template called '${data.name}' already exists`);
+    // An explicit undefined clears the description
+    const updated = await manager.update(id, { ...data, description: data.description });
+    return { template: toDetail(updated, runningIds.has(id)), running: runningIds.has(id) };
+  });
+
+  handle(CHANNELS.templatesRemove, async (arg) => {
+    const id = templateIdSchema.parse(arg);
+    const { manager, runningIds } = await managerAndRunning();
+    if (runningIds.has(id)) await registry.requestStop(id);
+    await manager.delete(id);
+  });
+
+  handle(CHANNELS.templatesReorder, async (arg) => {
+    const { manager } = await managerAndRunning();
+    await manager.reorder(templateIdsSchema.parse(arg));
+  });
+
+  handle(CHANNELS.templatesExport, async (arg) => {
+    const ids = templateIdsSchema.min(1).parse(arg);
+    const { manager } = await managerAndRunning();
+    const json = manager.exportMultiple(ids);
+    const first = requireTemplate(manager, ids[0]);
+    const suggested =
+      ids.length === 1
+        ? `${first.name.replace(/[^a-z0-9-_]+/gi, '-')}.hodor.json`
+        : 'templates.hodor.json';
+    const window = getWindow();
+    const options = {
+      title: 'Export templates',
+      defaultPath: path.join(os.homedir(), suggested),
+      filters: [{ name: 'Hodor templates', extensions: ['json'] }],
+    };
+    const result = window
+      ? await dialog.showSaveDialog(window, options)
+      : await dialog.showSaveDialog(options);
+    if (result.canceled || !result.filePath) return null;
+    await fs.writeFile(result.filePath, json + '\n', 'utf-8');
+    return result.filePath;
+  });
+
+  handle(CHANNELS.templatesImport, async () => {
+    const window = getWindow();
+    const options = {
+      title: 'Import templates',
+      properties: ['openFile'] as Array<'openFile'>,
+      filters: [{ name: 'Hodor templates', extensions: ['json'] }],
+    };
+    const result = window
+      ? await dialog.showOpenDialog(window, options)
+      : await dialog.showOpenDialog(options);
+    if (result.canceled || result.filePaths.length === 0) return null;
+    const stat = await fs.stat(result.filePaths[0]);
+    if (stat.size > 2 * 1024 * 1024) throw new Error('That file is too big to be a template file');
+    const { manager } = await managerAndRunning();
+    const imported = await manager.importTemplates(await fs.readFile(result.filePaths[0], 'utf-8'));
+    return imported.map((t) => t.name);
+  });
+
+  handle(CHANNELS.templatesCommands, async (arg) => {
+    const { id, options } = z
+      .object({ id: templateIdSchema, options: commandRequestSchema })
+      .strict()
+      .parse(arg);
+    const { manager } = await managerAndRunning();
+    const template = requireTemplate(manager, id);
+    const forwards = options.forward
+      ? template.forwards.filter((f) => f.name === options.forward)
+      : template.forwards;
+    if (forwards.length === 0) throw new Error(`No forward called '${options.forward}'`);
+    const generator = new CommandGenerator();
+    const commandOptions = { context: options.context };
+    return options.script
+      ? generator.generateShellScript(forwards, options.platform, commandOptions)
+      : generator
+          .generateTemplateCommands(forwards, options.platform, commandOptions)
+          .map((c) => c.command)
+          .join('\n');
+  });
+
+  handle(CHANNELS.runningRestart, (arg) => registry.requestRestart(templateIdSchema.parse(arg)));
+
+  handle(CHANNELS.clustersLinkables, async (arg) => {
+    const { clusterId, namespace } = browseSchema.parse(arg);
+    return (await browserFor(clusterId)).linkables(namespace);
   });
 
   handle(CHANNELS.runningList, async (): Promise<RunningTemplate[]> => {

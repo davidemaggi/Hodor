@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { Template } from '../types';
 import { randomBytes } from 'crypto';
+import { parseTemplateFile, serializeTemplates } from '../templates/schema';
 
 /**
  * Manages port-forward templates
@@ -179,77 +180,79 @@ export class TemplateStorage {
   }
 
   /**
-   * Export a template to JSON
+   * Export a template to the portable JSON format
    */
   exportTemplate(id: string): string {
-    const template = this.templates.get(id);
-    if (!template) {
-      throw new Error(`Template with id '${id}' not found`);
-    }
-
-    return JSON.stringify(template, null, 2);
+    return this.exportMultiple([id]);
   }
 
   /**
-   * Import a template from JSON
-   */
-  async importTemplate(json: string): Promise<Template> {
-    try {
-      const data = JSON.parse(json);
-
-      // Generate new ID and timestamps
-      const template: Template = {
-        ...data,
-        id: this.generateId(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      this.templates.set(template.id, template);
-      await this.save();
-
-      return template;
-    } catch (error) {
-      throw new Error(`Failed to import template: ${error}`);
-    }
-  }
-
-  /**
-   * Export multiple templates
+   * Export templates to the portable JSON format (no ids, timestamps or cluster details)
    */
   exportMultiple(ids: string[]): string {
-    const templates = ids
-      .map((id) => this.templates.get(id))
-      .filter((t): t is Template => t !== undefined);
-
-    return JSON.stringify({ templates }, null, 2);
+    const templates = ids.map((id) => {
+      const template = this.templates.get(id);
+      if (!template) throw new Error(`Template with id '${id}' not found`);
+      return template;
+    });
+    return serializeTemplates(templates);
   }
 
   /**
-   * Import multiple templates
+   * Import every template in a file. Unknown fields are dropped; names that already exist get a suffix.
+   */
+  async importTemplates(json: string): Promise<Template[]> {
+    const parsed = parseTemplateFile(json);
+    const names = new Set(Array.from(this.templates.values()).map((t) => t.name));
+    const now = new Date();
+
+    const imported = parsed.map((data) => {
+      let name = data.name;
+      for (let n = 2; names.has(name); n++) name = `${data.name} (${n})`;
+      names.add(name);
+      const template: Template = {
+        ...data,
+        name,
+        id: this.generateId(),
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.templates.set(template.id, template);
+      return template;
+    });
+
+    await this.save();
+    return imported;
+  }
+
+  /**
+   * Import a single template (the first one in the file)
+   */
+  async importTemplate(json: string): Promise<Template> {
+    return (await this.importTemplates(json))[0];
+  }
+
+  /**
+   * @deprecated use importTemplates()
    */
   async importMultiple(json: string): Promise<Template[]> {
-    try {
-      const data = JSON.parse(json);
-      const imported: Template[] = [];
+    return this.importTemplates(json);
+  }
 
-      for (const templateData of data.templates || []) {
-        const template: Template = {
-          ...templateData,
-          id: this.generateId(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-
-        this.templates.set(template.id, template);
-        imported.push(template);
-      }
-
-      await this.save();
-      return imported;
-    } catch (error) {
-      throw new Error(`Failed to import templates: ${error}`);
+  /**
+   * Put templates in the given order. Ids not listed keep their relative order at the end.
+   */
+  async reorder(ids: string[]): Promise<void> {
+    const ordered = new Map<string, Template>();
+    for (const id of ids) {
+      const template = this.templates.get(id);
+      if (template) ordered.set(id, template);
     }
+    for (const [id, template] of this.templates) {
+      if (!ordered.has(id)) ordered.set(id, template);
+    }
+    this.templates = ordered;
+    await this.save();
   }
 
   /**

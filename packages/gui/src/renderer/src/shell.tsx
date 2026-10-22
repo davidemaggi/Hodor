@@ -1,9 +1,12 @@
+import { useCallback, useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { DoorOpen, Layers, Server, Settings, Star } from 'lucide-react';
+import { DoorOpen, Layers, Search, Server, Settings, Star } from 'lucide-react';
 import { Mark } from './components/mark';
 import { useAppInfo, useClusters, useProduction, useRunning, useSettings } from './queries';
 import { clusterPath } from './views/clusters';
+import { Palette } from './components/palette';
+import { useShortcuts } from './hooks/use-shortcuts';
 
 export const Shell: React.FC = () => {
   const { t } = useTranslation();
@@ -12,6 +15,18 @@ export const Shell: React.FC = () => {
   const running = useRunning();
   const settings = useSettings();
   const production = useProduction();
+  const [palette, setPalette] = useState(false);
+  const openPalette = useCallback(() => setPalette(true), []);
+  useShortcuts(openPalette);
+  // Design-review hook for the browser preview only (?palette=1); dropped from real builds
+  useEffect(() => {
+    if (
+      import.meta.env.MODE === 'fixtures' &&
+      new URLSearchParams(window.location.search).has('palette')
+    )
+      setPalette(true);
+  }, []);
+  const mod = info.data?.platform === 'darwin' ? '⌘' : 'Ctrl+';
 
   const kubectlDefault = clusters.data?.find((c) => c.isDefault);
   const selected = clusters.data?.find((c) => c.id === settings.data?.lastUsedCluster);
@@ -41,7 +56,7 @@ export const Shell: React.FC = () => {
       </header>
 
       <nav className="sidebar" aria-label={t('nav.label')}>
-        <NavLink to="/clusters" end className="nav-item">
+        <NavLink to="/clusters" end className="nav-item" title={`${mod}1`}>
           <Server aria-hidden="true" />
           {t('nav.clusters')}
         </NavLink>
@@ -51,11 +66,11 @@ export const Shell: React.FC = () => {
             <span className="truncate">{selected.name}</span>
           </NavLink>
         )}
-        <NavLink to="/templates" className="nav-item">
+        <NavLink to="/templates" className="nav-item" title={`${mod}2`}>
           <Layers aria-hidden="true" />
           {t('nav.templates')}
         </NavLink>
-        <NavLink to="/running" className="nav-item">
+        <NavLink to="/running" className="nav-item" title={`${mod}3`}>
           <DoorOpen aria-hidden="true" />
           {t('nav.running')}
           {doors > 0 && (
@@ -66,7 +81,12 @@ export const Shell: React.FC = () => {
           )}
         </NavLink>
         <div className="bottom">
-          <NavLink to="/settings" className="nav-item">
+          <button type="button" className="nav-item palette-hint" onClick={openPalette}>
+            <Search aria-hidden="true" />
+            {t('palette.open')}
+            <kbd>{mod}K</kbd>
+          </button>
+          <NavLink to="/settings" className="nav-item" title={`${mod}4`}>
             <Settings aria-hidden="true" />
             {t('nav.settings')}
           </NavLink>
@@ -77,6 +97,7 @@ export const Shell: React.FC = () => {
       <main className="sheet">
         <Outlet />
       </main>
+      <Palette open={palette} onClose={() => setPalette(false)} />
     </div>
   );
 };

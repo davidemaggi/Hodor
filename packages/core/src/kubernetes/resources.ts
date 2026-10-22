@@ -39,6 +39,12 @@ export interface ServiceView {
   ports: ServicePortView[];
 }
 
+export interface LinkableNames {
+  /** null when the user may not list them; they can still type a name */
+  secrets: string[] | null;
+  configMaps: string[] | null;
+}
+
 export interface NamespaceList {
   namespaces: string[];
   /** False when the user may not list namespaces; the list then holds the context's namespace only */
@@ -127,6 +133,23 @@ export class ResourceBrowser {
 
   async pods(namespace: string): Promise<PodView[]> {
     return (await this.client.listPods(namespace)).map(summarizePod).sort(byName);
+  }
+
+  /** Names of secrets and config maps a forward can link to */
+  async linkables(namespace: string): Promise<LinkableNames> {
+    const orNull = async (load: () => Promise<string[]>) => {
+      try {
+        return await load();
+      } catch (error) {
+        if (error instanceof KubernetesApiError && error.statusCode === 403) return null;
+        throw error;
+      }
+    };
+    const [secrets, configMaps] = await Promise.all([
+      orNull(() => this.client.listSecretNames(namespace)),
+      orNull(() => this.client.listConfigMapNames(namespace)),
+    ]);
+    return { secrets, configMaps };
   }
 
   async services(namespace: string): Promise<ServiceView[]> {

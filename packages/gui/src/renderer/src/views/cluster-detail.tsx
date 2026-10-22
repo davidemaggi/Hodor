@@ -391,6 +391,7 @@ export const ClusterDetailView: React.FC = () => {
               <input
                 type="search"
                 className="input"
+                data-search
                 placeholder={t('detail.filter')}
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}

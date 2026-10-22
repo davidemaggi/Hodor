@@ -15,6 +15,8 @@ const api: HodorApi = {
       ipcRenderer.invoke(CHANNELS.clustersPods, { clusterId, namespace }),
     services: (clusterId, namespace) =>
       ipcRenderer.invoke(CHANNELS.clustersServices, { clusterId, namespace }),
+    linkables: (clusterId, namespace) =>
+      ipcRenderer.invoke(CHANNELS.clustersLinkables, { clusterId, namespace }),
   },
   kubectl: {
     setContext: (clusterId) => ipcRenderer.invoke(CHANNELS.kubectlSetContext, clusterId),
@@ -34,10 +36,19 @@ const api: HodorApi = {
   },
   templates: {
     list: () => ipcRenderer.invoke(CHANNELS.templatesList),
+    get: (id) => ipcRenderer.invoke(CHANNELS.templatesGet, id),
+    create: (input) => ipcRenderer.invoke(CHANNELS.templatesCreate, input),
+    update: (id, input) => ipcRenderer.invoke(CHANNELS.templatesUpdate, { id, input }),
+    remove: (id) => ipcRenderer.invoke(CHANNELS.templatesRemove, id),
+    reorder: (ids) => ipcRenderer.invoke(CHANNELS.templatesReorder, ids),
+    exportToFile: (ids) => ipcRenderer.invoke(CHANNELS.templatesExport, ids),
+    importFromFile: () => ipcRenderer.invoke(CHANNELS.templatesImport),
+    commands: (id, options) => ipcRenderer.invoke(CHANNELS.templatesCommands, { id, options }),
   },
   running: {
     list: () => ipcRenderer.invoke(CHANNELS.runningList),
     stop: (templateId) => ipcRenderer.invoke(CHANNELS.runningStop, templateId),
+    restart: (templateId) => ipcRenderer.invoke(CHANNELS.runningRestart, templateId),
   },
   settings: {
     get: () => ipcRenderer.invoke(CHANNELS.settingsGet),
