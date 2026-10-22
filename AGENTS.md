@@ -15,6 +15,14 @@ Rules for any AI agent (Claude Code, Copilot, …) touching this repo. Humans ar
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/): `feat(cli): …`, `fix(core): …`, `docs: …`, `test: …`, `chore: …`, `ci: …`.
 - Never commit to `main` directly, never force-push shared branches.
 
+## Releases and signing
+
+- Release workflows trigger **only on merge (push) to `main`**. Builds run on GitHub-hosted runners.
+- Every release ships unsigned artifacts with SHA256 checksums and GitHub build-provenance attestations.
+- From 1.0.1, Windows artifacts are also signed with Certum on a self-hosted runner (label `hodor-signing`). A preflight job checks the runner is online; if not, the signed upload is **skipped, not failed**.
+- The signing job never runs on `pull_request` events, uses a protected environment with required approval, and only handles artifacts produced by the GitHub-hosted build. It must not check out or build code itself.
+- Never put signing credentials in the repo or in workflow logs.
+
 ## Versioning
 
 - [SemVer](https://semver.org/). Pre-1.0 work is `0.x.y-dev`.

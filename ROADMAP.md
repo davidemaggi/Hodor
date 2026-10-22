@@ -89,9 +89,14 @@ What exists today and has been exercised against a real cluster.
 - Everything above, polished
 - Italian translation next to English, CLI strings translated too
 - Installers built by GitHub Actions **only on merge to `main`**: `.dmg` and `.zip` (macOS), NSIS `.exe` and `.zip` (Windows), `.AppImage`, `.deb`, `.rpm`, `.tar.gz` (Linux)
-- Windows artifacts signed with **Azure Artifact Signing**
+- **Unsigned**, but verifiable: SHA256 checksums and GitHub build-provenance attestations for every artifact (`gh attestation verify <file> --repo davidemaggi/Hodor`)
 - The installer puts the `hodor` CLI on the `PATH`
 - E2E tests (Playwright for the GUI) as the last gate before release
+
+## 📋 1.0.1 · Signed Windows builds
+
+- Windows artifacts signed with a **Certum** certificate on a self-hosted runner
+- From then on every release publishes both: the unsigned artifacts always, the signed ones when the signing runner is online (see "Decisions")
 
 ## 📋 1.1 · Package managers
 
@@ -108,6 +113,8 @@ What exists today and has been exercised against a real cluster.
 ## Decisions
 
 **Kubernetes versions.** Hodor talks to clusters through the official JavaScript SDK. The APIs it uses (core/v1, apps/v1, port-forward, `/version`) have been stable for years, so the SDK covers every version still in support. We'll only download a version-matched `kubectl` if we hit a real incompatibility, not preemptively.
+
+**Code signing.** Builds always run on GitHub-hosted runners. Only the Windows signing step runs on the maintainer's self-hosted runner (Certum needs it): it downloads the unsigned artifacts, signs them, uploads them as extra release assets. A preflight job checks whether that runner is online; if it isn't, the signed variant is skipped and the release still goes out unsigned. The signing job runs only on pushes to `main`, never on pull requests, behind a protected environment, because a self-hosted runner on a public repo must never execute code from forks.
 
 **Templates are cluster-agnostic.** They store namespaces, resource names and ports. The cluster is picked when you run them.
 
