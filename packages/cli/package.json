@@ -1,0 +1,45 @@
+{
+  "name": "@hodor/cli",
+  "version": "0.1.0-dev",
+  "description": "Hodor command-line interface",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "hodor": "./bin/hodor"
+  },
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc && chmod +x bin/hodor",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "kubernetes",
+    "k8s",
+    "cli",
+    "port-forward",
+    "kubectl"
+  ],
+  "author": "Davide Maggi <davide.maggi@live.com>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@hodor/core": "workspace:*",
+    "chalk": "^5.3.0",
+    "cli-table3": "^0.6.3",
+    "commander": "^11.1.0",
+    "inquirer": "^9.2.12",
+    "ora": "^7.0.1"
+  },
+  "devDependencies": {
+    "@types/cli-table3": "^0.6.3",
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.9.0",
+    "@vitest/coverage-v8": "^0.34.6",
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.6"
+  }
+}

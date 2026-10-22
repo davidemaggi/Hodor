@@ -1,0 +1,86 @@
+{
+  "name": "@hodor/gui",
+  "version": "0.1.0-dev",
+  "description": "Hodor desktop application",
+  "main": "./dist/main/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "tsc && electron .",
+    "build": "tsc && vite build",
+    "build:electron": "electron-builder",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "clean": "rm -rf dist out"
+  },
+  "keywords": [
+    "kubernetes",
+    "k8s",
+    "electron",
+    "port-forward",
+    "kubectl"
+  ],
+  "author": "Davide Maggi <davide.maggi@live.com>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@hodor/core": "workspace:*",
+    "@tanstack/react-query": "^5.8.4",
+    "electron-store": "^8.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.9.0",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@vitejs/plugin-react": "^4.1.1",
+    "@vitest/coverage-v8": "^0.34.6",
+    "concurrently": "^8.2.2",
+    "electron": "^27.1.0",
+    "electron-builder": "^24.9.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0",
+    "vitest": "^0.34.6"
+  },
+  "build": {
+    "appId": "com.hodor.app",
+    "productName": "Hodor",
+    "directories": {
+      "output": "out"
+    },
+    "files": [
+      "dist/**/*",
+      "resources/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "resources/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "icon": "resources/icon.ico",
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "sign": "./scripts/sign-win.js"
+    },
+    "linux": {
+      "icon": "resources/icon.png",
+      "category": "Development",
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm",
+        "tar.gz"
+      ]
+    }
+  }
+}

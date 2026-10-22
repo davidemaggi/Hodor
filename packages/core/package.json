@@ -1,0 +1,63 @@
+{
+  "name": "@hodor/core",
+  "version": "0.1.0-dev",
+  "description": "Hodor core business logic and Kubernetes operations",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./kubernetes": {
+      "import": "./dist/kubernetes/index.js",
+      "types": "./dist/kubernetes/index.d.ts"
+    },
+    "./config": {
+      "import": "./dist/config/index.js",
+      "types": "./dist/config/index.d.ts"
+    },
+    "./storage": {
+      "import": "./dist/storage/index.js",
+      "types": "./dist/storage/index.d.ts"
+    },
+    "./templates": {
+      "import": "./dist/templates/index.js",
+      "types": "./dist/templates/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "kubernetes",
+    "k8s",
+    "port-forward",
+    "kubectl"
+  ],
+  "author": "Davide Maggi <davide.maggi@live.com>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@kubernetes/client-node": "^0.20.0",
+    "i18next": "^23.7.6",
+    "keytar": "^7.9.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.9.0",
+    "@vitest/coverage-v8": "^0.34.6",
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.6"
+  }
+}
