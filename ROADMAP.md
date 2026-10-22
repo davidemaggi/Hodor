@@ -85,6 +85,14 @@ What exists today and has been exercised against a real cluster.
 - Link secrets / config maps to a forward; view values and copy them to the clipboard while it runs (values never written to disk or logs)
 - Edit a running template → "restart now?"
 
+**Tray**
+
+- Closing the window while forwards are running hides Hodor to the tray (menu bar on macOS) and keeps every forward alive; with nothing running, closing quits as usual
+- The tray menu lists running templates and their forwards: copy the local address, copy the values of the forward's linked secrets and config maps, stop a forward or a template, stop everything
+- Copied secret values are wiped from the clipboard after 30 seconds (only if the clipboard still holds them)
+- "Quit Hodor" from the tray asks before stopping running forwards
+- Linux: tray needs an AppIndicator-capable desktop; where there's none, closing the window asks instead of hiding
+
 ---
 
 ## 📋 1.0.0 "Aerys" · First stable release
@@ -107,7 +115,6 @@ What exists today and has been exercised against a real cluster.
 
 ## 💭 Later, maybe
 
-- Tray icon with running templates
 - Auto-update
 - Cloud-provider sugar (EKS / AKS / GKE login helpers)
 
