@@ -1,300 +1,127 @@
 # 🗺️ Hodor Roadmap
 
-> **Current Status:** Pre-release Development  
-> **Current Version:** `0.1.0-dev`  
-> **Target Release:** `1.0.0 - Aerys` (Q1 2024)
+Where Hodor is, and where it's going. No made-up dates: things ship when they work.
 
-This roadmap outlines the planned features and milestones for Hodor. We follow semantic versioning with Game of Thrones character codenames for major releases.
+**Now:** `0.5.1-dev` · **Next stop:** `1.0.0 "Aerys"`
 
----
-
-## 📅 Version History & Planning
-
-### 🏗️ Phase 0: Foundation (Current - Pre-release)
-
-**Version:** `0.1.0-dev` → `0.9.0-dev`  
-**Status:** 🔄 In Progress  
-**Timeline:** Now - Q4 2023
-
-#### Milestone 0.1.0 - Project Setup ✅
-
-- [x] Repository initialization
-- [x] Project structure (monorepo with pnpm workspaces)
-- [x] Basic tooling (TypeScript, ESLint, Prettier)
-- [x] Development branch workflow
-- [x] README and ROADMAP
-
-#### Milestone 0.2.0 - Core Package ✅
-
-- [x] Kubernetes client wrapper
-  - [x] SDK integration (@kubernetes/client-node)
-  - [x] kubectl binary fallback detection
-  - [x] Version compatibility layer
-- [x] Kubeconfig management
-  - [x] Read all configs from ~/.kube
-  - [x] Parse clusters, contexts, namespaces
-  - [x] Merge kubeconfig files
-- [x] Storage layer
-  - [x] Secure storage implementation (keytar)
-  - [x] Template persistence
-  - [x] Settings persistence
-  - [x] Last-used cluster memory
-
-#### Milestone 0.3.0 - Port-Forward Engine ✅
-
-- [x] Port-forward manager
-  - [x] Start/stop individual forwards
-  - [x] Multiple concurrent forwards
-  - [x] Status monitoring
-  - [x] Error handling and auto-restart
-  - [x] Log capture
-- [x] Template data model
-  - [x] Template CRUD operations
-  - [x] Tag system
-  - [x] Import/export functionality
-  - [x] Template validation
-
-#### Milestone 0.4.0 - CLI Foundation ✅
-
-- [x] CLI framework setup (Commander.js)
-- [x] Interactive prompts (Inquirer.js)
-- [x] Colorful output (Chalk)
-- [x] Basic commands:
-  - [x] `hodor clusters` - List clusters
-  - [x] `hodor ctx` - Switch context
-  - [x] `hodor ns` - Switch namespace
-  - [x] `hodor config merge` - Merge kubeconfigs
-
-#### Milestone 0.5.0 - CLI Template Management ✅
-
-- [x] Template commands:
-  - [x] `hodor template create` - Create template
-  - [x] `hodor template list` - List templates
-  - [x] `hodor template run` - Run template
-  - [x] `hodor template stop` - Stop template
-  - [x] `hodor template edit` - Edit template
-  - [x] `hodor template delete` - Delete template
-  - [x] `hodor template export` - Export template
-  - [x] `hodor template import` - Import template
-- [x] Template tag management
-- [x] Search and filtering
-
-#### Milestone 0.6.0 - GUI Foundation (Electron + React)
-
-- [ ] Electron setup
-- [ ] React + TypeScript setup
-- [ ] Routing structure
-- [ ] Theme system (light/dark)
-- [ ] Basic layout and navigation
-- [ ] Component library setup
-
-#### Milestone 0.7.0 - GUI Cluster Management
-
-- [ ] Cluster list view
-- [ ] Cluster detail view
-- [ ] Context switching UI
-- [ ] Namespace switching UI
-- [ ] Active cluster indicator
-- [ ] Kubeconfig merge UI
-
-#### Milestone 0.8.0 - GUI Template Management
-
-- [ ] Template list view with search/filter
-- [ ] Template creation wizard
-- [ ] Template editor
-  - [ ] Add/remove port-forwards
-  - [ ] Drag-and-drop reordering
-  - [ ] Tag management
-- [ ] Template execution view
-  - [ ] Start/stop controls
-  - [ ] Status indicators
-  - [ ] Log viewer
-- [ ] Import/Export UI
-
-#### Milestone 0.9.0 - Secrets & ConfigMaps
-
-- [ ] Fetch secrets for running forwards
-- [ ] Fetch configmaps for running forwards
-- [ ] Display values in GUI
-- [ ] Copy-to-clipboard functionality
-- [ ] CLI commands for viewing values
-- [ ] Security best practices implementation
+Legend: ✅ done and tested · 🔜 next · 📋 planned · 💭 maybe
 
 ---
 
-### 🎯 Phase 1: First Stable Release
+## ✅ 0.1 – 0.5 · Core engine and CLI
 
-**Version:** `1.0.0 - Aerys`  
-**Status:** 📋 Planned  
-**Timeline:** Q1 2024
+What exists today and has been exercised against a real cluster.
 
-#### Goals
+**Clusters & kubeconfig**
 
-- [ ] Feature-complete core functionality
-- [ ] Stable API
-- [ ] Full test coverage (unit + integration)
-- [ ] Documentation complete
-- [ ] Performance optimization
-- [ ] Security audit
+- ✅ Find every kubeconfig in `~/.kube` (plus the `KUBECONFIG` default), list all contexts
+- ✅ Live "is it up?" check per context, with server version
+- ✅ kubectl's default context is highlighted (★), last cluster used by Hodor is remembered (↺)
+- ✅ Change kubectl's default context / namespace (`hodor ctx`, `hodor ns`), only when kubectl is installed
+- ✅ Merge downloaded kubeconfigs into the default one, with preview and confirmation
+- ✅ Every kubeconfig write is atomic, owner-only (`0600`), keeps comments and is backed up to `~/.hodor/backups`
 
-#### Features
+**Port-forwarding**
 
-- [ ] i18n implementation (English + Italian)
-- [ ] kubectl command generation
-  - [ ] Linux format
-  - [ ] macOS format
-  - [ ] Windows PowerShell format
-- [ ] Advanced template features
-  - [ ] Template variables
-  - [ ] Template inheritance
-- [ ] Enhanced logging and debugging
-- [ ] Settings and preferences UI
-- [ ] Auto-update mechanism
+- ✅ Forward to pods, services (service port → targetPort, named ports too) and deployments
+- ✅ Local listeners bind to `127.0.0.1` only
+- ✅ Pod died? The next connection picks a healthy one
+- ✅ Per-forward logs (`--logs`)
 
-#### Testing & Quality
+**Templates**
 
-- [ ] Unit tests (>80% coverage)
-- [ ] Integration tests
-- [ ] E2E tests (Playwright)
-- [ ] Performance benchmarks
-- [ ] Memory leak detection
+- ✅ Create, list, search, filter by tag, edit everything, reorder forwards, delete
+- ✅ Templates hold resource names only: no servers, contexts or credentials
+- ✅ Run on any cluster, chosen at run time
+- ✅ Stop one or all running templates from another terminal
+- ✅ Editing a running template offers to restart it
+- ✅ Export / import one or many templates
+- ✅ Generate the equivalent `kubectl` commands or script for bash (Linux/macOS) and PowerShell
 
-#### Release Preparation
+**Plumbing**
 
-- [ ] GitHub Actions CI/CD pipeline
-- [ ] Build automation for all platforms
-- [ ] Code signing setup (Azure Artifact Sign for Windows)
-- [ ] Release artifacts
-  - [ ] .dmg (macOS)
-  - [ ] .exe installer (Windows)
-  - [ ] .deb / .rpm (Linux)
-  - [ ] .tar.gz (universal)
-  - [ ] .zip (universal)
+- ✅ Secrets go to the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service)
+- ✅ Unit tests for the core, opt-in integration tests against a real cluster and keychain
+
+**Not done yet, carried forward**
+
+- 📋 Start/stop a _single_ forward of a running template from the CLI (the engine supports it, the CLI has no controls yet) → 0.9
+- 📋 Kubernetes version compatibility strategy → 1.0 (see "Decisions")
 
 ---
 
-### 🚀 Phase 2: Package Manager Distribution
+## 🔜 0.6 · GUI foundation
 
-**Version:** `1.1.0 - Aerys`  
-**Status:** 📋 Planned  
-**Timeline:** Q2 2024
+- Electron + React + TypeScript app shell, secure defaults (context isolation, no node integration in the renderer, strict CSP)
+- Core runs in the main process, renderer talks to it over a typed IPC bridge
+- Snow (light) and Night (dark) themes, follows the OS by default
+- i18n wiring (English default)
+- Design with **Taste**, review with **Impeccable** (see [AGENTS.md](AGENTS.md))
 
-#### Package Managers
+## 📋 0.7 · Clusters page
 
-- [ ] Homebrew (macOS/Linux)
-- [ ] Winget (Windows)
-- [ ] Chocolatey (Windows)
-- [ ] Snap (Linux)
-- [ ] AppImage (Linux)
-- [ ] npm global install option
+- All contexts from all kubeconfigs, live status, ★ kubectl default, last used preselected on restart
+- Change kubectl default context / namespace (hidden when kubectl is missing)
+- Merge kubeconfigs (drop a file, preview, confirm)
+- Pick a cluster → browse pods and services with their exposed ports
 
-#### CI/CD Enhancements
+## 📋 0.8 · Templates page
 
-- [ ] Automated package publishing
-- [ ] Release notes generation
-- [ ] Changelog automation
-- [ ] Version bump automation
+- Build templates by picking pods/services and ports from the selected cluster
+- Name, optional description, tags
+- Search, tag filters
+- Drag & drop to reorder templates and forwards (needs an explicit order in storage)
+- Generate kubectl commands for a template or a single forward, per OS, copy to clipboard
+- Import / export
 
----
+## 📋 0.9 · Running templates, secrets & config maps
 
-### 🌟 Phase 3: Advanced Features
-
-**Version:** `1.2.0 - Aerys`  
-**Status:** 💭 Ideation  
-**Timeline:** Q2-Q3 2024
-
-#### Potential Features (to be refined)
-
-- [ ] Cloud provider integrations
-  - [ ] AWS EKS quick access
-  - [ ] Azure AKS quick access
-  - [ ] GCP GKE quick access
-- [ ] Team collaboration
-  - [ ] Shared template repository
-  - [ ] Team workspaces
-- [ ] Advanced monitoring
-  - [ ] Resource usage per forward
-  - [ ] Connection statistics
-  - [ ] Health checks
-- [ ] Plugin system
-  - [ ] Custom actions
-  - [ ] Third-party integrations
-- [ ] Template marketplace
-  - [ ] Share templates publicly
-  - [ ] Browse community templates
+- Run a template on a cluster chosen at launch
+- Start/stop a single forward, a template, or everything (GUI and CLI)
+- Live logs per forward
+- Link secrets / config maps to a forward; view values and copy them to the clipboard while it runs (values never written to disk or logs)
+- Edit a running template → "restart now?"
 
 ---
 
-### 🔮 Phase 4: Enterprise Features
+## 📋 1.0.0 "Aerys" · First stable release
 
-**Version:** `2.0.0 - Barristan`  
-**Status:** 💭 Future  
-**Timeline:** TBD
+- Everything above, polished
+- Italian translation next to English, CLI strings translated too
+- Installers built by GitHub Actions **only on merge to `main`**: `.dmg` and `.zip` (macOS), NSIS `.exe` and `.zip` (Windows), `.AppImage`, `.deb`, `.rpm`, `.tar.gz` (Linux)
+- Windows artifacts signed with **Azure Artifact Signing**
+- The installer puts the `hodor` CLI on the `PATH`
+- E2E tests (Playwright for the GUI) as the last gate before release
 
-#### Potential Features (exploratory)
+## 📋 1.1 · Package managers
 
-- [ ] RBAC integration
-- [ ] Audit logging
-- [ ] Centralized management server
-- [ ] SSO integration
-- [ ] Policy enforcement
-- [ ] Compliance reporting
+- Homebrew, winget, Chocolatey (and friends)
 
----
+## 💭 Later, maybe
 
-## 🏷️ Version Naming Convention
-
-Hodor follows **Semantic Versioning** with a twist:
-
-- **Format:** `MAJOR.MINOR.PATCH`
-- **Codenames:** Each major version gets a Game of Thrones character name
-  - `1.x.x` → **Aerys** (A)
-  - `2.x.x` → **Barristan** (B)
-  - `3.x.x` → **Catelyn** (C)
-  - ... (continuing alphabetically with GoT characters)
-
-**Rules:**
-
-- Patch versions (`1.0.1`, `1.0.2`) don't get codenames
-- Minor versions (`1.1.0`, `1.2.0`) share the major's codename
-- Only major versions get new codenames
+- Tray icon with running templates
+- Auto-update
+- Cloud-provider sugar (EKS / AKS / GKE login helpers)
 
 ---
 
-## 📊 Success Metrics
+## Decisions
 
-### Version 1.0 Success Criteria
+**Kubernetes versions.** Hodor talks to clusters through the official JavaScript SDK. The APIs it uses (core/v1, apps/v1, port-forward, `/version`) have been stable for years, so the SDK covers every version still in support. We'll only download a version-matched `kubectl` if we hit a real incompatibility, not preemptively.
 
-- [ ] Zero critical bugs
-- [ ] <100ms startup time (CLI)
-- [ ] <2s startup time (GUI)
-- [ ] <50MB memory usage (idle)
-- [ ] Works with Kubernetes 1.20+
-- [ ] 100+ GitHub stars
-- [ ] Active community feedback
+**Templates are cluster-agnostic.** They store namespaces, resource names and ports. The cluster is picked when you run them.
 
 ---
 
-## 🤝 Contributing to the Roadmap
+## Version names
 
-Have ideas? We'd love to hear them!
+[Semantic Versioning](https://semver.org/). Every major gets a Game of Thrones character, one letter per major: `1.x` → A, `2.x` → B, and so on. Minors share the major's name, patches get no name at all.
 
-- 💡 Open an issue with the `enhancement` label
-- 💬 Join discussions in GitHub Discussions
-- 🗳️ Vote on features you'd like to see
-
----
-
-## 📝 Change Log
-
-### 0.1.0-dev (Current)
-
-- Initial project setup
-- Repository structure
-- Development workflow established
-- Documentation foundation
+| Version | Name      |
+| ------- | --------- |
+| 1.x     | **Aerys** |
+| 2.x     | B… (TBD)  |
 
 ---
 
-_Last Updated: 2023-10-22_  
-_Maintained by: Davide Maggi_
+Got ideas? [Open an issue](https://github.com/davidemaggi/hodor/issues). Hodor listens. Hodor mostly says "Hodor", but he listens.

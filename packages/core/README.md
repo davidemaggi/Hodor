@@ -1,93 +1,38 @@
 # @hodor/core
 
-Core business logic and Kubernetes operations for Hodor.
+The engine behind Hodor: kubeconfig discovery and editing, cluster health checks, the port-forward engine, templates, storage. No UI here; the CLI and the desktop app both sit on top of it.
 
-## Overview
+```ts
+import { ClusterDiscovery, TemplateManager, TemplateStorage, TemplateExecutor } from '@hodor/core';
 
-This package contains the shared logic used by both the GUI and CLI applications:
+const discovery = new ClusterDiscovery();
+const cluster = (await discovery.list()).find((c) => c.isDefault)!;
 
-- **Kubernetes Client** — Wrapper around `@kubernetes/client-node` with kubectl fallback
-- **Kubeconfig Management** — Parse, merge, and manage multiple kubeconfig files
-- **Port-Forward Engine** — Start, stop, and monitor port-forwards
-- **Template Management** — CRUD operations for port-forward templates
-- **Secure Storage** — Store sensitive data securely
-- **Internationalization** — i18n support for multiple languages
+const storage = new TemplateStorage();
+await storage.initialize();
+const templates = new TemplateManager(storage);
 
-## Installation
-
-```bash
-pnpm add @hodor/core
-```
-
-## Usage
-
-```typescript
-import { KubernetesClient } from '@hodor/core/kubernetes';
-import { TemplateManager } from '@hodor/core/templates';
-
-// Initialize Kubernetes client
-const client = new KubernetesClient();
-
-// List clusters
-const clusters = await client.getClusters();
-
-// Create template manager
-const templateManager = new TemplateManager();
-
-// Create a new template
-const template = await templateManager.create({
-  name: 'my-dev-stack',
-  description: 'Development environment',
+const template = await templates.create({
+  name: 'dev-stack',
+  tags: ['dev'],
   forwards: [
     {
       name: 'api',
-      namespace: 'default',
-      resource: 'service/api',
-      localPort: 8080,
-      remotePort: 8080,
-    },
-    {
-      name: 'db',
-      namespace: 'default',
-      resource: 'service/postgres',
-      localPort: 5432,
-      remotePort: 5432,
+      namespace: 'shop',
+      resourceType: 'service',
+      resourceName: 'api',
+      localPort: 18080,
+      remotePort: 80,
     },
   ],
-  tags: ['dev', 'backend'],
 });
-```
 
-## Project Structure
-
+const executor = new TemplateExecutor(await discovery.connect(cluster));
+await executor.execute(template, cluster.id);
 ```
-src/
-├── kubernetes/      # K8s client and operations
-├── config/          # Kubeconfig management
-├── storage/         # Secure storage layer
-├── templates/       # Template management
-├── secrets/         # Secrets & ConfigMaps
-├── i18n/            # Internationalization
-├── types/           # TypeScript types
-└── utils/           # Utilities
-```
-
-## Development
 
 ```bash
-# Watch mode
-pnpm dev
-
-# Build
 pnpm build
-
-# Test
-pnpm test
-
-# Test with coverage
-pnpm test:coverage
+pnpm test                 # unit tests
+HODOR_IT=1 pnpm test      # + port-forward against kubectl's default context
 ```
-
-## License
-
-Apache 2.0

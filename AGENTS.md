@@ -1,443 +1,78 @@
-# 🤖 Hodor - AI Agent Conventions
+# AGENTS.md · How AI agents work on Hodor
 
-This document defines conventions and guidelines for AI-assisted development on the Hodor project. It ensures consistency when using Claude Code and other AI tools.
+Rules for any AI agent (Claude Code, Copilot, …) touching this repo. Humans are welcome to read along.
 
----
+## Ground rules
 
-## 🎨 UI/UX Design Process
+1. **Done means verified.** Never tick a box in `ROADMAP.md` or write a `CHANGELOG.md` entry for something that hasn't been built _and_ run. `pnpm build` and `pnpm test` must pass; behaviour that talks to Kubernetes must have been exercised against a real cluster (see "Testing").
+2. **Say what you didn't check.** If something couldn't be tested (interactive prompts, another OS, no cluster), write it down in the PR or the hand-off message.
+3. **Keep the docs true.** `README.md`, `ROADMAP.md` and `CHANGELOG.md` describe what exists today. No invented dates, no features "coming soon" presented as available.
 
-### Using Taste for Interface Creation
+## Git workflow
 
-When creating new UI components or pages:
+- All development happens on **`develop`** (feature branches off `develop` are fine for bigger work).
+- `main` only receives merges from `develop` for a release. **Release builds run only on merge to `main`.**
+- Commits follow [Conventional Commits](https://www.conventionalcommits.org/): `feat(cli): …`, `fix(core): …`, `docs: …`, `test: …`, `chore: …`, `ci: …`.
+- Never commit to `main` directly, never force-push shared branches.
 
-1. **Initial Design:** Use the `taste` skill to generate modern, accessible React components
-2. **Context:** Provide Taste with:
-   - The feature/page purpose
-   - Required functionality
-   - Brand guidelines (snow white / midnight black theme)
-   - Target user (developers)
-3. **Output:** Taste will generate complete React components with TypeScript
+## Versioning
 
-**Example invocation:**
+- [SemVer](https://semver.org/). Pre-1.0 work is `0.x.y-dev`.
+- Bump the version in the root `package.json`, every `packages/*/package.json` and `VERSION` in `packages/core/src/index.ts` together.
+- Each major has a Game of Thrones codename, one letter per major (`1.x` = **Aerys**, `2.x` = B…). Minors share the major's name, patches have none. The maintainer picks the names.
 
-```bash
-/taste Create a cluster selection page that shows available Kubernetes clusters with their status
-```
-
-### Using Impeccable for Review & Refinement
-
-After creating UI components:
-
-1. **Initialize Impeccable:** Run `/impeccable init` if not already initialized in the session
-2. **Review:** Use `impeccable` to review the generated components for:
-   - Accessibility (WCAG compliance)
-   - Performance issues
-   - Code quality
-   - Best practices
-   - Security concerns
-3. **Iterate:** Apply Impeccable's suggestions and re-review if needed
-
-**Example invocation:**
-
-```bash
-/impeccable Review the cluster selection component for accessibility and performance
-```
-
----
-
-## 🏗️ Project Structure Conventions
-
-### Monorepo Organization
+## Repo layout
 
 ```
-hodor/
-├── packages/
-│   ├── core/              # @hodor/core - Shared business logic
-│   │   ├── src/
-│   │   │   ├── kubernetes/    # K8s client and operations
-│   │   │   ├── storage/       # Secure storage layer
-│   │   │   ├── templates/     # Template management
-│   │   │   ├── config/        # Configuration management
-│   │   │   └── types/         # Shared TypeScript types
-│   │   ├── tests/
-│   │   └── package.json
-│   │
-│   ├── gui/               # @hodor/gui - Electron application
-│   │   ├── src/
-│   │   │   ├── main/          # Electron main process
-│   │   │   ├── renderer/      # React application
-│   │   │   │   ├── components/
-│   │   │   │   ├── pages/
-│   │   │   │   ├── hooks/
-│   │   │   │   ├── contexts/
-│   │   │   │   └── styles/
-│   │   │   └── preload/       # Preload scripts
-│   │   ├── tests/
-│   │   └── package.json
-│   │
-│   └── cli/               # @hodor/cli - Command-line interface
-│       ├── src/
-│       │   ├── commands/      # CLI command implementations
-│       │   ├── prompts/       # Interactive prompts
-│       │   └── utils/         # CLI utilities
-│       ├── tests/
-│       └── package.json
-│
-├── docs/                  # Documentation
-├── scripts/               # Build and automation scripts
-├── .github/               # GitHub workflows and templates
-└── tests/                 # E2E tests (cross-package)
+packages/
+  core/   @hodor/core  business logic, no UI. CommonJS build, used by CLI and the Electron main process
+    src/config      kubeconfig parsing, discovery, merging, context/namespace switching
+    src/kubernetes  SDK client, cluster discovery + health, port-forward engine, log capture
+    src/templates   template manager, validator, executor
+    src/storage     template/settings JSON storage, OS keychain
+    src/runtime     RunRegistry: coordinates Hodor processes (running templates)
+    src/utils       kubectl command generator, kubectl detection, validators
+    tests/unit, tests/integration
+  cli/    @hodor/cli   `hodor` command. ESM (NodeNext): relative imports need the `.js` extension
+  gui/    @hodor/gui   Electron + React app (starts in milestone 0.6)
 ```
 
----
+User data lives in `~/.hodor/` (templates, settings, run registry, kubeconfig backups). Never in `~/.kube/` except the kubeconfig files themselves.
 
-## 💻 Code Conventions
+## Code conventions
 
-### TypeScript Standards
+- TypeScript strict. `pnpm build` must have zero errors.
+- kebab-case file names, PascalCase types/classes/components, camelCase everything else.
+- JSDoc on public APIs, comments only where the _why_ isn't obvious.
+- React (from 0.6): function components, named exports, a props interface per component.
+- Format with Prettier (`pnpm format`), lint with ESLint (`pnpm lint`). Vendored skills are excluded via `.prettierignore`.
 
-- **Strict mode:** Always enabled
-- **Naming:**
-  - PascalCase for types, interfaces, classes, React components
-  - camelCase for variables, functions, methods
-  - SCREAMING_SNAKE_CASE for constants
-  - kebab-case for file names
-- **Imports:** Use absolute imports with path aliases
-  ```typescript
-  import { KubernetesClient } from '@hodor/core/kubernetes';
-  ```
+## Testing
 
-### React Component Patterns
+- **Unit tests** (Vitest) for every core module: `pnpm test`. Use temp dirs (`tests/helpers/tmp.ts`), never the real `~/.kube` or `~/.hodor`.
+- **Integration tests** are opt-in so CI doesn't need a cluster:
+  - `HODOR_IT=1 pnpm --filter @hodor/core test` runs port-forward against kubectl's default context (needs `kube-system/kube-dns`)
+  - `HODOR_KEYCHAIN_IT=1 …` touches the real OS keychain under a throwaway service name
+- **Manual CLI checks**: run with `HOME` pointing at a temp dir containing a _copy_ of the kubeconfig, so `ctx`/`ns`/`merge` never touch the real one.
+- **E2E** (Playwright for the GUI) comes last, before the 1.0 release.
 
-- **Functional components** with hooks (no class components)
-- **TypeScript** props interfaces for all components
-- **Named exports** preferred over default exports
-- **File structure:**
-  ```typescript
-  // component-name.tsx
-  import React from 'react';
+## Security rules
 
-  interface ComponentNameProps {
-    // props definition
-  }
+- Templates contain **only** namespaces, resource names, ports, tags and linked secret/configmap _names_. Never servers, contexts, users or credentials. There's a test for it; keep it passing.
+- Port-forwards bind to `127.0.0.1` unless the user explicitly asks otherwise.
+- Kubeconfig writes go through `writeFileAtomic` (mode `0600`) and `ContextManager`, which backs up first.
+- Sensitive values go to the OS keychain (`SecureStorage`). No plain-file fallback.
+- Secret/configmap values are never logged or written to disk. Show them, copy them, forget them.
+- Electron (0.6+): `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, strict CSP, a narrow typed IPC surface.
 
-  export const ComponentName: React.FC<ComponentNameProps> = ({ props }) => {
-    // implementation
-  };
-  ```
+## UI work (from 0.6)
 
-### Testing Standards
+The GUI is designed with **Taste** and reviewed with **Impeccable**.
 
-- **Unit tests:** Vitest for all packages
-- **Integration tests:** Test package interactions
-- **E2E tests:** Playwright for GUI, custom runner for CLI
-- **Coverage target:** >80% for core package
-- **Test file naming:** `*.test.ts` or `*.spec.ts`
+- **Taste** (`design-taste-frontend`, installed in `.claude/skills/`) for creating screens. Brief it with: purpose of the screen, the data shown, the user (developers), and the brand direction: _snow_ (light) and _night_ (dark), cold and clean, a playful voice.
+- **Impeccable** for review and polish. It needs `init` once per project before the first review. ⚠️ It's currently installed only in `.github/skills/` (GitHub Copilot). Claude Code needs it in `.claude/skills/` too.
+- Both themes and every string through i18n (English default) from day one.
 
----
+## Copy & tone
 
-## 🌍 Internationalization (i18n)
-
-### Translation Keys
-
-- **Format:** `namespace.section.key`
-- **Example:** `clusters.list.title`, `templates.create.button`
-- **Namespaces:**
-  - `common` - Shared UI elements
-  - `clusters` - Cluster management
-  - `templates` - Template management
-  - `settings` - Application settings
-  - `errors` - Error messages
-  - `cli` - CLI-specific strings
-
-### Translation Files
-
-```
-packages/core/src/i18n/
-├── locales/
-│   ├── en/
-│   │   ├── common.json
-│   │   ├── clusters.json
-│   │   └── templates.json
-│   └── it/
-│       ├── common.json
-│       ├── clusters.json
-│       └── templates.json
-└── index.ts
-```
-
----
-
-## 🎨 Theming Conventions
-
-### Color Palette
-
-**Light Theme (Snow)**
-
-```typescript
-{
-  primary: '#2c3e50',      // Dark slate
-  secondary: '#3498db',    // Sky blue
-  background: '#ffffff',   // Pure white
-  surface: '#f8f9fa',      // Light gray
-  text: '#2c3e50',         // Dark slate
-  textSecondary: '#7f8c8d', // Gray
-  border: '#e1e8ed',       // Light border
-  success: '#27ae60',      // Green
-  warning: '#f39c12',      // Orange
-  error: '#e74c3c',        // Red
-  info: '#3498db',         // Blue
-}
-```
-
-**Dark Theme (Night)**
-
-```typescript
-{
-  primary: '#ecf0f1',      // Light gray
-  secondary: '#3498db',    // Sky blue
-  background: '#1a1a1a',   // Near black
-  surface: '#2c2c2c',      // Dark gray
-  text: '#ecf0f1',         // Light gray
-  textSecondary: '#95a5a6', // Medium gray
-  border: '#3a3a3a',       // Dark border
-  success: '#2ecc71',      // Bright green
-  warning: '#f39c12',      // Orange
-  error: '#e74c3c',        // Red
-  info: '#3498db',         // Blue
-}
-```
-
----
-
-## 🔒 Security Best Practices
-
-### Secrets and Sensitive Data
-
-1. **Never log secrets** - Use `[REDACTED]` placeholders in logs
-2. **Secure storage only** - Use keytar or encrypted electron-store
-3. **Memory safety** - Clear sensitive data from memory after use
-4. **No secrets in templates** - Templates contain only resource names
-5. **Audit logging** - Log access to sensitive operations (not the data itself)
-
-### Kubernetes Credentials
-
-- Store kubeconfig securely
-- Never transmit credentials over unencrypted channels
-- Validate cluster certificates
-- Use least-privilege access patterns
-
----
-
-## 📝 Documentation Standards
-
-### Code Documentation
-
-- **JSDoc comments** for all public APIs
-- **Inline comments** for complex logic
-- **README.md** in each package
-- **Examples** in documentation
-
-### Commit Messages
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-<type>(<scope>): <subject>
-
-<body>
-
-<footer>
-```
-
-**Types:**
-
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting)
-- `refactor`: Code refactoring
-- `perf`: Performance improvements
-- `test`: Test additions/modifications
-- `chore`: Build process or tooling changes
-- `ci`: CI/CD changes
-
-**Examples:**
-
-```
-feat(core): add kubeconfig merge functionality
-
-Implement merge logic to combine multiple kubeconfig files
-while preserving contexts and clusters.
-
-Closes #123
-```
-
-```
-fix(gui): resolve cluster selection race condition
-
-The cluster list was not properly waiting for async
-initialization, causing undefined errors.
-```
-
----
-
-## 🔄 Git Workflow
-
-### Branch Strategy
-
-- **`main`** - Production-ready code, tagged releases only
-- **`develop`** - Integration branch for features
-- **`feature/*`** - Feature branches (e.g., `feature/template-export`)
-- **`fix/*`** - Bug fix branches
-- **`release/*`** - Release preparation branches
-
-### Pull Request Process
-
-1. Create feature branch from `develop`
-2. Implement feature with tests
-3. Ensure all tests pass
-4. Update documentation if needed
-5. Create PR to `develop` (never directly to `main`)
-6. Code review required
-7. Squash and merge
-
-### Release Process
-
-1. Create `release/X.Y.Z` branch from `develop`
-2. Update version numbers
-3. Update CHANGELOG.md
-4. Test release builds
-5. Merge to `main` and tag
-6. GitHub Actions builds and publishes
-7. Merge back to `develop`
-
----
-
-## 🚀 Build and Release
-
-### Version Management
-
-- Follow **Semantic Versioning**
-- Update version in:
-  - Root `package.json`
-  - All package `package.json` files
-  - `CHANGELOG.md`
-  - `ROADMAP.md` if milestone reached
-
-### Release Checklist
-
-- [ ] All tests passing
-- [ ] Documentation updated
-- [ ] CHANGELOG.md updated
-- [ ] Version bumped
-- [ ] Git tag created
-- [ ] Release notes written
-- [ ] Builds signed (Windows via Azure)
-- [ ] Release published
-
----
-
-## 🤖 AI-Specific Guidelines
-
-### When to Use AI Skills
-
-**Use `/taste` for:**
-
-- Creating new UI pages
-- Designing component layouts
-- Building forms and interactive elements
-- Generating accessible markup
-
-**Use `/impeccable` for:**
-
-- Reviewing completed components
-- Accessibility audits
-- Performance optimization suggestions
-- Security reviews
-
-**Use AI coding assistance for:**
-
-- Implementing business logic
-- Writing tests
-- Refactoring code
-- Debugging issues
-
-### What NOT to Generate with AI
-
-- Kubernetes credentials or secrets
-- Production configuration files
-- Private keys or certificates
-- User-specific data
-
-### Review All AI-Generated Code
-
-- Verify security implications
-- Check for performance issues
-- Ensure accessibility compliance
-- Test thoroughly
-
----
-
-## 📚 Learning Resources
-
-### Project Dependencies
-
-- [Electron Documentation](https://www.electronjs.org/docs)
-- [React Documentation](https://react.dev)
-- [Kubernetes Client Node](https://github.com/kubernetes-client/javascript)
-- [Commander.js](https://github.com/tj/commander.js)
-- [Inquirer.js](https://github.com/SBoudrias/Inquirer.js)
-- [i18next](https://www.i18next.com/)
-
-### Best Practices
-
-- [Electron Security](https://www.electronjs.org/docs/latest/tutorial/security)
-- [React Best Practices](https://react.dev/learn/thinking-in-react)
-- [TypeScript Best Practices](https://www.typescriptlang.org/docs/handbook/declaration-files/do-s-and-don-ts.html)
-- [Kubernetes API Concepts](https://kubernetes.io/docs/reference/using-api/api-concepts/)
-
----
-
-## 🔧 Development Tools
-
-### Required Tools
-
-- Node.js 18+ (LTS)
-- pnpm 8+
-- Git
-- VS Code (recommended) or your preferred IDE
-
-### Recommended VS Code Extensions
-
-- ESLint
-- Prettier
-- TypeScript and JavaScript Language Features
-- Jest Runner
-- GitLens
-- i18n Ally
-
-### Environment Setup
-
-```bash
-# Install dependencies
-pnpm install
-
-# Run development servers (all packages)
-pnpm dev
-
-# Run tests
-pnpm test
-
-# Build for production
-pnpm build
-
-# Lint and format
-pnpm lint
-pnpm format
-```
-
----
-
-_This document is maintained by the project maintainers and should be updated as conventions evolve._
-
-_Last Updated: 2023-10-22_
+Docs, CLI messages and UI copy are in **English**, casual, from a developer to developers. Jokes welcome (it's called Hodor, after all), but never at the expense of clarity: error messages say what went wrong and what to do next.
