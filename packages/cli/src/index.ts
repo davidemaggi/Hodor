@@ -47,7 +47,7 @@ program
   .command('config')
   .description('Manage kubeconfig files')
   .action(() => {
-    console.log(chalk.yellow('Use subcommands: config merge'));
+    console.log(chalk.yellow('Use subcommands: config:merge'));
   });
 
 program
@@ -58,6 +58,75 @@ program
   .action(async (files: string[], options: { output?: string }) => {
     const { configMergeCommand } = await import('./commands/config.js');
     await configMergeCommand(files, options.output);
+  });
+
+// Template commands
+program
+  .command('template')
+  .description('Manage port-forward templates')
+  .action(() => {
+    console.log(chalk.yellow('Use subcommands: template:create, template:list, template:run, etc.'));
+  });
+
+program
+  .command('template:create')
+  .alias('template:new')
+  .description('Create a new port-forward template')
+  .action(async () => {
+    const { templateCreateCommand } = await import('./commands/template/create.js');
+    await templateCreateCommand();
+  });
+
+program
+  .command('template:list')
+  .alias('template:ls')
+  .description('List all templates')
+  .option('-t, --tags <tags...>', 'Filter by tags')
+  .option('-s, --search <query>', 'Search templates')
+  .action(async (options: { tags?: string[]; search?: string }) => {
+    const { templateListCommand } = await import('./commands/template/list.js');
+    await templateListCommand(options);
+  });
+
+program
+  .command('template:run')
+  .description('Run a template')
+  .argument('<name>', 'Template name')
+  .option('-c, --cluster <cluster>', 'Cluster name to run on')
+  .action(async (name: string, options: { cluster?: string }) => {
+    const { templateRunCommand } = await import('./commands/template/run.js');
+    await templateRunCommand(name, options);
+  });
+
+program
+  .command('template:delete')
+  .alias('template:rm')
+  .description('Delete a template')
+  .argument('<name>', 'Template name')
+  .option('-f, --force', 'Skip confirmation')
+  .action(async (name: string, options: { force?: boolean }) => {
+    const { templateDeleteCommand } = await import('./commands/template/delete.js');
+    await templateDeleteCommand(name, options);
+  });
+
+program
+  .command('template:export')
+  .description('Export a template')
+  .argument('<name>', 'Template name')
+  .option('-o, --output <file>', 'Output file path')
+  .option('-m, --multiple <names...>', 'Export multiple templates')
+  .action(async (name: string, options: { output?: string; multiple?: string[] }) => {
+    const { templateExportCommand } = await import('./commands/template/export-import.js');
+    await templateExportCommand(name, options);
+  });
+
+program
+  .command('template:import')
+  .description('Import a template')
+  .argument('<file>', 'Template file to import')
+  .action(async (file: string) => {
+    const { templateImportCommand } = await import('./commands/template/export-import.js');
+    await templateImportCommand(file);
   });
 
 // Parse arguments

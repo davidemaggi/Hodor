@@ -13,6 +13,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0-dev] - 2023-10-22
+
+### 🎉 Added - Milestone 0.5.0: CLI Template Management
+
+**Template Creation:**
+- `hodor template:create` - Interactive wizard for creating templates
+  - Step-by-step template configuration
+  - Add multiple port-forwards
+  - Link secrets and configmaps to forwards
+  - Tag support for organization
+  - Name validation and duplicate checking
+  - Resource type selection (pod, service, deployment)
+  - Port validation
+
+**Template Listing:**
+- `hodor template:list` - List all templates
+  - Formatted table with name, description, forward count, tags
+  - Filter by tags with `--tags` option
+  - Search by name/description with `--search` option
+  - Shows last updated date
+  - Summary with total count and available tags
+
+**Template Execution:**
+- `hodor template:run <name>` - Run a template
+  - Interactive cluster selection
+  - Real-time forward status display
+  - Error handling with status indicators
+  - Auto-restart support from core engine
+  - Graceful shutdown on Ctrl+C
+  - Shows all forwards with their status (running/error/stopped)
+  - Port mapping display (local → resource:remote)
+
+**Template Deletion:**
+- `hodor template:delete <name>` - Delete a template
+  - Confirmation prompt (skippable with `--force`)
+  - Safe deletion with feedback
+
+**Template Import/Export:**
+- `hodor template:export <name>` - Export template to JSON
+  - Single template export
+  - Multiple templates export with `--multiple` flag
+  - Custom output path with `--output` option
+  - Default filenames generated from template name
+
+- `hodor template:import <file>` - Import template from JSON
+  - Import single or multiple templates
+  - Automatic ID regeneration
+  - Shows imported template details
+
+**Command Aliases:**
+- `template:new` → `template:create`
+- `template:ls` → `template:list`
+- `template:rm` → `template:delete`
+
+**Interactive Experience:**
+- Colorful status indicators (● for active, ○ for inactive, ✖ for error)
+- Real-time spinners during operations
+- Clear success/error messages
+- Helpful hints for next steps
+
+**Integration:**
+- Full integration with core TemplateManager
+- Uses TemplateExecutor for running templates
+- Kubernetes client integration for cluster selection
+- Port-forward manager with auto-restart
+
+### 🏗️ Architecture
+- Modular template commands in separate files
+- Consistent error handling across commands
+- Type-safe command handlers
+- Clean separation of concerns
+
+### 📋 Next Milestone (0.6.0)
+- GUI foundation with Electron + React
+- Theme system (light/dark)
+- Basic layout and navigation
+
+---
+
 ## [0.4.0-dev] - 2023-10-22
 
 ### 🎉 Added - Milestone 0.4.0: CLI Foundation

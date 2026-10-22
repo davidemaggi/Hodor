@@ -61,18 +61,18 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
   - [x] `hodor ns` - Switch namespace
   - [x] `hodor config merge` - Merge kubeconfigs
 
-#### Milestone 0.5.0 - CLI Template Management
-- [ ] Template commands:
-  - [ ] `hodor template create` - Create template
-  - [ ] `hodor template list` - List templates
-  - [ ] `hodor template run` - Run template
-  - [ ] `hodor template stop` - Stop template
-  - [ ] `hodor template edit` - Edit template
-  - [ ] `hodor template delete` - Delete template
-  - [ ] `hodor template export` - Export template
-  - [ ] `hodor template import` - Import template
-- [ ] Template tag management
-- [ ] Search and filtering
+#### Milestone 0.5.0 - CLI Template Management ✅
+- [x] Template commands:
+  - [x] `hodor template create` - Create template
+  - [x] `hodor template list` - List templates
+  - [x] `hodor template run` - Run template
+  - [x] `hodor template stop` - Stop template
+  - [x] `hodor template edit` - Edit template
+  - [x] `hodor template delete` - Delete template
+  - [x] `hodor template export` - Export template
+  - [x] `hodor template import` - Import template
+- [x] Template tag management
+- [x] Search and filtering
 
 #### Milestone 0.6.0 - GUI Foundation (Electron + React)
 - [ ] Electron setup
