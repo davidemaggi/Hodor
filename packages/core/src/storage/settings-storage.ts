@@ -2,22 +2,20 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 
+export type ThemePreference = 'system' | 'light' | 'dark';
+
 export interface Settings {
+  /** UI language (BCP 47 tag) */
   language: string;
-  theme: 'light' | 'dark';
+  /** "light" is Snow, "dark" is Night; "system" follows the OS */
+  theme: ThemePreference;
+  /** Cluster id (see clusterId()) last used to run a template */
   lastUsedCluster?: string;
-  lastUsedContext?: string;
-  autoStart: boolean;
-  notifications: boolean;
-  checkUpdates: boolean;
 }
 
-const DEFAULT_SETTINGS: Settings = {
+export const DEFAULT_SETTINGS: Settings = {
   language: 'en',
-  theme: 'dark',
-  autoStart: false,
-  notifications: true,
-  checkUpdates: true,
+  theme: 'system',
 };
 
 /**

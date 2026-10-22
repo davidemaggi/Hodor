@@ -14,7 +14,7 @@ Port-forwards you can save, share, and run on any cluster, without seven termina
 
 ---
 
-> ⚠️ **Early days.** The CLI works, the desktop app doesn't exist yet. There's no release to download: you build it from source. See the [roadmap](ROADMAP.md).
+> ⚠️ **Early days.** The CLI works; the desktop app is a first look (it shows your clusters, templates and running forwards, and can stop them). There's no release to download: you build it from source. See the [roadmap](ROADMAP.md).
 
 ## Why
 
@@ -60,7 +60,7 @@ Ctrl+C to stop · add --logs to watch what happens
 
 ## Coming next
 
-The desktop app (light and dark, "snow" and "night"), linked secrets and config maps you can copy with one click, drag & drop everywhere, installers and package managers. It's all in the [roadmap](ROADMAP.md).
+In the desktop app: switching kubectl's context, browsing pods and services, building templates by clicking, starting them, linked secrets and config maps you can copy with one click, drag & drop everywhere. Then installers and package managers. It's all in the [roadmap](ROADMAP.md).
 
 ## Build it yourself
 
@@ -74,6 +74,7 @@ pnpm build
 pnpm test
 
 node packages/cli/bin/hodor --help
+pnpm --filter @hodor/gui dev      # the desktop app, with hot reload
 # or put it on your PATH:
 cd packages/cli && pnpm link --global
 ```

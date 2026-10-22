@@ -1,0 +1,75 @@
+/* Hodor tokens. Style: Taste "framed-sheet" (seed 100285193).
+   Face: the frame is tinted snow (a cold blue-grey) instead of the style's neutral #f9fbfc; the sheet stays white.
+   Night is a true neutral dark: no navy, no slate. */
+:root {
+  color-scheme: light;
+  --frame: #eef2f6;
+  --surface: #ffffff;
+  --raised: #f3f6f8;
+  --active: #e3e9ee;
+  --border: #e3e8ec;
+  --rule: #eef1f3;
+  --control: #cdd3d8;
+  --text: #131416;
+  --muted: #585b5e;
+  --faint: #66696c;
+  --accent: #1b6c80;
+  --primary: #1d1f20;
+  --primary-ink: #ffffff;
+  --positive: #1e7b4f;
+  --negative: #c4242a;
+  --pill-positive-bg: #dcfae5; --pill-positive-ink: #04250e;
+  --pill-negative-bg: #ffedea; --pill-negative-ink: #831c1e;
+  --pill-warning-bg: #fffbeb; --pill-warning-ink: #92400e;
+  --pill-neutral-bg: #e9eef2; --pill-neutral-ink: #353736;
+  --skeleton: #e9eef2;
+
+  --radius-card: 8px;
+  --radius-control: 6px;
+  --radius-sheet: 16px;
+  --sheet-inset: 8px;
+  --sidebar-width: 228px;
+  --topbar: 48px;
+  --nav-row: 34px;
+  --row-height: 48px;
+  --gap: 24px;
+  --pad: 24px;
+  --control-height: 32px;
+
+  --font: "IBM Plex Sans", Inter, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --fs-title: 22px;
+  --fs-section: 16px;
+  --fs-port: 28px;
+  --fs-body: 14px;
+  --fs-small: 12px;
+
+  --t-hover: 120ms;
+  --t-press: 80ms;
+  --t-ui: 180ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --frame: #0b0c0d;
+  --surface: #131415;
+  --raised: #1b1c1e;
+  --active: #26282a;
+  --border: #232527;
+  --rule: #1c1e20;
+  --control: #3d4043;
+  --text: #f2f4f5;
+  --muted: #b4b6b8;
+  --faint: #949699;
+  --accent: #5cb8cc;
+  --primary: #f2f4f5;
+  --primary-ink: #131415;
+  --positive: #3fc07a;
+  --negative: #f06a7f;
+  --pill-positive-bg: #172a1d; --pill-positive-ink: #3fc07a;
+  --pill-negative-bg: #2c1a20; --pill-negative-ink: #f06a7f;
+  --pill-warning-bg: #2a2214; --pill-warning-ink: #e0b25c;
+  --pill-neutral-bg: #222426; --pill-neutral-ink: #c9cbcd;
+  --skeleton: #222426;
+}

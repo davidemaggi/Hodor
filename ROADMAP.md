@@ -2,7 +2,7 @@
 
 Where Hodor is, and where it's going. No made-up dates: things ship when they work.
 
-**Now:** `0.5.1-dev` · **Next stop:** `1.0.0 "Aerys"`
+**Now:** `0.6.0-dev` · **Next stop:** `1.0.0 "Aerys"`
 
 Legend: ✅ done and tested · 🔜 next · 📋 planned · 💭 maybe
 
@@ -50,15 +50,18 @@ What exists today and has been exercised against a real cluster.
 
 ---
 
-## 🔜 0.6 · GUI foundation
+## ✅ 0.6 · GUI foundation
 
-- Electron + React + TypeScript app shell, secure defaults (context isolation, no node integration in the renderer, strict CSP)
-- Core runs in the main process, renderer talks to it over a typed IPC bridge
-- Snow (light) and Night (dark) themes, follows the OS by default
-- i18n wiring (English default)
-- Design with **Taste**, review with **Impeccable** (see [AGENTS.md](AGENTS.md))
+- ✅ Electron + React + TypeScript shell with secure defaults: sandbox, context isolation, no Node in the renderer, strict CSP, no navigation or new windows, every web permission denied except clipboard write
+- ✅ Core runs in the main process; the renderer only reaches a typed API, every IPC call checks its sender and validates its arguments
+- ✅ Snow (light) and Night (dark), follows the OS by default; native title bar and window controls follow the theme
+- ✅ i18n wiring, English default, every string in `locales/en.json`
+- ✅ Clusters (live status, ★ kubectl default, ↺ last used), Templates and Running (stop a CLI-started template from the app) read real data; Settings saves theme and language
+- ✅ Loading, empty, first-run and error states for every view
+- ✅ Designed with **Taste** (framed-sheet style); checked with its inspector in both themes
+- 🔜 **Impeccable** review: waiting for the skill to be installed for Claude Code
 
-## 📋 0.7 · Clusters page
+## 🔜 0.7 · Clusters page
 
 - All contexts from all kubeconfigs, live status, ★ kubectl default, last used preselected on restart
 - Change kubectl default context / namespace (hidden when kubectl is missing)

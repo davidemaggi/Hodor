@@ -20,4 +20,4 @@ export * from './runtime';
 export * from './utils';
 
 // Version
-export const VERSION = '0.5.1-dev';
+export const VERSION = '0.6.0-dev';

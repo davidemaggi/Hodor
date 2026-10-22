@@ -7,6 +7,29 @@ Nothing has been released yet: everything below lives on `develop`.
 
 ## [Unreleased]
 
+### 0.6.0-dev
+
+#### Added
+
+- **The desktop app's first look** (`pnpm --filter @hodor/gui dev`): Electron 45, React 19, electron-vite
+  - Clusters: every context from every kubeconfig, live status with server version, ★ kubectl default, ↺ last used
+  - Templates: your templates with their local ports, tags and which ones are running
+  - Running: what's listening on which local port, copy the address, stop a template started from the terminal
+  - Settings: Snow, Night or follow the system; language (English for now); kubectl and data folder info
+- Snow and Night themes, IBM Plex Sans and Mono bundled locally, every string translatable
+- Browser preview with sample data for design reviews: `pnpm --filter @hodor/gui preview:web`
+
+#### Security
+
+- Sandboxed, context-isolated renderer with no Node access and a strict Content-Security-Policy
+- The renderer reaches only a typed API; each IPC call checks the sender frame and validates its arguments
+- No navigation, no new windows, no webviews; every web permission denied except writing to the clipboard
+
+#### Changed
+
+- Settings now default to following the system theme; unused settings removed
+- Removed the unused `i18next` dependency from the core
+
 ### 0.5.1-dev
 
 #### Added

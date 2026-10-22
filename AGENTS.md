@@ -33,6 +33,7 @@ Rules for any AI agent (Claude Code, Copilot, …) touching this repo. Humans ar
 
 ```
 packages/
+  gui/    @hodor/gui   Electron app: src/main (window, IPC), src/preload (bridge), src/shared (API contract), src/renderer
   core/   @hodor/core  business logic, no UI. CommonJS build, used by CLI and the Electron main process
     src/config      kubeconfig parsing, discovery, merging, context/namespace switching
     src/kubernetes  SDK client, cluster discovery + health, port-forward engine, log capture
@@ -42,7 +43,6 @@ packages/
     src/utils       kubectl command generator, kubectl detection, validators
     tests/unit, tests/integration
   cli/    @hodor/cli   `hodor` command. ESM (NodeNext): relative imports need the `.js` extension
-  gui/    @hodor/gui   Electron + React app (starts in milestone 0.6)
 ```
 
 User data lives in `~/.hodor/` (templates, settings, run registry, kubeconfig backups). Never in `~/.kube/` except the kubeconfig files themselves.
@@ -62,6 +62,10 @@ User data lives in `~/.hodor/` (templates, settings, run registry, kubeconfig ba
   - `HODOR_IT=1 pnpm --filter @hodor/core test` runs port-forward against kubectl's default context (needs `kube-system/kube-dns`)
   - `HODOR_KEYCHAIN_IT=1 …` touches the real OS keychain under a throwaway service name
 - **Manual CLI checks**: run with `HOME` pointing at a temp dir containing a _copy_ of the kubeconfig, so `ctx`/`ns`/`merge` never touch the real one.
+- **GUI checks**:
+  - `pnpm --filter @hodor/gui preview:web` serves the renderer in a browser with sample data (`fixtures.ts`). Query flags: `?theme=light|dark`, `?empty=1` (first run), `?idle=1` (nothing running). Fixtures never reach a real build; check with `grep -r northwind packages/gui/out`.
+  - The real app: `pnpm --filter @hodor/gui build`, then run Electron with `--remote-debugging-port` and a sandboxed `HOME` to drive it over the DevTools protocol.
+  - If Electron starts as plain Node ("Cannot read properties of undefined (reading 'enableSandbox')"), the shell has `ELECTRON_RUN_AS_NODE=1` (set by VS Code/Electron-based terminals). Run with `env -u ELECTRON_RUN_AS_NODE`.
 - **E2E** (Playwright for the GUI) comes last, before the 1.0 release.
 
 ## Security rules
@@ -80,6 +84,8 @@ The GUI is designed with **Taste** and reviewed with **Impeccable**.
 - **Taste** (`design-taste-frontend`, installed in `.claude/skills/`) for creating screens. Brief it with: purpose of the screen, the data shown, the user (developers), and the brand direction: _snow_ (light) and _night_ (dark), cold and clean, a playful voice.
 - **Impeccable** for review and polish. It needs `init` once per project before the first review. ⚠️ It's currently installed only in `.github/skills/` (GitHub Copilot). Claude Code needs it in `.claude/skills/` too.
 - Both themes and every string through i18n (English default) from day one.
+- The dealt direction and notes live in `.taste-skill/` (`direction.json`, `notes.md`): style **framed-sheet**, seed 100285193, face = snow-tinted frame, signature = the local port as the headline figure. Reprint with `node .claude/skills/design-taste-frontend/scripts/draw.mjs --show`. Screenshots in `.taste-skill/inspect/` are not committed.
+- Gate before committing UI: `lint.mjs --app packages/gui/src/renderer` and `inspect.mjs --app <preview url> --widths 1440,960` with 0 FAIL in both themes, then look at the screenshots.
 
 ## Copy & tone
 

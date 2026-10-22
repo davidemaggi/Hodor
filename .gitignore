@@ -241,3 +241,7 @@ certs/
 !fixtures/**/*.pem
 !fixtures/**/*.key
 !fixtures/**/*.crt
+
+# Taste working files: screenshots are regenerated, notes and the dealt direction are kept
+.taste-skill/inspect/
+.taste-skill/electron/
