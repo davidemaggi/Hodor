@@ -10,8 +10,13 @@ export function useMergeFlow() {
   const [outcome, setOutcome] = useState<MergeOutcome | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [source, setSource] = useState<'files' | 'cluster'>('files');
 
-  const start = async (load: () => Promise<MergePreview | null>) => {
+  const start = async (
+    load: () => Promise<MergePreview | null>,
+    from: 'files' | 'cluster' = 'files'
+  ) => {
+    setSource(from);
     setError(null);
     setOutcome(null);
     setBusy(true);
@@ -29,9 +34,12 @@ export function useMergeFlow() {
     outcome,
     error,
     busy,
+    /** Where the failed merge started from, to word the error */
+    source,
     choose: () => start(() => api.kubeconfig.chooseAndPreview()),
     dropped: (files: File[]) => start(() => api.kubeconfig.previewDropped(files)),
-    fromCluster: (clusterId: string) => start(() => api.kubeconfig.previewCluster(clusterId)),
+    fromCluster: (clusterId: string) =>
+      start(() => api.kubeconfig.previewCluster(clusterId), 'cluster'),
     close: (result?: MergeOutcome) => {
       setPreview(null);
       if (result) setOutcome(result);

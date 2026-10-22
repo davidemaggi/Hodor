@@ -8,6 +8,8 @@ export interface RunRecord {
   clusterId: string;
   pid: number;
   startedAt: string;
+  /** Who started it. Older records have none and came from the CLI. */
+  source?: 'cli' | 'app';
 }
 
 /**
@@ -33,6 +35,7 @@ export class RunRegistry {
   }
 
   async register(record: Omit<RunRecord, 'pid' | 'startedAt'>, pid = process.pid): Promise<void> {
+    record = { source: 'cli', ...record };
     await fs.mkdir(this.dir, { recursive: true, mode: 0o700 });
     const full: RunRecord = { ...record, pid, startedAt: new Date().toISOString() };
     await fs.writeFile(this.recordPath(record.templateId), JSON.stringify(full, null, 2), {

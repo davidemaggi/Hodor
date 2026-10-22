@@ -1,6 +1,7 @@
 import { dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs/promises';
+import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import { z } from 'zod';
@@ -48,6 +49,20 @@ const settingsPatchSchema = z
   .strict();
 
 type Handler = (arg: unknown) => unknown;
+
+/** Is anything accepting connections on 127.0.0.1:port? */
+function isListening(port: number, timeoutMs = 300): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: '127.0.0.1', port });
+    const done = (result: boolean) => {
+      socket.destroy();
+      resolve(result);
+    };
+    socket.setTimeout(timeoutMs, () => done(false));
+    socket.once('connect', () => done(true));
+    socket.once('error', () => done(false));
+  });
+}
 
 /**
  * Register every IPC handler. `isTrustedSender` rejects calls that don't come from our own renderer.
@@ -247,15 +262,23 @@ export function registerIpc(
 
   handle(CHANNELS.runningList, async (): Promise<RunningTemplate[]> => {
     const [storage, running] = await Promise.all([templateStore(), registry.list()]);
-    return running.map((r) => ({
-      templateId: r.templateId,
-      templateName: r.templateName,
-      clusterId: r.clusterId,
-      clusterName: r.clusterId.split('::').pop() || r.clusterId,
-      pid: r.pid,
-      startedAt: r.startedAt,
-      forwards: (storage.get(r.templateId)?.forwards || []).map(summarize),
-    }));
+    return Promise.all(
+      running.map(async (r) => ({
+        templateId: r.templateId,
+        templateName: r.templateName,
+        clusterId: r.clusterId,
+        clusterName: r.clusterId.split('::').pop() || r.clusterId,
+        pid: r.pid,
+        startedAt: r.startedAt,
+        source: r.source ?? 'cli',
+        forwards: await Promise.all(
+          (storage.get(r.templateId)?.forwards || []).map(async (f) => ({
+            ...summarize(f),
+            listening: await isListening(f.localPort),
+          }))
+        ),
+      }))
+    );
   });
 
   handle(CHANNELS.runningStop, (arg) => registry.requestStop(templateIdSchema.parse(arg)));

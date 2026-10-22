@@ -68,8 +68,12 @@ What exists today and has been exercised against a real cluster.
 - ✅ Merge kubeconfigs: pick or drop files, preview what's new and what's skipped, confirm; comments in your kubeconfig survive, a backup is taken first
 - ✅ Browse a cluster: namespaces (or type one when you may not list them), services and pods with their ports, status, readiness, restarts and age, filter by name or port
 - ✅ Unreachable cluster: what Hodor tried, plus the `kubectl cluster-info` command to see why
+- ✅ Production clusters: confirm before kubectl points at them, amber top bar while it does; Undo after every kubectl change
+- ✅ Impeccable review (25/40) acted on: P1s and P2s fixed; keyboard shortcuts move to 0.8, live forward status to 0.9
 
 ## 🔜 0.8 · Templates page
+
+- Keyboard shortcuts: `/` to filter, ⌘K command palette, ⌘1-4 for the sections
 
 - Build templates by picking pods/services and ports from the selected cluster
 - Name, optional description, tags

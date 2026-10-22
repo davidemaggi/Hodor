@@ -2,7 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { DoorOpen, Layers, Server, Settings, Star } from 'lucide-react';
 import { Mark } from './components/mark';
-import { useAppInfo, useClusters, useRunning, useSettings } from './queries';
+import { useAppInfo, useClusters, useProduction, useRunning, useSettings } from './queries';
 import { clusterPath } from './views/clusters';
 
 export const Shell: React.FC = () => {
@@ -11,10 +11,12 @@ export const Shell: React.FC = () => {
   const clusters = useClusters();
   const running = useRunning();
   const settings = useSettings();
-  const selected = clusters.data?.find((c) => c.id === settings.data?.lastUsedCluster);
+  const production = useProduction();
 
   const kubectlDefault = clusters.data?.find((c) => c.isDefault);
+  const selected = clusters.data?.find((c) => c.id === settings.data?.lastUsedCluster);
   const doors = running.data?.reduce((sum, r) => sum + r.forwards.length, 0) ?? 0;
+  const prodDefault = !!kubectlDefault && production.isProduction(kubectlDefault.id);
 
   return (
     <div className="app" data-platform={info.data?.platform}>
@@ -25,10 +27,15 @@ export const Shell: React.FC = () => {
 
       <header className="topbar">
         {clusters.isSuccess && (
-          <NavLink to="/clusters" className="scope" title={t('scope.title')}>
+          <NavLink
+            to={kubectlDefault ? clusterPath(kubectlDefault.id) : '/clusters'}
+            className={prodDefault ? 'scope prod' : 'scope'}
+            aria-label={t('scope.title', { name: kubectlDefault?.name ?? t('scope.none') })}
+          >
             <span>{t('scope.kubectl')}</span>
             <Star className="star" aria-hidden="true" />
             <strong>{kubectlDefault?.name ?? t('scope.none')}</strong>
+            {prodDefault && <span className="tag prod">{t('clusters.prodTag')}</span>}
           </NavLink>
         )}
       </header>
@@ -39,11 +46,8 @@ export const Shell: React.FC = () => {
           {t('nav.clusters')}
         </NavLink>
         {selected && (
-          <NavLink
-            to={clusterPath(selected.id)}
-            className="nav-item nav-sub"
-            title={t('nav.selectedCluster')}
-          >
+          <NavLink to={clusterPath(selected.id)} className="nav-item nav-sub">
+            <span className="visually-hidden">{t('nav.selectedCluster')}: </span>
             <span className="truncate">{selected.name}</span>
           </NavLink>
         )}
@@ -55,7 +59,7 @@ export const Shell: React.FC = () => {
           <DoorOpen aria-hidden="true" />
           {t('nav.running')}
           {doors > 0 && (
-            <span className="count num" title={t('nav.doorsHeld', { count: doors })}>
+            <span className="count num">
               <span aria-hidden="true">{doors}</span>
               <span className="visually-hidden">{t('nav.doorsHeld', { count: doors })}</span>
             </span>

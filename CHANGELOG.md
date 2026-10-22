@@ -16,6 +16,16 @@ Nothing has been released yet: everything below lives on `develop`.
 - Merge kubeconfigs from the app: pick or drop files, preview, confirm; or merge the file a context comes from in one click
 - Core: `ResourceBrowser` (pods/services/namespaces summaries), `KubeConfigMerger.planMerge`, `ContextManager.mergeFiles`, `KubernetesApiError` keeping the HTTP status
 
+#### Changed (after the Impeccable review, 25/40)
+
+- Switching kubectl's default context or namespace from the app confirms what changed ("now points at X, was Y"), mentions the backup and offers Undo
+- Clusters can be marked as production: switching kubectl to one asks first, and the top bar turns amber with a "prod" tag while kubectl points at it
+- Running checks every local port and flags forwards that aren't listening
+- Explanations that were tooltips are now on screen: why a context can't be switched, why a cluster doesn't answer, which service each template port maps to, a legend for ★ and ↺
+- First run on Clusters: the empty state is the drop zone, with a button to choose a kubeconfig
+- Accessibility: copy results announced in a status region, input borders at 3:1, no invalid ARIA on table rows, namespace field with a button as well as Enter
+- Copy failures are reported instead of failing silently
+
 #### Fixed
 
 - Merging a kubeconfig (CLI and app) no longer drops the comments and formatting of your existing kubeconfig

@@ -97,6 +97,11 @@ export interface TemplateSummary {
   running: boolean;
 }
 
+export interface RunningForward extends ForwardSummary {
+  /** Whether something answers on 127.0.0.1:localPort right now */
+  listening: boolean;
+}
+
 export interface RunningTemplate {
   templateId: string;
   templateName: string;
@@ -105,10 +110,15 @@ export interface RunningTemplate {
   clusterName: string;
   pid: number;
   startedAt: string;
-  forwards: ForwardSummary[];
+  source: 'cli' | 'app';
+  forwards: RunningForward[];
 }
 
-export type SettingsPatch = Partial<{ theme: ThemePreference; language: string }>;
+export type SettingsPatch = Partial<{
+  theme: ThemePreference;
+  language: string;
+  productionClusters: string[];
+}>;
 
 export const CHANNELS = {
   appInfo: 'hodor:app:info',

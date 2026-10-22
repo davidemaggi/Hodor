@@ -22,7 +22,7 @@ export const TemplatesView: React.FC = () => {
             ) : list.length > 0 ? (
               t('templates.sub', { count: list.length, running })
             ) : (
-              ' '
+              t('templates.subEmpty')
             )}
           </p>
         </div>
@@ -89,25 +89,18 @@ export const TemplatesView: React.FC = () => {
               : list.map((tpl) => (
                   <tr key={tpl.id}>
                     <td className="identity">
-                      <span className="truncate">
-                        <span style={{ fontWeight: 500 }}>{tpl.name}</span>
-                        {tpl.running && (
-                          <>
-                            {' '}
-                            <span className="pill pos">{t('templates.running')}</span>
-                          </>
-                        )}
+                      <span className="name-line">
+                        <span className="name truncate">{tpl.name}</span>
+                        {tpl.running && <span className="pill pos">{t('templates.running')}</span>}
                       </span>
                       {tpl.description && <span className="sub truncate">{tpl.description}</span>}
                     </td>
                     <td>
-                      <span className="ports num">
+                      <span className="port-list num">
                         {tpl.forwards.map((f) => (
-                          <span
-                            key={f.name}
-                            title={`${f.name} → ${f.namespace}/${f.resourceType}/${f.resourceName}:${f.remotePort}`}
-                          >
-                            :{f.localPort}
+                          <span key={f.name}>
+                            <span className="mono">:{f.localPort}</span>{' '}
+                            <span className="port-name">{f.name}</span>
                           </span>
                         ))}
                       </span>
@@ -122,7 +115,7 @@ export const TemplatesView: React.FC = () => {
                           ))}
                         </span>
                       ) : (
-                        <span style={{ color: 'var(--muted)' }}>{t('templates.noTags')}</span>
+                        <span className="muted">{t('common.dash')}</span>
                       )}
                     </td>
                     <td className="n num nowrap">{formatRelative(tpl.updatedAt)}</td>

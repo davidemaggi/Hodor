@@ -10,6 +10,8 @@
   --border: #e3e8ec;
   --rule: #eef1f3;
   --control: #cdd3d8;
+  /* text inputs need a 3:1 boundary (WCAG 1.4.11) */
+  --input-border: #8a939b;
   --text: #131416;
   --muted: #585b5e;
   --faint: #66696c;
@@ -59,6 +61,7 @@
   --border: #232527;
   --rule: #1c1e20;
   --control: #3d4043;
+  --input-border: #6c7176;
   --text: #f2f4f5;
   --muted: #b4b6b8;
   --faint: #949699;

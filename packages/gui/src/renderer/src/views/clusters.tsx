@@ -1,17 +1,26 @@
-import { useIsFetching, useQueries, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useIsFetching, useQueries, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { FilePlus2, History, RotateCw, Star } from 'lucide-react';
 import type { Cluster } from '@hodor/core';
 import { api, errorMessage } from '../api';
-import { useClusterHealth, useClusters, useSettings } from '../queries';
-import { Empty, ErrorBlock, Skeleton } from '../components/states';
-import { formatTime, tildify } from '../format';
+import { useClusterHealth, useClusters, useProduction, useSettings } from '../queries';
+import { ErrorBlock, Skeleton } from '../components/states';
+import { Command } from '../components/command';
 import { MergeDialog } from '../components/merge-dialog';
 import { useMergeFlow } from '../merge';
+import { formatTime, tildify } from '../format';
 
 export const clusterPath = (id: string) => `/clusters/${encodeURIComponent(id)}`;
+
+/** Shorten a connection error to its useful part: "getaddrinfo ENOTFOUND host" → "ENOTFOUND host" */
+export function shortReason(error = ''): string {
+  const reason = error
+    .replace(/^.*?(E[A-Z]{3,}\b)/, '$1')
+    .replace(/^Timed out after (\d+)ms$/, 'timed out');
+  return reason.length > 48 ? `${reason.slice(0, 47)}…` : reason;
+}
 
 const HealthCell: React.FC<{ cluster: Cluster }> = ({ cluster }) => {
   const { t } = useTranslation();
@@ -23,9 +32,10 @@ const HealthCell: React.FC<{ cluster: Cluster }> = ({ cluster }) => {
   return health.data.reachable ? (
     <span className="pill pos">{t('clusters.up', { version: health.data.version })}</span>
   ) : (
-    <span className="pill neg" title={health.data.error}>
-      {t('clusters.down')}
-    </span>
+    <>
+      <span className="pill neg">{t('clusters.down')}</span>
+      <span className="sub">{shortReason(health.data.error)}</span>
+    </>
   );
 };
 
@@ -34,6 +44,7 @@ export const ClustersView: React.FC = () => {
   const queryClient = useQueryClient();
   const clusters = useClusters();
   const settings = useSettings();
+  const production = useProduction();
   const checking = useIsFetching({ queryKey: ['health'] }) > 0;
   const navigate = useNavigate();
   const merge = useMergeFlow();
@@ -61,7 +72,9 @@ export const ClustersView: React.FC = () => {
   const up = settled.filter((h) => h.data?.reachable).length;
   const checkedAt = Math.max(0, ...healths.map((h) => h.dataUpdatedAt));
   const kubectlDefault = list.find((c) => c.isDefault);
+  const lastUsed = settings.data?.lastUsedCluster;
   const multipleFiles = new Set(list.map((c) => c.sourceFile)).size > 1;
+  const empty = clusters.isSuccess && list.length === 0;
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['clusters'] });
@@ -102,10 +115,13 @@ export const ClustersView: React.FC = () => {
           {t('clusters.dropHint')}
         </div>
       )}
+
       <div className="title-row">
         <div>
           <h1 id="clusters-title">{t('clusters.title')}</h1>
-          <p className="sub">{clusters.isPending ? <Skeleton width={280} /> : sub || ' '}</p>
+          <p className="sub">
+            {clusters.isPending ? <Skeleton width={280} /> : sub || t('clusters.subEmpty')}
+          </p>
         </div>
         <div className="actions">
           {checkedAt > 0 && settled.length === list.length && (
@@ -113,20 +129,24 @@ export const ClustersView: React.FC = () => {
               {t('common.checkedAt', { time: formatTime(checkedAt) })}
             </span>
           )}
-          <button type="button" className="btn" onClick={refresh} disabled={checking}>
-            <RotateCw aria-hidden="true" />
-            {t('common.refresh')}
-          </button>
-          <button type="button" className="btn" onClick={merge.choose} disabled={merge.busy}>
-            <FilePlus2 aria-hidden="true" />
-            {t('clusters.merge')}
-          </button>
+          {!empty && (
+            <button type="button" className="btn" onClick={refresh} disabled={checking}>
+              <RotateCw aria-hidden="true" />
+              {t('common.refresh')}
+            </button>
+          )}
+          {!empty && (
+            <button type="button" className="btn" onClick={merge.choose} disabled={merge.busy}>
+              <FilePlus2 aria-hidden="true" />
+              {t('clusters.merge')}
+            </button>
+          )}
         </div>
       </div>
 
       {merge.error && (
         <p className="inline-error" role="alert">
-          {t('merge.failed', { message: merge.error })}
+          {t('merge.failedFiles', { message: merge.error })}
         </p>
       )}
       {merge.outcome && (
@@ -145,88 +165,116 @@ export const ClustersView: React.FC = () => {
           message={t('clusters.error', { message: errorMessage(clusters.error) })}
           onRetry={refresh}
         />
-      ) : clusters.isSuccess && list.length === 0 ? (
-        <Empty title={t('clusters.emptyTitle')} bodyKey="clusters.emptyBody" />
+      ) : empty ? (
+        <div className="start drop-zone">
+          <h2>{t('clusters.emptyTitle')}</h2>
+          <p>{t('clusters.emptyBody')}</p>
+          <div className="start-actions">
+            <button
+              type="button"
+              className="btn primary"
+              onClick={merge.choose}
+              disabled={merge.busy}
+            >
+              <FilePlus2 aria-hidden="true" />
+              {t('clusters.chooseFile')}
+            </button>
+            <span className="muted">{t('clusters.orTerminal')}</span>
+            <Command value="hodor config:merge ~/Downloads/kubeconfig.yaml" />
+          </div>
+        </div>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th aria-label={t('clusters.defaultMark')} />
-              <th>{t('clusters.colContext')}</th>
-              <th>{t('clusters.colNamespace')}</th>
-              {multipleFiles && <th>{t('clusters.colKubeconfig')}</th>}
-              <th className="n">{t('clusters.colStatus')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clusters.isPending
-              ? [0, 1, 2].map((i) => (
-                  <tr key={i}>
-                    <td className="mark" />
-                    <td className="identity">
-                      <Skeleton width={140} />
-                      <span className="sub">
-                        <Skeleton width={220} height={12} />
-                      </span>
-                    </td>
-                    <td>
-                      <Skeleton width={64} />
-                    </td>
-                    <td className="n">
-                      <Skeleton width={96} height={22} />
-                    </td>
-                  </tr>
-                ))
-              : list.map((cluster) => (
-                  <tr
-                    key={cluster.id}
-                    className="clickable"
-                    aria-selected={cluster.id === settings.data?.lastUsedCluster}
-                    onClick={(e) => {
-                      if ((e.target as HTMLElement).closest('a')) return;
-                      navigate(clusterPath(cluster.id));
-                    }}
-                  >
-                    <td className="mark">
-                      {cluster.isDefault ? (
-                        <span
-                          title={t('clusters.defaultMark')}
-                          role="img"
-                          aria-label={t('clusters.defaultMark')}
-                        >
-                          <Star className="star" aria-hidden="true" />
+        <>
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  <span className="visually-hidden">{t('clusters.colMarks')}</span>
+                </th>
+                <th>{t('clusters.colContext')}</th>
+                <th>{t('clusters.colNamespace')}</th>
+                {multipleFiles && <th>{t('clusters.colKubeconfig')}</th>}
+                <th className="n">{t('clusters.colStatus')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {clusters.isPending
+                ? [0, 1, 2].map((i) => (
+                    <tr key={i}>
+                      <td className="mark" />
+                      <td className="identity">
+                        <Skeleton width={140} />
+                        <span className="sub">
+                          <Skeleton width={220} height={12} />
                         </span>
-                      ) : cluster.id === settings.data?.lastUsedCluster ? (
-                        <span
-                          title={t('clusters.lastUsedMark')}
-                          role="img"
-                          aria-label={t('clusters.lastUsedMark')}
-                        >
-                          <History className="mark-icon" aria-hidden="true" />
+                      </td>
+                      <td>
+                        <Skeleton width={64} />
+                      </td>
+                      <td className="n">
+                        <Skeleton width={96} height={22} />
+                      </td>
+                    </tr>
+                  ))
+                : list.map((cluster) => (
+                    <tr
+                      key={cluster.id}
+                      className="clickable"
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('a, button')) return;
+                        navigate(clusterPath(cluster.id));
+                      }}
+                    >
+                      <td className="mark">
+                        {cluster.isDefault ? (
+                          <span role="img" aria-label={t('clusters.defaultMark')}>
+                            <Star className="star" aria-hidden="true" />
+                          </span>
+                        ) : cluster.id === lastUsed ? (
+                          <span role="img" aria-label={t('clusters.lastUsedMark')}>
+                            <History className="mark-icon" aria-hidden="true" />
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="identity">
+                        <span className="name-line">
+                          <Link
+                            to={clusterPath(cluster.id)}
+                            className={
+                              cluster.isDefault ? 'row-link strong truncate' : 'row-link truncate'
+                            }
+                          >
+                            {cluster.name}
+                          </Link>
+                          {production.isProduction(cluster.id) && (
+                            <span className="tag prod">{t('clusters.prodTag')}</span>
+                          )}
                         </span>
-                      ) : null}
-                    </td>
-                    <td className="identity">
-                      <Link
-                        to={clusterPath(cluster.id)}
-                        className={
-                          cluster.isDefault ? 'row-link strong truncate' : 'row-link truncate'
-                        }
-                      >
-                        {cluster.name}
-                      </Link>
-                      <span className="sub truncate">{cluster.server}</span>
-                    </td>
-                    <td>{cluster.namespace ?? 'default'}</td>
-                    {multipleFiles && <td className="mono">{tildify(cluster.sourceFile)}</td>}
-                    <td className="n">
-                      <HealthCell cluster={cluster} />
-                    </td>
-                  </tr>
-                ))}
-          </tbody>
-        </table>
+                        <span className="sub truncate">{cluster.server}</span>
+                      </td>
+                      <td>{cluster.namespace ?? 'default'}</td>
+                      {multipleFiles && <td className="mono">{tildify(cluster.sourceFile)}</td>}
+                      <td className="n">
+                        <HealthCell cluster={cluster} />
+                      </td>
+                    </tr>
+                  ))}
+            </tbody>
+          </table>
+          {clusters.isSuccess && (
+            <p className="legend">
+              <span>
+                <Star className="star" aria-hidden="true" /> {t('clusters.defaultMark')}
+              </span>
+              <span>
+                <History className="mark-icon" aria-hidden="true" /> {t('clusters.lastUsedMark')}
+              </span>
+              <span>{t('clusters.dropLegend')}</span>
+            </p>
+          )}
+        </>
       )}
+
       <MergeDialog preview={merge.preview} onClose={merge.close} />
     </section>
   );

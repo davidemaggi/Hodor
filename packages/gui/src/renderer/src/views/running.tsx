@@ -1,24 +1,25 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Square } from 'lucide-react';
-import type { ForwardSummary, RunningTemplate } from '../../../shared/api';
+import type { RunningForward, RunningTemplate } from '../../../shared/api';
 import { api, errorMessage } from '../api';
 import { useRunning, useTemplates } from '../queries';
-import { Command, CopyButton } from '../components/command';
 import { Empty, ErrorBlock, Skeleton } from '../components/states';
+import { Command, CopyButton } from '../components/command';
 import { formatTime } from '../format';
 
-const Door: React.FC<{ forward: ForwardSummary }> = ({ forward }) => {
+const Door: React.FC<{ forward: RunningForward }> = ({ forward }) => {
   const { t } = useTranslation();
   const address = `127.0.0.1:${forward.localPort}`;
 
   return (
-    <div className="door">
-      <span className="port num" aria-label={address}>
-        :{forward.localPort}
-      </span>
+    <div className="door" data-state={forward.listening ? 'open' : 'closed'}>
+      <span className="port num">:{forward.localPort}</span>
       <div>
-        <span className="name">{forward.name}</span>
+        <span className="name-line">
+          <span className="name">{forward.name}</span>
+          {!forward.listening && <span className="pill neg">{t('running.notListening')}</span>}
+        </span>
         <span className="target">
           {t('running.target', {
             namespace: forward.namespace,
@@ -27,6 +28,9 @@ const Door: React.FC<{ forward: ForwardSummary }> = ({ forward }) => {
             port: forward.remotePort,
           })}
         </span>
+        {!forward.listening && (
+          <span className="hint">{t('running.notListeningHint', { address })}</span>
+        )}
       </div>
       <CopyButton value={address} label={t('running.copy')} />
     </div>
@@ -50,7 +54,10 @@ const Run: React.FC<{ run: RunningTemplate }> = ({ run }) => {
         <div>
           <h2 id={`run-${run.templateId}`}>{run.templateName}</h2>
           <p className="meta num">
-            {t('running.meta', { cluster: run.clusterName, time: formatTime(run.startedAt) })}
+            {t(run.source === 'app' ? 'running.metaApp' : 'running.metaCli', {
+              cluster: run.clusterName,
+              time: formatTime(run.startedAt),
+            })}
           </p>
         </div>
         <button
@@ -63,6 +70,7 @@ const Run: React.FC<{ run: RunningTemplate }> = ({ run }) => {
           {stop.isPending ? t('running.stopping') : t('running.stop')}
         </button>
       </div>
+      {stop.isError && <p className="inline-error">{errorMessage(stop.error)}</p>}
       {run.forwards.map((f) => (
         <Door key={f.name} forward={f} />
       ))}
@@ -108,8 +116,9 @@ export const RunningView: React.FC = () => {
   const running = useRunning();
   const list = running.data ?? [];
   const doors = list.reduce((sum, r) => sum + r.forwards.length, 0);
+  const closed = list.reduce((sum, r) => sum + r.forwards.filter((f) => !f.listening).length, 0);
 
-  const sub =
+  let sub =
     list.length === 0
       ? t('running.subNone')
       : list.length === 1
@@ -119,13 +128,16 @@ export const RunningView: React.FC = () => {
             cluster: list[0].clusterName,
           })
         : t('running.sub', { count: doors, templates: list.length });
+  if (closed > 0) sub += ` · ${t('running.subClosed', { count: closed })}`;
 
   return (
     <section className="view" aria-labelledby="running-title">
       <div className="title-row">
         <div>
           <h1 id="running-title">{t('running.title')}</h1>
-          <p className="sub">{running.isPending ? <Skeleton width={260} /> : sub}</p>
+          <p className="sub" aria-live="polite">
+            {running.isPending ? <Skeleton width={260} /> : sub}
+          </p>
         </div>
       </div>
 

@@ -146,7 +146,9 @@ let running: RunningTemplate[] =
           clusterName: clusters[0].name,
           pid: 48213,
           startedAt: '2026-10-22T07:58:00.000Z',
-          forwards: templates[0].forwards,
+          source: 'cli',
+          // redis is down, to show the closed-door state
+          forwards: templates[0].forwards.map((f) => ({ ...f, listening: f.name !== 'redis' })),
         },
       ];
 
@@ -158,7 +160,12 @@ if (params.has('empty')) {
 }
 if (params.has('idle')) templates.forEach((t) => (t.running = false));
 
-let settings: Settings = { language: 'en', theme, lastUsedCluster: clusters[1]?.id };
+let settings: Settings = {
+  language: 'en',
+  theme,
+  lastUsedCluster: clusters[1]?.id,
+  productionClusters: [clusters[3]?.id].filter(Boolean) as string[],
+};
 
 console.assert(
   templates.filter((t) => t.running).length === running.length,

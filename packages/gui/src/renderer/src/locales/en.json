@@ -12,7 +12,7 @@
   "scope": {
     "kubectl": "kubectl",
     "none": "no default context",
-    "title": "kubectl's default context"
+    "title": "kubectl's default context: {{name}}"
   },
   "common": {
     "refresh": "Refresh",
@@ -22,7 +22,8 @@
     "dash": "—",
     "copy": "Copy",
     "copied": "Copied",
-    "copyCommand": "Copy command"
+    "copyCommand": "Copy command",
+    "copyFailed": "Couldn't copy"
   },
   "clusters": {
     "title": "Clusters",
@@ -35,16 +36,22 @@
     "colNamespace": "Namespace",
     "colKubeconfig": "Kubeconfig",
     "colStatus": "Status",
-    "defaultMark": "kubectl's default context",
-    "lastUsedMark": "Last used by Hodor",
+    "defaultMark": "kubectl's default",
+    "lastUsedMark": "Last opened in Hodor",
     "up": "Up · {{version}}",
     "down": "No answer",
     "checking": "Checking",
     "emptyTitle": "No kubeconfig in ~/.kube yet.",
-    "emptyBody": "Drop one in there, or merge one into your default config with <code>hodor config:merge file.yaml</code>.",
-    "error": "Couldn't read your kubeconfigs: {{message}}",
+    "emptyBody": "Drop a kubeconfig on this window, or pick one: Hodor shows what it adds, backs up yours, and merges it into ~/.kube/config.",
     "merge": "Merge kubeconfig",
-    "dropHint": "Drop kubeconfig files to merge them into yours"
+    "dropHint": "Drop kubeconfig files to merge them into yours",
+    "subEmpty": "No clusters yet",
+    "colMarks": "Default and last opened",
+    "prodTag": "prod",
+    "dropLegend": "Drop a kubeconfig anywhere here to merge it",
+    "chooseFile": "Choose a kubeconfig",
+    "orTerminal": "or from the terminal",
+    "error": "Couldn't read your kubeconfigs: {{message}}"
   },
   "templates": {
     "title": "Templates",
@@ -55,7 +62,6 @@
     "colTags": "Tags",
     "colUpdated": "Updated",
     "running": "Running",
-    "noTags": "—",
     "error": "Couldn't load templates: {{message}}",
     "startTitle": "No templates yet. Three steps and you're holding doors.",
     "stepCreate": "Create one",
@@ -64,7 +70,8 @@
     "stepImportDesc": "A teammate exported theirs? It has no cluster details, so it's safe to share.",
     "stepRun": "Run it anywhere",
     "stepRunDesc": "Choose the cluster when you start it. It shows up under Running.",
-    "editorSoon": "The template editor isn't in the app yet; these commands do it from the terminal."
+    "editorSoon": "The template editor isn't in the app yet; these commands do it from the terminal.",
+    "subEmpty": "Nothing saved yet"
   },
   "running": {
     "title": "Running",
@@ -73,7 +80,6 @@
     "sub_one": "1 door held",
     "subSingle": "{{template}} holds {{count}} doors on {{cluster}}",
     "subSingle_one": "{{template}} holds 1 door on {{cluster}}",
-    "meta": "on {{cluster}} · since {{time}} · started from the terminal",
     "stop": "Stop",
     "stopping": "Stopping…",
     "target": "{{namespace}} · {{kind}}/{{name}}:{{port}}",
@@ -82,7 +88,13 @@
     "error": "Couldn't read running templates: {{message}}",
     "startOne": "Start one from the terminal",
     "startOneDesc": "Running templates show up here within a few seconds, and you can stop them from here.",
-    "copy": "Copy address"
+    "copy": "Copy address",
+    "metaCli": "on {{cluster}} · since {{time}} · started from the terminal",
+    "metaApp": "on {{cluster}} · since {{time}}",
+    "notListening": "Not listening",
+    "notListeningHint": "Nothing answers on {{address}}. The forward may have stopped; check the terminal it runs in.",
+    "subClosed_one": "1 not listening",
+    "subClosed_other": "{{count}} not listening"
   },
   "settings": {
     "title": "Settings",
@@ -123,22 +135,22 @@
     "done_one": "Merged. {{names}} is now in your kubeconfig.",
     "done_other": "Merged. {{names}} are now in your kubeconfig.",
     "doneNothing": "Merged. Nothing new was added.",
-    "failed": "Couldn't read those files: {{message}}"
+    "failedFiles": "Couldn't read those files: {{message}}",
+    "failedCluster": "Couldn't prepare the merge: {{message}}"
   },
   "detail": {
     "gone": "This context isn't in your kubeconfigs anymore.",
     "isDefault": "kubectl's default",
     "makeDefault": "Make kubectl's default",
     "mergeIntoDefault": "Merge into your kubeconfig",
-    "otherFileHint": "This context lives in {{file}}. kubectl only switches between contexts in your default kubeconfig.",
+    "otherFileHint": "This context lives in {{file}}. kubectl only switches between contexts in your default kubeconfig, so merge it first.",
     "unreachable": "Couldn't reach this cluster: {{message}}",
     "namespace": "Namespace",
     "makeDefaultNamespace": "Use as default namespace",
-    "namespacesForbidden": "You're not allowed to list namespaces on this cluster. Type one and press Enter.",
+    "namespacesForbidden": "You're not allowed to list namespaces on this cluster. Type one and choose Show.",
     "filter": "Filter by name or port",
     "services": "Services",
     "pods": "Pods",
-    "count": "{{shown}} of {{total}}",
     "noMatch": "Nothing matches the filter.",
     "noServices": "No services in {{namespace}}.",
     "noPods": "No pods in {{namespace}}.",
@@ -154,6 +166,26 @@
     "troubleDesc": "Is the cluster running, or do you need a VPN? Run this to see what kubectl says.",
     "server": "Server",
     "user": "User",
-    "kubeconfig": "Kubeconfig"
+    "kubeconfig": "Kubeconfig",
+    "production": "Production cluster",
+    "prodHint": "Marked as production: Hodor asks before pointing kubectl here.",
+    "noKubectl": "kubectl isn't installed, so there's no kubectl default to change.",
+    "switched": "kubectl now points at {{to}}.",
+    "switchedFrom": "kubectl now points at {{to}} (was {{from}}).",
+    "namespaceSwitched": "{{context}} now defaults to namespace {{to}} (was {{from}}).",
+    "backedUp": "Your previous kubeconfig is in ~/.hodor/backups.",
+    "undo": "Undo",
+    "show": "Show",
+    "confirmTitle": "Point kubectl at {{name}}?",
+    "confirmBody": "<strong>{{name}}</strong> is marked as production. Every terminal that uses kubectl's default context will talk to it instead of {{from}}. Your kubeconfig is backed up first.",
+    "confirmYes": "Point kubectl here",
+    "count_services_one": "1 service",
+    "count_services_other": "{{count}} services",
+    "count_pods_one": "1 pod",
+    "count_pods_other": "{{count}} pods",
+    "countFiltered_services_one": "{{shown}} of 1 service",
+    "countFiltered_services_other": "{{shown}} of {{count}} services",
+    "countFiltered_pods_one": "{{shown}} of 1 pod",
+    "countFiltered_pods_other": "{{shown}} of {{count}} pods"
   }
 }

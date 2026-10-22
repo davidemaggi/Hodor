@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { ChevronLeft, Search, Star } from 'lucide-react';
 import type { PodView, ServicePortView, ServiceView } from '@hodor/core';
 import { api, errorMessage } from '../api';
-import { useAppInfo, useClusterHealth, useClusters } from '../queries';
+import { useAppInfo, useClusterHealth, useClusters, useProduction } from '../queries';
 import { ErrorBlock, Skeleton } from '../components/states';
-import { MergeDialog } from '../components/merge-dialog';
 import { Command } from '../components/command';
+import { ConfirmDialog } from '../components/confirm-dialog';
+import { MergeDialog } from '../components/merge-dialog';
 import { useMergeFlow } from '../merge';
 import { formatAge, tildify } from '../format';
 
@@ -27,37 +28,54 @@ function servicePort(p: ServicePortView): string {
   return `${p.port}${target}${proto}`;
 }
 
-const Count: React.FC<{ shown: number; total?: number; filtered: boolean }> = ({
-  shown,
-  total,
-  filtered,
-}) => {
+const matches = (query: string, ...values: Array<string | number | undefined>) =>
+  !query || values.some((v) => v !== undefined && String(v).toLowerCase().includes(query));
+
+/** "6 pods", or "2 of 6 pods" while filtering */
+const Count: React.FC<{
+  shown: number;
+  total?: number;
+  filtered: boolean;
+  noun: 'services' | 'pods';
+}> = ({ shown, total, filtered, noun }) => {
   const { t } = useTranslation();
-  if (!total) return null;
+  if (total === undefined) return null;
   return (
-    <span className="stamp num">{filtered ? t('detail.count', { shown, total }) : total}</span>
+    <span className="stamp num">
+      {filtered
+        ? t(`detail.countFiltered_${noun}`, { shown, count: total })
+        : t(`detail.count_${noun}`, { count: total })}
+    </span>
   );
 };
 
-const matches = (query: string, ...values: Array<string | number | undefined>) =>
-  !query || values.some((v) => v !== undefined && String(v).toLowerCase().includes(query));
+/** What just changed in kubectl's config, and how to put it back */
+type Change =
+  | { kind: 'context'; to: string; from?: { id: string; name: string } }
+  | { kind: 'namespace'; context: string; to: string; from: string };
 
 export const ClusterDetailView: React.FC = () => {
   const { t } = useTranslation();
   const { id = '' } = useParams();
   const [search, setSearch] = useSearchParams();
   const [filter, setFilter] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const [change, setChange] = useState<Change | null>(null);
   const queryClient = useQueryClient();
   const clusters = useClusters();
   const info = useAppInfo();
+  const production = useProduction();
   const merge = useMergeFlow();
 
   const cluster = clusters.data?.find((c) => c.id === id);
+  const kubectlDefault = clusters.data?.find((c) => c.isDefault);
   const health = useClusterHealth(id);
+  const isProd = production.isProduction(id);
 
-  // Remember this cluster: it is selected again after a restart
+  // Remember this cluster: it is opened again after a restart
   useEffect(() => {
     if (!cluster) return;
+    setChange(null);
     api.clusters
       .select(cluster.id)
       .then(() => queryClient.invalidateQueries({ queryKey: ['settings'] }));
@@ -88,14 +106,35 @@ export const ClusterDetailView: React.FC = () => {
   });
 
   const invalidateClusters = () => queryClient.invalidateQueries({ queryKey: ['clusters'] });
+
   const setContext = useMutation({
-    mutationFn: () => api.kubectl.setContext(id),
+    mutationFn: (targetId: string) => api.kubectl.setContext(targetId),
     onSuccess: invalidateClusters,
   });
   const setNamespace = useMutation({
-    mutationFn: () => api.kubectl.setNamespace(id, namespace),
+    mutationFn: (ns: string) => api.kubectl.setNamespace(id, ns),
     onSuccess: invalidateClusters,
   });
+
+  const pointKubectlHere = () => {
+    if (!cluster) return;
+    const from = kubectlDefault ? { id: kubectlDefault.id, name: kubectlDefault.name } : undefined;
+    setContext.mutate(cluster.id, {
+      onSuccess: () => {
+        setConfirming(false);
+        setChange({ kind: 'context', to: cluster.name, from });
+      },
+    });
+  };
+
+  const undo = () => {
+    if (!change) return;
+    if (change.kind === 'context' && change.from) {
+      setContext.mutate(change.from.id, { onSuccess: () => setChange(null) });
+    } else if (change.kind === 'namespace') {
+      setNamespace.mutate(change.from, { onSuccess: () => setChange(null) });
+    }
+  };
 
   const query = filter.trim().toLowerCase();
   const shownServices = useMemo(
@@ -130,6 +169,7 @@ export const ClusterDetailView: React.FC = () => {
     !!cluster && !!info.data && cluster.sourceFile === info.data.defaultKubeconfig;
   const canSwitch = !!kubectl && inDefaultFile;
   const actionError = setContext.error || setNamespace.error;
+  const currentNamespace = cluster?.namespace || 'default';
 
   const sub = cluster
     ? [
@@ -149,11 +189,26 @@ export const ClusterDetailView: React.FC = () => {
       </Link>
 
       <div className="title-row">
-        <div>
-          <h1 id="detail-title">{cluster?.name ?? <Skeleton width={180} height={24} />}</h1>
+        <div className="title-block">
+          <h1 id="detail-title" className="name-line">
+            {cluster?.name ?? <Skeleton width={180} height={24} />}
+            {isProd && <span className="tag prod">{t('clusters.prodTag')}</span>}
+          </h1>
           <p className="sub truncate">{cluster ? sub : <Skeleton width={320} />}</p>
         </div>
         <div className="actions">
+          {cluster && (
+            <label className="switch-row">
+              <input
+                type="checkbox"
+                className="switch"
+                checked={isProd}
+                onChange={() => production.toggle(cluster.id)}
+                disabled={production.busy}
+              />
+              {t('detail.production')}
+            </label>
+          )}
           {cluster?.isDefault ? (
             <span className="status-note">
               <Star className="star" aria-hidden="true" />
@@ -163,7 +218,7 @@ export const ClusterDetailView: React.FC = () => {
             <button
               type="button"
               className="btn"
-              onClick={() => setContext.mutate()}
+              onClick={() => (isProd ? setConfirming(true) : pointKubectlHere())}
               disabled={setContext.isPending}
             >
               <Star aria-hidden="true" />
@@ -175,7 +230,6 @@ export const ClusterDetailView: React.FC = () => {
               className="btn"
               onClick={() => merge.fromCluster(cluster.id)}
               disabled={merge.busy}
-              title={t('detail.otherFileHint', { file: tildify(cluster.sourceFile) })}
             >
               {t('detail.mergeIntoDefault')}
             </button>
@@ -183,9 +237,49 @@ export const ClusterDetailView: React.FC = () => {
         </div>
       </div>
 
+      {cluster && !cluster.isDefault && (
+        <p className="hint title-hint">
+          {!kubectl
+            ? t('detail.noKubectl')
+            : !inDefaultFile
+              ? t('detail.otherFileHint', { file: tildify(cluster.sourceFile) })
+              : isProd
+                ? t('detail.prodHint')
+                : null}
+        </p>
+      )}
+
+      {change && (
+        <p className="inline-success" role="status">
+          {change.kind === 'context'
+            ? change.from
+              ? t('detail.switchedFrom', { to: change.to, from: change.from.name })
+              : t('detail.switched', { to: change.to })
+            : t('detail.namespaceSwitched', {
+                context: change.context,
+                to: change.to,
+                from: change.from,
+              })}{' '}
+          {t('detail.backedUp')}{' '}
+          {(change.kind === 'namespace' || change.from) && (
+            <button
+              type="button"
+              className="link-btn"
+              onClick={undo}
+              disabled={setContext.isPending || setNamespace.isPending}
+            >
+              {t('detail.undo')}
+            </button>
+          )}
+        </p>
+      )}
       {(actionError || merge.error) && (
         <p className="inline-error" role="alert">
-          {actionError ? errorMessage(actionError) : merge.error}
+          {actionError
+            ? errorMessage(actionError)
+            : merge.source === 'cluster'
+              ? t('merge.failedCluster', { message: merge.error })
+              : t('merge.failedFiles', { message: merge.error })}
         </p>
       )}
       {merge.outcome && (
@@ -216,7 +310,7 @@ export const ClusterDetailView: React.FC = () => {
                   <dt>{t('detail.user')}</dt>
                   <dd>{cluster.user}</dd>
                   <dt>{t('detail.namespace')}</dt>
-                  <dd>{cluster.namespace || 'default'}</dd>
+                  <dd>{currentNamespace}</dd>
                   <dt>{t('detail.kubeconfig')}</dt>
                   <dd className="mono">{tildify(cluster.sourceFile)}</dd>
                 </dl>
@@ -230,20 +324,32 @@ export const ClusterDetailView: React.FC = () => {
       ) : (
         <>
           <div className="toolbar">
-            <label className="field-inline">
-              <span>{t('detail.namespace')}</span>
-              {namespaces.data && !namespaces.data.complete ? (
+            {namespaces.data && !namespaces.data.complete ? (
+              <form
+                className="field-inline"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const value = String(new FormData(e.currentTarget).get('ns') || '').trim();
+                  setSearch({ ns: value || preferred });
+                }}
+              >
+                <label htmlFor="ns-input">{t('detail.namespace')}</label>
                 <input
+                  id="ns-input"
+                  name="ns"
+                  key={namespace}
                   className="input"
                   defaultValue={namespace}
                   spellCheck={false}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter')
-                      setSearch({ ns: e.currentTarget.value.trim() || preferred });
-                  }}
                   aria-describedby="ns-hint"
                 />
-              ) : (
+                <button type="submit" className="btn">
+                  {t('detail.show')}
+                </button>
+              </form>
+            ) : (
+              <label className="field-inline">
+                <span>{t('detail.namespace')}</span>
                 <select
                   className="select"
                   value={namespace}
@@ -256,14 +362,24 @@ export const ClusterDetailView: React.FC = () => {
                     </option>
                   ))}
                 </select>
-              )}
-            </label>
-            {canSwitch && namespace !== (cluster?.namespace || 'default') && (
+              </label>
+            )}
+            {canSwitch && namespace !== currentNamespace && (
               <button
                 type="button"
                 className="btn ghost"
-                onClick={() => setNamespace.mutate()}
                 disabled={setNamespace.isPending}
+                onClick={() =>
+                  setNamespace.mutate(namespace, {
+                    onSuccess: () =>
+                      setChange({
+                        kind: 'namespace',
+                        context: cluster!.name,
+                        to: namespace,
+                        from: currentNamespace,
+                      }),
+                  })
+                }
               >
                 {t('detail.makeDefaultNamespace')}
               </button>
@@ -292,6 +408,7 @@ export const ClusterDetailView: React.FC = () => {
             <div className="block-head">
               <h2 id="services-title">{t('detail.services')}</h2>
               <Count
+                noun="services"
                 shown={shownServices.length}
                 total={services.data?.length}
                 filtered={!!query}
@@ -333,7 +450,7 @@ export const ClusterDetailView: React.FC = () => {
                     : shownServices.map((s) => (
                         <tr key={s.name}>
                           <td className="identity">
-                            <span className="truncate name">{s.name}</span>
+                            <span className="truncate mono-id">{s.name}</span>
                             {!s.forwardable && (
                               <span className="sub">{t('detail.notForwardable')}</span>
                             )}
@@ -343,7 +460,7 @@ export const ClusterDetailView: React.FC = () => {
                             {s.ports.length ? (
                               <span className="ports num">
                                 {s.ports.map((p) => (
-                                  <span key={`${p.port}-${p.protocol}`} title={p.name}>
+                                  <span key={`${p.port}-${p.protocol}`}>
                                     {servicePort(p)}
                                     {p.name && p.name !== p.targetPort && (
                                       <span className="port-name"> {p.name}</span>
@@ -365,7 +482,12 @@ export const ClusterDetailView: React.FC = () => {
           <section className="block" aria-labelledby="pods-title">
             <div className="block-head">
               <h2 id="pods-title">{t('detail.pods')}</h2>
-              <Count shown={shownPods.length} total={pods.data?.length} filtered={!!query} />
+              <Count
+                noun="pods"
+                shown={shownPods.length}
+                total={pods.data?.length}
+                filtered={!!query}
+              />
             </div>
             {pods.isError ? (
               <ErrorBlock message={errorMessage(pods.error)} onRetry={() => pods.refetch()} />
@@ -412,7 +534,7 @@ export const ClusterDetailView: React.FC = () => {
                     : shownPods.map((p) => (
                         <tr key={p.name}>
                           <td className="identity">
-                            <span className="truncate name mono-id" title={p.name}>
+                            <span className="truncate mono-id" title={p.name}>
                               {p.name}
                             </span>
                             {p.owner && <span className="sub truncate">{p.owner}</span>}
@@ -437,7 +559,7 @@ export const ClusterDetailView: React.FC = () => {
                             {p.ports.length ? (
                               <span className="ports num">
                                 {p.ports.map((x) => (
-                                  <span key={`${x.container}-${x.port}`} title={x.container}>
+                                  <span key={`${x.container}-${x.port}`}>
                                     {x.port}
                                     {x.name && <span className="port-name"> {x.name}</span>}
                                   </span>
@@ -457,6 +579,26 @@ export const ClusterDetailView: React.FC = () => {
       )}
 
       <MergeDialog preview={merge.preview} onClose={merge.close} />
+      {cluster && (
+        <ConfirmDialog
+          open={confirming}
+          title={t('detail.confirmTitle', { name: cluster.name })}
+          body={
+            <p>
+              <Trans
+                i18nKey="detail.confirmBody"
+                values={{ name: cluster.name, from: kubectlDefault?.name ?? t('scope.none') }}
+                components={{ strong: <strong /> }}
+              />
+            </p>
+          }
+          confirmLabel={t('detail.confirmYes')}
+          cancelLabel={t('merge.cancel')}
+          busy={setContext.isPending}
+          onConfirm={pointKubectlHere}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
     </section>
   );
 };

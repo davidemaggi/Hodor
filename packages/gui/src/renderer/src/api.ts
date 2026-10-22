@@ -17,5 +17,8 @@ export const api: HodorApi = await resolveApi();
 /** Electron prefixes errors from the main process; keep only the useful part */
 export function errorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
-  return message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
+  // "Error invoking remote method 'x': KubernetesApiError: Failed…" → "Failed…"
+  return message
+    .replace(/^Error invoking remote method '[^']+': /, '')
+    .replace(/^(\w*Error: )+/, '');
 }

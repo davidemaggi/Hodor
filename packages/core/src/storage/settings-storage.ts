@@ -9,8 +9,10 @@ export interface Settings {
   language: string;
   /** "light" is Snow, "dark" is Night; "system" follows the OS */
   theme: ThemePreference;
-  /** Cluster id (see clusterId()) last used to run a template */
+  /** Cluster id (see clusterId()) the user worked with last; reopened on restart */
   lastUsedCluster?: string;
+  /** Cluster ids the user marked as production: switching kubectl to them asks first */
+  productionClusters?: string[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {

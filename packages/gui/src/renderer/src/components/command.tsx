@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, X } from 'lucide-react';
 
 interface CopyButtonProps {
   value: string;
@@ -9,29 +9,44 @@ interface CopyButtonProps {
   iconOnly?: boolean;
 }
 
-/** Copies a value and confirms in place for a moment */
+type CopyState = 'idle' | 'copied' | 'failed';
+
+/** Copies a value and confirms in place for a moment; announces the result to screen readers */
 export const CopyButton: React.FC<CopyButtonProps> = ({ value, label, iconOnly = false }) => {
   const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
+  const [state, setState] = useState<CopyState>('idle');
 
   const copy = async () => {
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    try {
+      await navigator.clipboard.writeText(value);
+      setState('copied');
+    } catch {
+      setState('failed');
+    }
+    setTimeout(() => setState('idle'), 1800);
   };
 
+  const text =
+    state === 'copied' ? t('common.copied') : state === 'failed' ? t('common.copyFailed') : label;
+  const Icon = state === 'copied' ? Check : state === 'failed' ? X : Copy;
+
   return (
-    <button
-      type="button"
-      className={iconOnly ? 'btn ghost icon' : 'btn ghost'}
-      onClick={copy}
-      aria-label={iconOnly ? (copied ? t('common.copied') : label) : undefined}
-      title={iconOnly ? label : undefined}
-      aria-live="polite"
-    >
-      {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-      {!iconOnly && (copied ? t('common.copied') : label)}
-    </button>
+    <>
+      <button
+        type="button"
+        className={iconOnly ? 'btn ghost icon' : 'btn ghost'}
+        onClick={copy}
+        aria-label={iconOnly ? label : undefined}
+        title={iconOnly ? label : undefined}
+        data-state={state}
+      >
+        <Icon aria-hidden="true" />
+        {!iconOnly && text}
+      </button>
+      <span className="visually-hidden" role="status">
+        {state === 'idle' ? '' : text}
+      </span>
+    </>
   );
 };
 
