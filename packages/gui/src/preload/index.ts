@@ -49,6 +49,17 @@ const api: HodorApi = {
     list: () => ipcRenderer.invoke(CHANNELS.runningList),
     stop: (templateId) => ipcRenderer.invoke(CHANNELS.runningStop, templateId),
     restart: (templateId) => ipcRenderer.invoke(CHANNELS.runningRestart, templateId),
+    start: (templateId, clusterId) =>
+      ipcRenderer.invoke(CHANNELS.runningStart, { templateId, clusterId }),
+    stopAll: () => ipcRenderer.invoke(CHANNELS.runningStopAll),
+    forward: (templateId, forwardName, action) =>
+      ipcRenderer.invoke(CHANNELS.runningForward, { templateId, forwardName, action }),
+    logs: (templateId, forwardName) =>
+      ipcRenderer.invoke(CHANNELS.runningLogs, { templateId, forwardName }),
+    linked: (templateId, forwardName) =>
+      ipcRenderer.invoke(CHANNELS.runningLinked, { templateId, forwardName }),
+    reveal: (ref) => ipcRenderer.invoke(CHANNELS.runningReveal, ref),
+    copyValue: (ref) => ipcRenderer.invoke(CHANNELS.runningCopyValue, ref),
   },
   settings: {
     get: () => ipcRenderer.invoke(CHANNELS.settingsGet),

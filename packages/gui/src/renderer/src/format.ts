@@ -1,9 +1,11 @@
 import i18n from './i18n';
 
-export function formatTime(iso: string | number): string {
-  return new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' }).format(
-    new Date(iso)
-  );
+export function formatTime(iso: string | number, seconds = false): string {
+  return new Intl.DateTimeFormat(i18n.language, {
+    hour: '2-digit',
+    minute: '2-digit',
+    ...(seconds ? { second: '2-digit' } : {}),
+  }).format(new Date(iso));
 }
 
 export function formatRelative(iso: string, now = Date.now()): string {

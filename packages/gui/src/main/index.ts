@@ -1,7 +1,18 @@
-import { app, BrowserWindow, nativeTheme, session, shell, type IpcMainInvokeEvent } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  nativeTheme,
+  session,
+  shell,
+  type IpcMainInvokeEvent,
+} from 'electron';
 import * as path from 'path';
 import { SettingsStorage, type Settings } from '@hodor/core';
 import { registerIpc } from './ipc';
+import { AppRunner } from './runner';
+import { createTray } from './tray';
+import { closeDecision } from './close-policy';
 
 // Snow and Night frame colours, so the window never flashes the wrong theme while loading
 const FRAME = { light: '#eef2f6', dark: '#0b0c0d' } as const;
@@ -11,8 +22,51 @@ const devServerUrl = process.env.ELECTRON_RENDERER_URL;
 const rendererFile = path.join(__dirname, '../renderer/index.html');
 
 let mainWindow: BrowserWindow | null = null;
+let quitting = false;
+const runner = new AppRunner();
 
 app.enableSandbox();
+
+// One Hodor at a time: a second launch brings the existing window back
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+}
+
+function showWindow(): void {
+  if (!mainWindow) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+/** Quit, asking first when templates run inside the app (their forwards stop with it) */
+async function quitWithConfirm(): Promise<void> {
+  const running = runner.ids().length;
+  if (running > 0) {
+    const options = {
+      type: 'question' as const,
+      buttons: ['Stop and quit', 'Cancel'],
+      defaultId: 1,
+      cancelId: 1,
+      message:
+        running === 1
+          ? 'A template is running. Stop it and quit?'
+          : `${running} templates are running. Stop them and quit?`,
+      detail:
+        'Their port-forwards close when Hodor quits. Templates started from the terminal keep running.',
+    };
+    const { response } = mainWindow
+      ? await dialog.showMessageBox(mainWindow, options)
+      : await dialog.showMessageBox(options);
+    if (response !== 0) return;
+  }
+  quitting = true;
+  await runner.shutdown();
+  app.quit();
+}
 
 function isTrustedSender(event: IpcMainInvokeEvent): boolean {
   const url = event.senderFrame?.url;
@@ -62,6 +116,32 @@ function createWindow(): void {
 
   mainWindow.once('ready-to-show', () => mainWindow?.show());
 
+  // With templates running, closing the window keeps Hodor (and the forwards) alive in the tray
+  mainWindow.on('close', async (event) => {
+    const decision = closeDecision(runner.ids().length, quitting, process.platform);
+    if (decision === 'close') return;
+    event.preventDefault();
+    if (decision === 'ask') {
+      // Not every Linux desktop shows tray icons: ask instead of vanishing
+      const { response } = await dialog.showMessageBox(mainWindow!, {
+        type: 'question',
+        buttons: ['Keep running in the background', 'Stop and quit', 'Cancel'],
+        defaultId: 0,
+        cancelId: 2,
+        message: 'Templates are running',
+        detail:
+          'Keep their port-forwards open in the background? You can get back to Hodor from its tray icon or by opening it again.',
+      });
+      if (response === 0) mainWindow?.hide();
+      else if (response === 1) await quitWithConfirm();
+      return;
+    }
+    mainWindow?.hide();
+  });
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
   // No new windows, no navigation away from the app. External links open in the browser.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://')) shell.openExternal(url);
@@ -89,11 +169,26 @@ app.whenReady().then(async () => {
   await settings.initialize();
   applyTheme(settings.getAll());
 
-  registerIpc(
+  const services = registerIpc(
     isTrustedSender,
     (next) => applyTheme(next),
-    () => mainWindow
+    () => mainWindow,
+    runner
   );
+  const tray = createTray({
+    services,
+    iconDir: path.join(app.getAppPath(), 'resources'),
+    showWindow,
+    quit: () => void quitWithConfirm(),
+  });
+  runner.on('change', () => void tray.refresh());
+
+  app.on('second-instance', showWindow);
+  app.on('before-quit', (event) => {
+    if (quitting) return;
+    event.preventDefault();
+    void quitWithConfirm();
+  });
 
   nativeTheme.on('updated', () => {
     if (!mainWindow || process.platform === 'darwin') return;
@@ -104,13 +199,12 @@ app.whenReady().then(async () => {
 
   createWindow();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+  app.on('activate', showWindow);
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  // The window only really closes when nothing runs; macOS keeps apps alive without windows
+  if (process.platform !== 'darwin' && runner.ids().length === 0) void quitWithConfirm();
 });
 
 // Refuse webviews outright

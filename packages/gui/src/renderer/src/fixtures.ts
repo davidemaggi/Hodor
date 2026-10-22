@@ -1,5 +1,11 @@
 import type { Cluster, ClusterHealth, PodView, ServiceView, Settings } from '@hodor/core';
-import type { HodorApi, MergePreview, RunningTemplate, TemplateDetail } from '../../shared/api';
+import type {
+  HodorApi,
+  LogLine,
+  MergePreview,
+  RunningTemplate,
+  TemplateDetail,
+} from '../../shared/api';
 
 // Sample data for the browser preview only. Believable, small, and consistent with itself.
 const params = new URLSearchParams(window.location.search);
@@ -148,11 +154,63 @@ let running: RunningTemplate[] =
           clusterName: clusters[0].name,
           pid: 48213,
           startedAt: '2026-10-22T07:58:00.000Z',
-          source: 'cli',
-          // redis is down, to show the closed-door state
-          forwards: templates[0].forwards.map((f) => ({ ...f, listening: f.name !== 'redis' })),
+          source: params.has('cli') ? 'cli' : 'app',
+          controllable: !params.has('cli'),
+          // redis is down, to show the error state
+          forwards: templates[0].forwards.map((f) => ({
+            ...f,
+            secrets: f.secrets ?? [],
+            configMaps: f.configMaps ?? [],
+            listening: f.name !== 'redis',
+            ...(params.has('cli')
+              ? {}
+              : f.name === 'redis'
+                ? {
+                    status: 'error' as const,
+                    connections: 0,
+                    error: "No running pods found for service 'redis-master'",
+                  }
+                : {
+                    status: 'running' as const,
+                    connections: f.name === 'postgres' ? 2 : 0,
+                    pod: f.name === 'api' ? 'shop-api-6f8c9d7b54-7xk2p' : 'postgres-0',
+                  }),
+          })),
         },
       ];
+
+const logs: LogLine[] = [
+  {
+    time: '2026-10-22T07:58:01.000Z',
+    level: 'info',
+    forward: 'api',
+    message: 'Forwarding 127.0.0.1:18080 -> shop-api-6f8c9d7b54-7xk2p:8080',
+  },
+  {
+    time: '2026-10-22T07:58:01.000Z',
+    level: 'info',
+    forward: 'postgres',
+    message: 'Forwarding 127.0.0.1:15432 -> postgres-0:5432',
+  },
+  {
+    time: '2026-10-22T07:58:01.000Z',
+    level: 'error',
+    forward: 'redis',
+    message: "Failed to start port-forward: No running pods found for service 'redis-master'",
+  },
+  {
+    time: '2026-10-22T08:03:12.000Z',
+    level: 'debug',
+    forward: 'postgres',
+    message: 'Connection opened',
+  },
+  {
+    time: '2026-10-22T08:03:14.000Z',
+    level: 'debug',
+    forward: 'postgres',
+    message: 'Connection opened',
+  },
+];
 
 // ?theme=dark|light, ?empty=1 (first run) and ?idle=1 (nothing running) let design reviews screenshot every state
 const theme = (params.get('theme') as Settings['theme'] | null) ?? 'system';
@@ -429,6 +487,82 @@ export const fixtureApi: HodorApi = {
       return later(true, 300);
     },
     restart: () => later(true, 200),
+    start: async (templateId, clusterId) => {
+      const t = templates.find((x) => x.id === templateId)!;
+      const c = clusters.find((x) => x.id === clusterId)!;
+      t.running = true;
+      running.push({
+        templateId,
+        templateName: t.name,
+        clusterId,
+        clusterName: c.name,
+        pid: 1,
+        startedAt: new Date().toISOString(),
+        source: 'app',
+        controllable: true,
+        forwards: t.forwards.map((f) => ({
+          ...f,
+          secrets: f.secrets ?? [],
+          configMaps: f.configMaps ?? [],
+          listening: true,
+          status: 'running',
+          connections: 0,
+        })),
+      });
+      return later(undefined, 500);
+    },
+    stopAll: async () => {
+      const n = running.length;
+      running = [];
+      templates.forEach((t) => (t.running = false));
+      return later(n, 300);
+    },
+    forward: async (templateId, name, action) => {
+      const f = running
+        .find((r) => r.templateId === templateId)
+        ?.forwards.find((x) => x.name === name);
+      if (f)
+        Object.assign(
+          f,
+          action === 'stop'
+            ? { status: 'stopped', listening: false, connections: 0, error: undefined }
+            : { status: 'running', listening: true, error: undefined }
+        );
+      return later(undefined, 250);
+    },
+    logs: (_id, forward) =>
+      later(
+        logs.filter((l) => !forward || l.forward === forward),
+        150
+      ),
+    linked: (_id, forward) =>
+      later(
+        forward === 'postgres'
+          ? {
+              secrets: [
+                { name: 'postgres-credentials', keys: ['database', 'password', 'username'] },
+              ],
+              configMaps: [{ name: 'shop-db-config', keys: ['POOL_SIZE', 'SSL_MODE'] }],
+            }
+          : { secrets: [], configMaps: [] },
+        250
+      ),
+    // Sample values for the preview only
+    reveal: (ref) =>
+      later(
+        {
+          text:
+            ref.key === 'password'
+              ? 'sample-not-a-real-password'
+              : ref.key === 'POOL_SIZE'
+                ? '20'
+                : 'shop',
+          bytes: 12,
+          binary: false,
+        },
+        200
+      ),
+    copyValue: () => later(undefined, 100),
   },
   settings: {
     get: () => later(settings, 50),

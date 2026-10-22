@@ -7,6 +7,25 @@ Nothing has been released yet: everything below lives on `develop`.
 
 ## [Unreleased]
 
+### 0.9.0-dev
+
+#### Added
+
+- Run templates from the app: pick the cluster (last used preselected), see each forward's live state, connections, pod and errors
+- Start/stop single forwards, restart or stop templates, "Stop everything"; logs per forward
+- Linked secrets and config maps while running: masked values shown on request, copied by the main process, clipboard wiped after 30 seconds
+- Tray (menu bar on macOS): running templates and forwards, copy addresses and linked values, stop things, open, quit
+- Closing the window with templates running keeps Hodor and its forwards in the tray (Linux asks)
+- Quitting with templates running asks first; one Hodor instance at a time
+
+#### Changed
+
+- Templates started in the app are registered with `source: "app"`: `hodor template:stop` asks the app to stop them instead of terminating the app process
+
+#### Security
+
+- The app can only read secrets and config maps linked to the running forward in its template; values are fetched one at a time on request and never stored
+
 ### 0.8.0-dev
 
 #### Added

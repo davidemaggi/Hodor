@@ -127,3 +127,38 @@ describe('ResourceBrowser', () => {
     expect((await browser.services('x')).map((s) => s.name)).toEqual(['m', 'z']);
   });
 });
+
+import { decodeValue, keysOf, valueOf } from '../../src/kubernetes/resources';
+
+describe('secret and config map values', () => {
+  it('decodes text and flags binary', () => {
+    expect(decodeValue(Buffer.from('s3cr3t').toString('base64'))).toEqual({
+      text: 's3cr3t',
+      bytes: 6,
+      binary: false,
+    });
+    expect(decodeValue(Buffer.from([0xff, 0x00, 0x10]).toString('base64'))).toEqual({
+      bytes: 3,
+      binary: true,
+    });
+  });
+
+  it('lists keys without values and reads one value per kind', () => {
+    const secret = {
+      data: {
+        password: Buffer.from('pw').toString('base64'),
+        user: Buffer.from('me').toString('base64'),
+      },
+    };
+    expect(keysOf(secret)).toEqual(['password', 'user']);
+    expect(valueOf('secret', secret, 'password')?.text).toBe('pw');
+    const cm = {
+      data: { 'app.env': 'A=1' },
+      binaryData: { logo: Buffer.from([0xff]).toString('base64') },
+    };
+    expect(keysOf(cm)).toEqual(['app.env', 'logo']);
+    expect(valueOf('configMap', cm, 'app.env')).toEqual({ text: 'A=1', bytes: 3, binary: false });
+    expect(valueOf('configMap', cm, 'logo')?.binary).toBe(true);
+    expect(valueOf('configMap', cm, 'missing')).toBeUndefined();
+  });
+});

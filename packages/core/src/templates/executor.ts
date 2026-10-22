@@ -244,6 +244,13 @@ export class TemplateExecutor extends EventEmitter {
   }
 
   /**
+   * Live status of one forward: connections, resolved pod, last error
+   */
+  getForwardStatus(templateId: string, forwardName: string) {
+    return this.pfManager.getStatus(`${templateId}-${forwardName}`);
+  }
+
+  /**
    * Get logs for a template or specific forward
    */
   getLogs(templateId: string, forwardName?: string) {

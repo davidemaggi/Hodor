@@ -34,6 +34,10 @@ export class RunRegistry {
     return path.join(this.dir, `${templateId}.restart`);
   }
 
+  private stopPath(templateId: string): string {
+    return path.join(this.dir, `${templateId}.stop`);
+  }
+
   async register(record: Omit<RunRecord, 'pid' | 'startedAt'>, pid = process.pid): Promise<void> {
     record = { source: 'cli', ...record };
     await fs.mkdir(this.dir, { recursive: true, mode: 0o700 });
@@ -47,6 +51,7 @@ export class RunRegistry {
   async unregister(templateId: string): Promise<void> {
     await fs.rm(this.recordPath(templateId), { force: true });
     await fs.rm(this.restartPath(templateId), { force: true });
+    await fs.rm(this.stopPath(templateId), { force: true });
   }
 
   /**
@@ -87,11 +92,17 @@ export class RunRegistry {
   }
 
   /**
-   * Stop a running template by terminating its process
+   * Stop a running template. A CLI run is its own process and gets terminated; an app run lives
+   * inside the desktop app with other templates, so it is asked to stop through a marker file.
    */
   async requestStop(templateId: string): Promise<boolean> {
     const record = await this.get(templateId);
     if (!record) return false;
+
+    if (record.source === 'app') {
+      await fs.writeFile(this.stopPath(templateId), new Date().toISOString(), { mode: 0o600 });
+      return true;
+    }
 
     try {
       process.kill(record.pid, 'SIGTERM');
@@ -100,6 +111,36 @@ export class RunRegistry {
     }
     await this.unregister(templateId);
     return true;
+  }
+
+  /**
+   * Called by the desktop app for each of its runs: react to stop and restart requests from elsewhere
+   */
+  watchControl(
+    templateId: string,
+    handlers: { onStop: () => void | Promise<void>; onRestart: () => void | Promise<void> },
+    intervalMs = 1000
+  ): () => void {
+    const stopWatchingRestart = this.watchRestart(templateId, handlers.onRestart, intervalMs);
+    let busy = false;
+    const timer = setInterval(async () => {
+      if (busy) return;
+      busy = true;
+      try {
+        await fs.access(this.stopPath(templateId));
+        await fs.rm(this.stopPath(templateId), { force: true });
+        await handlers.onStop();
+      } catch {
+        // No stop requested
+      } finally {
+        busy = false;
+      }
+    }, intervalMs);
+
+    return () => {
+      clearInterval(timer);
+      stopWatchingRestart();
+    };
   }
 
   /**

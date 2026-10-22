@@ -2,7 +2,7 @@
 
 Where Hodor is, and where it's going. No made-up dates: things ship when they work.
 
-**Now:** `0.8.0-dev` · **Next stop:** `1.0.0 "Aerys"`
+**Now:** `0.9.0-dev` · **Next stop:** `1.0.0 "Aerys"`
 
 Legend: ✅ done and tested · 🔜 next · 📋 planned · 💭 maybe
 
@@ -45,7 +45,7 @@ What exists today and has been exercised against a real cluster.
 
 **Not done yet, carried forward**
 
-- 📋 Start/stop a _single_ forward of a running template from the CLI (the engine supports it, the CLI has no controls yet) → 0.9
+- 📋 Start/stop a _single_ forward from the CLI (the app can) → 1.0
 - 📋 Kubernetes version compatibility strategy → 1.0 (see "Decisions")
 
 ---
@@ -82,27 +82,22 @@ What exists today and has been exercised against a real cluster.
 - ✅ Edit a running template → "Restart now?"; delete a running one → stops it first
 - ✅ Keyboard: `/` to search, ⌘/Ctrl+K palette, ⌘/Ctrl+1-4 sections
 
-## 🔜 0.9 · Running templates, secrets & config maps
+## ✅ 0.9 · Running templates, secrets & config maps
 
-- Run a template on a cluster chosen at launch
-- Start/stop a single forward, a template, or everything (GUI and CLI)
-- Live logs per forward
-- Link secrets / config maps to a forward; view values and copy them to the clipboard while it runs (values never written to disk or logs)
-
-**Tray**
-
-- Closing the window while forwards are running hides Hodor to the tray (menu bar on macOS) and keeps every forward alive; with nothing running, closing quits as usual
-- The tray menu lists running templates and their forwards: copy the local address, copy the values of the forward's linked secrets and config maps, stop a forward or a template, stop everything
-- Copied secret values are wiped from the clipboard after 30 seconds (only if the clipboard still holds them)
-- "Quit Hodor" from the tray asks before stopping running forwards
-- Linux: tray needs an AppIndicator-capable desktop; where there's none, closing the window asks instead of hiding
-
----
+- ✅ Run a template from the app on a cluster picked at launch (last used preselected, production clusters flagged, port clashes with other running templates warned)
+- ✅ Live state per forward: running, error with its reason, stopped, connections, resolved pod
+- ✅ Start/stop a single forward, restart or stop a template, stop everything (app and terminal runs)
+- ✅ Logs per forward
+- ✅ Linked secrets and config maps: keys listed, values masked until shown (hidden again after 30 s), copied by the main process and wiped from the clipboard after 30 s; only names linked to that forward can be read
+- ✅ The CLI sees templates started in the app and can stop or restart them without closing the app
+- ✅ Tray / menu bar: running templates and forwards, copy addresses and linked values, stop a forward, a template or everything, open, quit (asks first)
+- ✅ Closing the window with templates running hides Hodor and keeps the forwards up; on Linux it asks instead
+- ⚠️ Not verified by hand yet: clicking the tray menu items and the real close button (tested through the same code paths and a unit-tested close policy, but not by a human click)
 
 ## 📋 1.0.0 "Aerys" · First stable release
 
 - Everything above, polished
-- Italian translation next to English, CLI strings translated too
+- Italian translation next to English, CLI strings and tray/dialog strings of the app translated too
 - Installers built by GitHub Actions **only on merge to `main`**: `.dmg` and `.zip` (macOS), NSIS `.exe` and `.zip` (Windows), `.AppImage`, `.deb`, `.rpm`, `.tar.gz` (Linux)
 - **Unsigned**, but verifiable: SHA256 checksums and GitHub build-provenance attestations for every artifact (`gh attestation verify <file> --repo davidemaggi/Hodor`)
 - The installer puts the `hodor` CLI on the `PATH`

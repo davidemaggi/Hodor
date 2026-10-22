@@ -55,3 +55,22 @@ describe('RunRegistry', () => {
     expect(await registry.requestRestart('nope')).toBe(false);
   });
 });
+
+describe('RunRegistry app runs', () => {
+  it('asks app runs to stop through a marker instead of killing the app', async () => {
+    const registry = new RunRegistry(await tmpDir());
+    await registry.register({ ...record, source: 'app' });
+    let stops = 0;
+    const dispose = registry.watchControl(
+      't1',
+      { onStop: () => void stops++, onRestart: () => {} },
+      20
+    );
+    expect(await registry.requestStop('t1')).toBe(true);
+    await new Promise((r) => setTimeout(r, 150));
+    dispose();
+    expect(stops).toBe(1);
+    // the test process (the "app") is still alive and still registered until it unregisters itself
+    expect(await registry.isRunning('t1')).toBe(true);
+  });
+});

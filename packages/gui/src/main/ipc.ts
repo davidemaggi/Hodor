@@ -1,4 +1,5 @@
-import { dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
+import { clipboard, dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
+import type { AppRunner } from './runner';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs/promises';
 import * as net from 'net';
@@ -19,16 +20,20 @@ import {
   TemplateStorage,
   VERSION,
   findKubectl,
+  keysOf,
+  valueOf,
   type Template,
 } from '@hodor/core';
 import {
   CHANNELS,
   type TemplateDetail,
   type ForwardSummary,
+  type LinkedResources,
   type MergeOutcome,
   type MergePreview,
   type RunningTemplate,
   type TemplateSummary,
+  type ValueRef,
 } from '../shared/api';
 
 const clusterIdSchema = z.string().min(1).max(4096);
@@ -42,6 +47,23 @@ const droppedPathsSchema = z.array(z.string().min(1).max(4096)).min(1).max(10);
 const tokenSchema = z.string().uuid();
 const MAX_KUBECONFIG_BYTES = 5 * 1024 * 1024;
 const MERGE_TTL_MS = 10 * 60 * 1000;
+const CLIPBOARD_WIPE_MS = 30_000;
+const forwardNameSchema = z.string().min(1).max(63);
+const valueRefSchema = z
+  .object({
+    templateId: z.string().regex(/^[a-f0-9]{8,64}$/),
+    forward: forwardNameSchema,
+    kind: z.enum(['secret', 'configMap']),
+    name: z
+      .string()
+      .regex(/^[a-z0-9]([-.a-z0-9]*[a-z0-9])?$/)
+      .max(253),
+    key: z
+      .string()
+      .regex(/^[-._a-zA-Z0-9]+$/)
+      .max(253),
+  })
+  .strict();
 const commandRequestSchema = z
   .object({
     platform: z.enum(['linux', 'macos', 'windows']),
@@ -65,6 +87,17 @@ const settingsPatchSchema = z
 
 type Handler = (arg: unknown) => unknown;
 
+/** What the tray needs from the same code paths the renderer uses */
+export interface MainServices {
+  runningList(): Promise<RunningTemplate[]>;
+  linked(templateId: string, forwardName: string): Promise<LinkedResources>;
+  copyValue(ref: ValueRef): Promise<void>;
+  copyText(text: string): Promise<void>;
+  stop(templateId: string): Promise<boolean>;
+  stopAll(): Promise<number>;
+  setForward(templateId: string, forwardName: string, action: 'start' | 'stop'): Promise<void>;
+}
+
 /** Is anything accepting connections on 127.0.0.1:port? */
 function isListening(port: number, timeoutMs = 300): Promise<boolean> {
   return new Promise((resolve) => {
@@ -85,8 +118,9 @@ function isListening(port: number, timeoutMs = 300): Promise<boolean> {
 export function registerIpc(
   isTrustedSender: (event: IpcMainInvokeEvent) => boolean,
   onSettingsChanged: (settings: Awaited<ReturnType<SettingsStorage['getAll']>>) => void,
-  getWindow: () => BrowserWindow | null
-): void {
+  getWindow: () => BrowserWindow | null,
+  runner: AppRunner
+): MainServices {
   const discovery = new ClusterDiscovery();
   const registry = new RunRegistry();
   const parser = new KubeConfigParser();
@@ -332,7 +366,8 @@ export function registerIpc(
   handle(CHANNELS.templatesRemove, async (arg) => {
     const id = templateIdSchema.parse(arg);
     const { manager, runningIds } = await managerAndRunning();
-    if (runningIds.has(id)) await registry.requestStop(id);
+    if (runner.has(id)) await runner.stop(id);
+    else if (runningIds.has(id)) await registry.requestStop(id);
     await manager.delete(id);
   });
 
@@ -403,35 +438,188 @@ export function registerIpc(
           .join('\n');
   });
 
-  handle(CHANNELS.runningRestart, (arg) => registry.requestRestart(templateIdSchema.parse(arg)));
+  handle(CHANNELS.runningRestart, async (arg) => {
+    const id = templateIdSchema.parse(arg);
+    if (runner.has(id)) {
+      await runner.restart(id);
+      return true;
+    }
+    return registry.requestRestart(id);
+  });
+
+  handle(CHANNELS.runningStart, async (arg) => {
+    const { templateId, clusterId } = z
+      .object({ templateId: templateIdSchema, clusterId: clusterIdSchema })
+      .strict()
+      .parse(arg);
+    await runner.start(templateId, clusterId);
+    await (await settingsStore()).set('lastUsedCluster', clusterId);
+  });
+
+  const stopAll = async () => {
+    const fromApp = await runner.stopAll();
+    const others = await registry.list();
+    await Promise.all(others.map((r) => registry.requestStop(r.templateId)));
+    return fromApp + others.length;
+  };
+  handle(CHANNELS.runningStopAll, () => stopAll());
+
+  handle(CHANNELS.runningForward, async (arg) => {
+    const { templateId, forwardName, action } = z
+      .object({
+        templateId: templateIdSchema,
+        forwardName: forwardNameSchema,
+        action: z.enum(['start', 'stop']),
+      })
+      .strict()
+      .parse(arg);
+    await runner.setForward(templateId, forwardName, action);
+  });
+
+  handle(CHANNELS.runningLogs, async (arg) => {
+    const { templateId, forwardName } = z
+      .object({ templateId: templateIdSchema, forwardName: forwardNameSchema.optional() })
+      .strict()
+      .parse(arg);
+    const prefix = `${templateId}-`;
+    return runner.logs(templateId, forwardName).map((entry) => ({
+      time: entry.timestamp.toISOString(),
+      level: entry.level,
+      forward: entry.forwardId?.startsWith(prefix)
+        ? entry.forwardId.slice(prefix.length)
+        : (entry.forwardId ?? ''),
+      message: entry.message,
+    }));
+  });
+
+  /**
+   * The cluster and linked resource of a running forward. Only names linked to that forward in the
+   * template can be read: the renderer can't ask for arbitrary secrets.
+   */
+  const linkedTarget = async (templateId: string, forwardName: string) => {
+    const record = (await registry.list()).find((r) => r.templateId === templateId);
+    if (!record) throw new Error('This template is not running');
+    const template = runner.info(templateId)?.template ?? (await templateStore()).get(templateId);
+    const forward = template?.forwards.find((f) => f.name === forwardName);
+    if (!forward) throw new Error(`No forward called '${forwardName}'`);
+    const client = await discovery.connect(await requireCluster(record.clusterId));
+    return { forward, client };
+  };
+
+  const readValue = async (ref: z.infer<typeof valueRefSchema>) => {
+    const { forward, client } = await linkedTarget(ref.templateId, ref.forward);
+    const allowed = ref.kind === 'secret' ? (forward.secrets ?? []) : (forward.configMaps ?? []);
+    if (!allowed.includes(ref.name)) throw new Error(`'${ref.name}' is not linked to this forward`);
+    const resource =
+      ref.kind === 'secret'
+        ? await client.getSecret(ref.name, forward.namespace)
+        : await client.getConfigMap(ref.name, forward.namespace);
+    if (!resource) throw new Error(`'${ref.name}' was not found in ${forward.namespace}`);
+    const value = valueOf(ref.kind, resource, ref.key);
+    if (!value) throw new Error(`'${ref.name}' has no key '${ref.key}'`);
+    return value;
+  };
+
+  const linked = async (templateId: string, forwardName: string): Promise<LinkedResources> => {
+    const { forward, client } = await linkedTarget(templateId, forwardName);
+    const describe = async (kind: 'secret' | 'configMap', name: string) => {
+      try {
+        const resource =
+          kind === 'secret'
+            ? await client.getSecret(name, forward.namespace)
+            : await client.getConfigMap(name, forward.namespace);
+        return resource
+          ? { name, keys: keysOf(resource) }
+          : { name, keys: null, error: `not found in ${forward.namespace}` };
+      } catch (error: any) {
+        return { name, keys: null, error: String(error?.message || error).replace(/^.*?: /, '') };
+      }
+    };
+    return {
+      secrets: await Promise.all((forward.secrets ?? []).map((n) => describe('secret', n))),
+      configMaps: await Promise.all(
+        (forward.configMaps ?? []).map((n) => describe('configMap', n))
+      ),
+    };
+  };
+  handle(CHANNELS.runningLinked, (arg) => {
+    const { templateId, forwardName } = z
+      .object({ templateId: templateIdSchema, forwardName: forwardNameSchema })
+      .strict()
+      .parse(arg);
+    return linked(templateId, forwardName);
+  });
+
+  handle(CHANNELS.runningReveal, async (arg) => readValue(valueRefSchema.parse(arg)));
+
+  const copyValue = async (ref: ValueRef) => {
+    const value = await readValue(valueRefSchema.parse(ref));
+    if (value.text === undefined)
+      throw new Error('This value is binary and cannot be copied as text');
+    const text = value.text;
+    await clipboard.writeText(text);
+    // Forget it after a while, unless the user copied something else since
+    setTimeout(async () => {
+      if ((await clipboard.readText()) === text) clipboard.clear();
+    }, CLIPBOARD_WIPE_MS).unref();
+  };
+  handle(CHANNELS.runningCopyValue, (arg) => copyValue(arg as ValueRef));
 
   handle(CHANNELS.clustersLinkables, async (arg) => {
     const { clusterId, namespace } = browseSchema.parse(arg);
     return (await browserFor(clusterId)).linkables(namespace);
   });
 
-  handle(CHANNELS.runningList, async (): Promise<RunningTemplate[]> => {
+  const runningList = async (): Promise<RunningTemplate[]> => {
     const [storage, running] = await Promise.all([templateStore(), registry.list()]);
     return Promise.all(
-      running.map(async (r) => ({
-        templateId: r.templateId,
-        templateName: r.templateName,
-        clusterId: r.clusterId,
-        clusterName: r.clusterId.split('::').pop() || r.clusterId,
-        pid: r.pid,
-        startedAt: r.startedAt,
-        source: r.source ?? 'cli',
-        forwards: await Promise.all(
-          (storage.get(r.templateId)?.forwards || []).map(async (f) => ({
-            ...summarize(f),
-            listening: await isListening(f.localPort),
-          }))
-        ),
-      }))
+      running.map(async (r) => {
+        const controllable = runner.has(r.templateId);
+        const states = runner.forwardStates(r.templateId);
+        // An app run uses the template as it was started (or last restarted), not as edited since
+        const template = runner.info(r.templateId)?.template ?? storage.get(r.templateId);
+        return {
+          templateId: r.templateId,
+          templateName: r.templateName,
+          clusterId: r.clusterId,
+          clusterName: r.clusterId.split('::').pop() || r.clusterId,
+          pid: r.pid,
+          startedAt: r.startedAt,
+          source: r.source ?? 'cli',
+          controllable,
+          forwards: await Promise.all(
+            (template?.forwards || []).map(async (f) => {
+              const state = states.get(f.name);
+              return {
+                ...summarize(f),
+                secrets: f.secrets ?? [],
+                configMaps: f.configMaps ?? [],
+                listening: state ? state.status === 'running' : await isListening(f.localPort),
+                ...(state
+                  ? {
+                      status: state.status,
+                      connections: state.connections,
+                      pod: state.pod,
+                      error: state.error,
+                    }
+                  : {}),
+              };
+            })
+          ),
+        };
+      })
     );
-  });
+  };
+  handle(CHANNELS.runningList, () => runningList());
 
-  handle(CHANNELS.runningStop, (arg) => registry.requestStop(templateIdSchema.parse(arg)));
+  const stop = async (id: string) => {
+    if (runner.has(id)) {
+      await runner.stop(id);
+      return true;
+    }
+    return registry.requestStop(id);
+  };
+  handle(CHANNELS.runningStop, (arg) => stop(templateIdSchema.parse(arg)));
 
   handle(CHANNELS.settingsGet, async () => (await settingsStore()).getAll());
 
@@ -442,4 +630,15 @@ export function registerIpc(
     onSettingsChanged(all);
     return all;
   });
+
+  return {
+    runningList,
+    linked,
+    copyValue,
+    copyText: (text) => clipboard.writeText(text),
+    stop,
+    stopAll,
+    setForward: (templateId, forwardName, action) =>
+      runner.setForward(templateId, forwardName, action),
+  };
 }

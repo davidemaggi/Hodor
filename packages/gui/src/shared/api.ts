@@ -66,8 +66,21 @@ export interface HodorApi {
   running: {
     list(): Promise<RunningTemplate[]>;
     stop(templateId: string): Promise<boolean>;
-    /** Ask the process running it to reload the template and restart its forwards */
+    /** Reload the template and restart its forwards, wherever it runs */
     restart(templateId: string): Promise<boolean>;
+    /** Start a template inside the app on a cluster */
+    start(templateId: string, clusterId: string): Promise<void>;
+    /** Stop every running template (app and CLI); returns how many */
+    stopAll(): Promise<number>;
+    /** Start or stop one forward of a template running in the app */
+    forward(templateId: string, forwardName: string, action: 'start' | 'stop'): Promise<void>;
+    logs(templateId: string, forwardName?: string): Promise<LogLine[]>;
+    /** Key names of the secrets and config maps linked to a forward (no values) */
+    linked(templateId: string, forwardName: string): Promise<LinkedResources>;
+    /** One value, shown on request */
+    reveal(ref: ValueRef): Promise<RevealedValue>;
+    /** Copy one value to the clipboard from the main process; wiped after 30 seconds */
+    copyValue(ref: ValueRef): Promise<void>;
   };
   settings: {
     get(): Promise<Settings>;
@@ -143,6 +156,46 @@ export interface CommandRequest {
 export interface RunningForward extends ForwardSummary {
   /** Whether something answers on 127.0.0.1:localPort right now */
   listening: boolean;
+  /** Live state, for templates running in the app */
+  status?: 'running' | 'error' | 'stopped';
+  connections?: number;
+  pod?: string;
+  error?: string;
+  secrets: string[];
+  configMaps: string[];
+}
+
+export interface LogLine {
+  time: string;
+  level: 'debug' | 'info' | 'warn' | 'error';
+  forward: string;
+  message: string;
+}
+
+export interface LinkedEntry {
+  name: string;
+  /** null when the resource can't be read (missing or not allowed) */
+  keys: string[] | null;
+  error?: string;
+}
+
+export interface LinkedResources {
+  secrets: LinkedEntry[];
+  configMaps: LinkedEntry[];
+}
+
+export interface ValueRef {
+  templateId: string;
+  forward: string;
+  kind: 'secret' | 'configMap';
+  name: string;
+  key: string;
+}
+
+export interface RevealedValue {
+  text?: string;
+  bytes: number;
+  binary: boolean;
 }
 
 export interface RunningTemplate {
@@ -154,6 +207,8 @@ export interface RunningTemplate {
   pid: number;
   startedAt: string;
   source: 'cli' | 'app';
+  /** Started by this app: forwards can be controlled one by one and logs are available */
+  controllable: boolean;
   forwards: RunningForward[];
 }
 
@@ -184,6 +239,13 @@ export const CHANNELS = {
   templatesImport: 'hodor:templates:import',
   templatesCommands: 'hodor:templates:commands',
   runningRestart: 'hodor:running:restart',
+  runningStart: 'hodor:running:start',
+  runningStopAll: 'hodor:running:stop-all',
+  runningForward: 'hodor:running:forward',
+  runningLogs: 'hodor:running:logs',
+  runningLinked: 'hodor:running:linked',
+  runningReveal: 'hodor:running:reveal',
+  runningCopyValue: 'hodor:running:copy-value',
   kubectlSetContext: 'hodor:kubectl:set-context',
   kubectlSetNamespace: 'hodor:kubectl:set-namespace',
   kubeconfigChoose: 'hodor:kubeconfig:choose',

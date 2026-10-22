@@ -2,7 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Download, GripVertical, Plus, Search, SquareTerminal, Trash2, Upload } from 'lucide-react';
+import {
+  Download,
+  GripVertical,
+  Play,
+  Plus,
+  Search,
+  Square,
+  SquareTerminal,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 import type { TemplateSummary } from '../../../shared/api';
 import { api, errorMessage } from '../api';
 import { useTemplates } from '../queries';
@@ -10,6 +20,7 @@ import { ErrorBlock, Skeleton } from '../components/states';
 import { Command } from '../components/command';
 import { CommandsPanel } from '../components/commands-panel';
 import { ConfirmDialog } from '../components/confirm-dialog';
+import { StartDialog } from '../components/start-dialog';
 import { moveItem, useReorder } from '../hooks/use-reorder';
 import { formatRelative } from '../format';
 
@@ -41,6 +52,14 @@ export const TemplatesView: React.FC = () => {
   const [deleting, setDeleting] = useState<TemplateSummary | null>(null);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [order, setOrder] = useState<string[] | null>(null);
+  const [starting, setStarting] = useState<TemplateSummary | null>(null);
+  const stopRun = useMutation({
+    mutationFn: (id: string) => api.running.stop(id),
+    onSettled: () => {
+      refresh();
+      queryClient.invalidateQueries({ queryKey: ['running'] });
+    },
+  });
 
   // Design-review hook for the browser preview only (?cmd=1); dropped from real builds
   useEffect(() => {
@@ -362,6 +381,26 @@ export const TemplatesView: React.FC = () => {
                       </td>
                       <td className="n num nowrap">{formatRelative(tpl.updatedAt)}</td>
                       <td className="row-actions">
+                        {tpl.running ? (
+                          <button
+                            type="button"
+                            className="btn ghost"
+                            onClick={() => stopRun.mutate(tpl.id)}
+                            disabled={stopRun.isPending}
+                          >
+                            <Square aria-hidden="true" />
+                            {t('running.stop')}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn ghost"
+                            onClick={() => setStarting(tpl)}
+                          >
+                            <Play aria-hidden="true" />
+                            {t('start.run')}
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="btn ghost"
@@ -407,6 +446,13 @@ export const TemplatesView: React.FC = () => {
         </>
       )}
 
+      <StartDialog
+        template={starting}
+        onClose={(started) => {
+          setStarting(null);
+          if (started) navigate('/running');
+        }}
+      />
       <ConfirmDialog
         open={!!deleting}
         title={t('templates.deleteTitle', { name: deleting?.name })}

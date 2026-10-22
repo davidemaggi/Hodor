@@ -156,3 +156,45 @@ export class ResourceBrowser {
     return (await this.client.listServices(namespace)).map(summarizeService).sort(byName);
   }
 }
+
+export interface DecodedValue {
+  /** The value as text, when it is valid UTF-8 without control characters */
+  text?: string;
+  bytes: number;
+  binary: boolean;
+}
+
+/**
+ * Decode secret data (base64) or config map binaryData into text when it is text
+ */
+export function decodeValue(base64: string): DecodedValue {
+  const buffer = Buffer.from(base64, 'base64');
+  const text = buffer.toString('utf8');
+  // eslint-disable-next-line no-control-regex
+  const binary = text.includes('\uFFFD') || /[\x00-\x08\x0E-\x1F]/.test(text);
+  return binary ? { bytes: buffer.length, binary } : { text, bytes: buffer.length, binary };
+}
+
+/** Key names of a secret or config map, never the values */
+export function keysOf(
+  resource: { data?: Record<string, string>; binaryData?: Record<string, string> } | null
+): string[] {
+  if (!resource) return [];
+  return [...Object.keys(resource.data ?? {}), ...Object.keys(resource.binaryData ?? {})].sort();
+}
+
+/** One value: secrets hold base64 in `data`; config maps hold text in `data` and base64 in `binaryData` */
+export function valueOf(
+  kind: 'secret' | 'configMap',
+  resource: { data?: Record<string, string>; binaryData?: Record<string, string> },
+  key: string
+): DecodedValue | undefined {
+  if (kind === 'secret') {
+    const raw = resource.data?.[key];
+    return raw === undefined ? undefined : decodeValue(raw);
+  }
+  const text = resource.data?.[key];
+  if (text !== undefined) return { text, bytes: Buffer.byteLength(text), binary: false };
+  const raw = resource.binaryData?.[key];
+  return raw === undefined ? undefined : decodeValue(raw);
+}
