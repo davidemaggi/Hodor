@@ -36,7 +36,6 @@
     "ora": "^7.0.1"
   },
   "devDependencies": {
-    "@types/cli-table3": "^0.6.3",
     "@types/inquirer": "^9.0.7",
     "@types/node": "^20.9.0",
     "@vitest/coverage-v8": "^0.34.6",
