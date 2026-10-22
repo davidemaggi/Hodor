@@ -33,7 +33,7 @@ export async function templateListCommand(options: {
 
     if (templates.length === 0) {
       console.log(chalk.yellow('\nNo templates found.'));
-      console.log(chalk.dim('Create a new template with: hodor template create'));
+      console.log(chalk.dim('Create a new template with: hodor template:create'));
       return;
     }
 

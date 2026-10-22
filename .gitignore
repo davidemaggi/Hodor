@@ -136,7 +136,6 @@ packages/*/build/
 
 # pnpm
 .pnpm-store
-pnpm-lock.yaml
 
 # yarn v3
 .pnp.*
@@ -168,8 +167,6 @@ vite.config.ts.timestamp-*
 *.tar.gz
 *.zip
 *.blockmap
-*.yaml
-!electron-builder.yml
 
 # Electron specific
 .webpack/

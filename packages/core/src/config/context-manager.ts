@@ -1,4 +1,4 @@
-import { KubeConfigParser, KubeConfigFile } from './parser';
+import { KubeConfigParser } from './parser';
 import * as fs from 'fs/promises';
 
 /**

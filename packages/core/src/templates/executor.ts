@@ -8,14 +8,12 @@ import { EventEmitter } from 'events';
  * Executes templates and manages their lifecycle
  */
 export class TemplateExecutor extends EventEmitter {
-  private client: KubernetesClient;
   private pfManager: PortForwardManager;
   private executions: Map<string, TemplateExecution> = new Map();
   private logCapture: LogCapture;
 
   constructor(client: KubernetesClient, logCapture?: LogCapture) {
     super();
-    this.client = client;
     this.logCapture = logCapture || new LogCapture();
     this.pfManager = new PortForwardManager(client.getKubeConfig(), this.logCapture);
 
@@ -23,11 +21,6 @@ export class TemplateExecutor extends EventEmitter {
     this.pfManager.on('started', (id) => this.emit('forward-started', id));
     this.pfManager.on('stopped', (id) => this.emit('forward-stopped', id));
     this.pfManager.on('error', (id, error) => this.emit('forward-error', id, error));
-    this.pfManager.on('restarting', (id, attempt, max) =>
-      this.emit('forward-restarting', id, attempt, max)
-    );
-    this.pfManager.on('restarted', (id) => this.emit('forward-restarted', id));
-    this.pfManager.on('restart-failed', (id) => this.emit('forward-restart-failed', id));
   }
 
   /**
@@ -58,7 +51,6 @@ export class TemplateExecutor extends EventEmitter {
           localPort: forwardConfig.localPort,
           remotePort: forwardConfig.remotePort,
           autoRestart: true,
-          maxRestartAttempts: 3,
         };
 
         // Determine the resource type

@@ -1,7 +1,6 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import { KubeConfigParser, KubeConfigMerger } from '@hodor/core';
 
 /**

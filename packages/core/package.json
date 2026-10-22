@@ -6,29 +6,10 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
-    "./kubernetes": {
-      "import": "./dist/kubernetes/index.js",
-      "types": "./dist/kubernetes/index.d.ts"
-    },
-    "./config": {
-      "import": "./dist/config/index.js",
-      "types": "./dist/config/index.d.ts"
-    },
-    "./storage": {
-      "import": "./dist/storage/index.js",
-      "types": "./dist/storage/index.d.ts"
-    },
-    "./templates": {
-      "import": "./dist/templates/index.js",
-      "types": "./dist/templates/index.d.ts"
-    },
-    "./types": {
-      "import": "./dist/types/index.js",
-      "types": "./dist/types/index.d.ts"
-    }
+    "./package.json": "./package.json"
   },
   "scripts": {
     "dev": "tsc --watch",

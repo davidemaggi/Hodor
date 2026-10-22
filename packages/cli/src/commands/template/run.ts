@@ -23,7 +23,7 @@ export async function templateRunCommand(templateName: string, options: {
     const template = manager.getByName(templateName);
     if (!template) {
       console.log(chalk.red(`\nTemplate '${templateName}' not found.`));
-      console.log(chalk.dim('List templates with: hodor template list'));
+      console.log(chalk.dim('List templates with: hodor template:list'));
       process.exit(1);
     }
 

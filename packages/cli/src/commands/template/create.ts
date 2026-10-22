@@ -91,7 +91,7 @@ export async function templateCreateCommand(): Promise<void> {
     }
 
     console.log(chalk.dim('\nRun this template with:'));
-    console.log(chalk.cyan(`  hodor template run ${template.name}`));
+    console.log(chalk.cyan(`  hodor template:run ${template.name}`));
   } catch (error: any) {
     console.error(chalk.red(`\nError: ${error.message}`));
     process.exit(1);

@@ -1,4 +1,5 @@
 import * as k8s from '@kubernetes/client-node';
+import * as net from 'net';
 import { EventEmitter } from 'events';
 import { LogCapture } from './log-capture';
 
@@ -8,30 +9,42 @@ export interface PortForwardOptions {
   serviceName?: string;
   deploymentName?: string;
   localPort: number;
+  /** For services this is the service port; it is translated to the pod's targetPort. */
   remotePort: number;
+  /** Re-resolve the target pod when a connection fails (pod restarted/rescheduled). */
   autoRestart?: boolean;
-  maxRestartAttempts?: number;
+  /** Local address to bind. Defaults to 127.0.0.1 so forwards are never exposed on the LAN. */
+  bindAddress?: string;
 }
 
 export interface PortForwardStatus {
   id: string;
-  status: 'running' | 'stopped' | 'error' | 'restarting';
+  status: 'running' | 'stopped' | 'error';
   localPort: number;
   remotePort: number;
+  podName?: string;
+  activeConnections: number;
   error?: string;
-  restartAttempts?: number;
+}
+
+interface ResolvedTarget {
+  podName: string;
+  podPort: number;
 }
 
 interface ActiveForward {
-  server: any;
-  forward: k8s.PortForward;
+  server: net.Server;
+  sockets: Set<net.Socket>;
   options: PortForwardOptions;
-  restartAttempts: number;
-  restartTimer?: NodeJS.Timeout;
+  target?: ResolvedTarget;
+  lastError?: string;
 }
 
 /**
- * Manages Kubernetes port-forwarding operations
+ * Manages Kubernetes port-forwarding operations.
+ *
+ * Each forward opens a local TCP listener; every incoming connection gets its own
+ * stream to the target pod through the Kubernetes API (same model as kubectl).
  */
 export class PortForwardManager extends EventEmitter {
   private kc: k8s.KubeConfig;
@@ -45,188 +58,110 @@ export class PortForwardManager extends EventEmitter {
   }
 
   /**
-   * Start a port-forward to a pod
+   * Start a port-forward. Resolves once the local port is listening.
    */
   async startPortForward(id: string, options: PortForwardOptions): Promise<void> {
     if (this.activeForwards.has(id)) {
       throw new Error(`Port forward with id '${id}' is already running`);
     }
 
+    if (!options.podName && !options.serviceName && !options.deploymentName) {
+      throw new Error('Must specify either podName, serviceName, or deploymentName');
+    }
+
     try {
-      const forward = new k8s.PortForward(this.kc);
+      // Resolve upfront so configuration errors surface immediately
+      const target = await this.resolveTarget(options);
 
-      // Determine the target pod
-      let podName = options.podName;
+      const server = net.createServer((socket) => this.handleConnection(id, socket));
+      const forward: ActiveForward = { server, sockets: new Set(), options, target };
 
-      if (!podName) {
-        if (options.serviceName) {
-          podName = await this.getPodFromService(options.namespace, options.serviceName);
-        } else if (options.deploymentName) {
-          podName = await this.getPodFromDeployment(options.namespace, options.deploymentName);
-        } else {
-          throw new Error('Must specify either podName, serviceName, or deploymentName');
-        }
-      }
-
-      // Start the port forward
-      const server = await forward.portForward(
-        options.namespace,
-        podName,
-        [options.remotePort],
-        undefined,
-        undefined,
-        options.localPort
-      );
-
-      this.activeForwards.set(id, {
-        server,
-        forward,
-        options,
-        restartAttempts: 0,
+      await new Promise<void>((resolve, reject) => {
+        server.once('error', reject);
+        server.listen(options.localPort, options.bindAddress || '127.0.0.1', () => {
+          server.off('error', reject);
+          resolve();
+        });
       });
 
-      this.logCapture.log(id, 'info', `Port-forward started: ${options.localPort} -> ${options.remotePort}`);
-      this.emit('started', id);
+      server.on('error', (error) => {
+        forward.lastError = error.message;
+        this.logCapture.log(id, 'error', `Listener error: ${error.message}`);
+        this.emit('error', id, error);
+      });
 
-      // Setup error handling for auto-restart
-      if (server && options.autoRestart) {
-        server.on('error', (error: Error) => {
-          this.handleForwardError(id, error);
-        });
-
-        server.on('close', () => {
-          this.handleForwardClose(id);
-        });
-      }
-    } catch (error) {
-      this.logCapture.log(id, 'error', `Failed to start port-forward: ${error}`);
-      this.emit('error', id, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Handle port-forward error
-   */
-  private async handleForwardError(id: string, error: Error): Promise<void> {
-    const forward = this.activeForwards.get(id);
-    if (!forward) return;
-
-    this.logCapture.log(id, 'error', `Port-forward error: ${error.message}`);
-    this.emit('error', id, error);
-
-    // Attempt restart if enabled
-    if (forward.options.autoRestart) {
-      await this.attemptRestart(id);
-    }
-  }
-
-  /**
-   * Handle port-forward close
-   */
-  private async handleForwardClose(id: string): Promise<void> {
-    const forward = this.activeForwards.get(id);
-    if (!forward) return;
-
-    this.logCapture.log(id, 'warn', 'Port-forward connection closed');
-    this.emit('closed', id);
-
-    // Attempt restart if enabled and not manually stopped
-    if (forward.options.autoRestart) {
-      await this.attemptRestart(id);
-    }
-  }
-
-  /**
-   * Attempt to restart a port-forward
-   */
-  private async attemptRestart(id: string): Promise<void> {
-    const forward = this.activeForwards.get(id);
-    if (!forward) return;
-
-    const maxAttempts = forward.options.maxRestartAttempts || 3;
-
-    if (forward.restartAttempts >= maxAttempts) {
+      this.activeForwards.set(id, forward);
       this.logCapture.log(
         id,
-        'error',
-        `Max restart attempts (${maxAttempts}) reached, giving up`
+        'info',
+        `Forwarding 127.0.0.1:${options.localPort} -> ${target.podName}:${target.podPort}`
       );
-      this.emit('restart-failed', id);
+      this.emit('started', id);
+    } catch (error: any) {
+      const message =
+        error?.code === 'EADDRINUSE' ? `Local port ${options.localPort} is already in use` : String(error?.message || error);
+      this.logCapture.log(id, 'error', `Failed to start port-forward: ${message}`);
+      this.emit('error', id, new Error(message));
+      throw new Error(message);
+    }
+  }
+
+  /**
+   * Handle a single local TCP connection by opening a stream to the pod
+   */
+  private async handleConnection(id: string, socket: net.Socket): Promise<void> {
+    const forward = this.activeForwards.get(id);
+    if (!forward) {
+      socket.destroy();
       return;
     }
 
-    forward.restartAttempts++;
-    const delay = Math.min(1000 * Math.pow(2, forward.restartAttempts - 1), 30000); // Exponential backoff, max 30s
+    forward.sockets.add(socket);
+    socket.on('close', () => forward.sockets.delete(socket));
+    socket.on('error', (error) => {
+      this.logCapture.log(id, 'debug', `Local socket error: ${error.message}`);
+    });
 
-    this.logCapture.log(
-      id,
-      'info',
-      `Attempting restart ${forward.restartAttempts}/${maxAttempts} in ${delay}ms`
-    );
-    this.emit('restarting', id, forward.restartAttempts, maxAttempts);
-
-    forward.restartTimer = setTimeout(async () => {
-      try {
-        // Clean up old forward
-        if (forward.server && forward.server.close) {
-          forward.server.close();
-        }
-
-        // Start new forward
-        const newForward = new k8s.PortForward(this.kc);
-        let podName = forward.options.podName;
-
-        if (!podName) {
-          if (forward.options.serviceName) {
-            podName = await this.getPodFromService(
-              forward.options.namespace,
-              forward.options.serviceName
-            );
-          } else if (forward.options.deploymentName) {
-            podName = await this.getPodFromDeployment(
-              forward.options.namespace,
-              forward.options.deploymentName
-            );
-          }
-        }
-
-        if (!podName) {
-          throw new Error('Unable to determine pod name for restart');
-        }
-
-        const server = await newForward.portForward(
-          forward.options.namespace,
-          podName,
-          [forward.options.remotePort],
-          undefined,
-          undefined,
-          forward.options.localPort
-        );
-
-        // Update the forward
-        forward.server = server;
-        forward.forward = newForward;
-
-        // Setup error handlers again
-        if (server && forward.options.autoRestart) {
-          server.on('error', (error: Error) => {
-            this.handleForwardError(id, error);
-          });
-
-          server.on('close', () => {
-            this.handleForwardClose(id);
-          });
-        }
-
-        this.logCapture.log(id, 'info', 'Port-forward restarted successfully');
-        this.emit('restarted', id);
-      } catch (error) {
-        this.logCapture.log(id, 'error', `Restart failed: ${error}`);
-        // Try again if attempts remain
-        await this.attemptRestart(id);
+    try {
+      if (!forward.target) {
+        forward.target = await this.resolveTarget(forward.options);
+        this.logCapture.log(id, 'info', `Target resolved to pod ${forward.target.podName}`);
       }
-    }, delay);
+
+      const { podName, podPort } = forward.target;
+      const pf = new k8s.PortForward(this.kc);
+      const ws = await pf.portForward(forward.options.namespace, podName, [podPort], socket, null, socket);
+
+      // Without retryCount the SDK returns the WebSocket itself
+      if (typeof ws !== 'function') {
+        ws.on('error', (error: Error) => this.handleStreamFailure(id, socket, error));
+        ws.on('close', () => socket.destroy());
+        socket.on('close', () => ws.close());
+      }
+
+      this.logCapture.log(id, 'debug', 'Connection opened');
+      forward.lastError = undefined;
+    } catch (error: any) {
+      this.handleStreamFailure(id, socket, error);
+    }
+  }
+
+  private handleStreamFailure(id: string, socket: net.Socket, error: any): void {
+    const forward = this.activeForwards.get(id);
+    const message = String(error?.message || error);
+
+    socket.destroy();
+    if (!forward) return;
+
+    forward.lastError = message;
+    this.logCapture.log(id, 'error', `Connection failed: ${message}`);
+    this.emit('error', id, new Error(message));
+
+    // Drop the cached pod so the next connection picks a healthy one
+    if (forward.options.autoRestart !== false && !forward.options.podName) {
+      forward.target = undefined;
+      this.logCapture.log(id, 'warn', 'Target pod will be re-resolved on next connection');
+    }
   }
 
   /**
@@ -239,24 +174,16 @@ export class PortForwardManager extends EventEmitter {
       throw new Error(`Port forward with id '${id}' not found`);
     }
 
-    try {
-      // Clear any pending restart timer
-      if (forward.restartTimer) {
-        clearTimeout(forward.restartTimer);
-      }
+    this.activeForwards.delete(id);
 
-      // Close the server
-      if (forward.server && forward.server.close) {
-        forward.server.close();
-      }
-
-      this.activeForwards.delete(id);
-      this.logCapture.log(id, 'info', 'Port-forward stopped');
-      this.emit('stopped', id);
-    } catch (error) {
-      this.emit('error', id, error);
-      throw error;
+    for (const socket of forward.sockets) {
+      socket.destroy();
     }
+
+    await new Promise<void>((resolve) => forward.server.close(() => resolve()));
+
+    this.logCapture.log(id, 'info', 'Port-forward stopped');
+    this.emit('stopped', id);
   }
 
   /**
@@ -264,14 +191,7 @@ export class PortForwardManager extends EventEmitter {
    */
   async stopAllPortForwards(): Promise<void> {
     const ids = Array.from(this.activeForwards.keys());
-
-    for (const id of ids) {
-      try {
-        await this.stopPortForward(id);
-      } catch (error) {
-        console.error(`Failed to stop port forward '${id}':`, error);
-      }
-    }
+    await Promise.allSettled(ids.map((id) => this.stopPortForward(id)));
   }
 
   /**
@@ -284,19 +204,29 @@ export class PortForwardManager extends EventEmitter {
       return null;
     }
 
-    let status: PortForwardStatus['status'] = 'running';
-
-    if (forward.restartTimer) {
-      status = 'restarting';
-    }
-
     return {
       id,
-      status,
+      status: forward.lastError ? 'error' : 'running',
       localPort: forward.options.localPort,
       remotePort: forward.options.remotePort,
-      restartAttempts: forward.restartAttempts,
+      podName: forward.target?.podName,
+      activeConnections: forward.sockets.size,
+      error: forward.lastError,
     };
+  }
+
+  /**
+   * Get all active port-forwards
+   */
+  getActiveForwards(): string[] {
+    return Array.from(this.activeForwards.keys());
+  }
+
+  /**
+   * Check if a port-forward is active
+   */
+  isActive(id: string): boolean {
+    return this.activeForwards.has(id);
   }
 
   /**
@@ -321,119 +251,83 @@ export class PortForwardManager extends EventEmitter {
   }
 
   /**
-   * Get all active port-forwards
+   * Resolve the pod and container port to forward to
    */
-  getActiveForwards(): string[] {
-    return Array.from(this.activeForwards.keys());
-  }
-
-  /**
-   * Check if a port-forward is active
-   */
-  isActive(id: string): boolean {
-    return this.activeForwards.has(id);
-  }
-
-  /**
-   * Get pod name from service
-   */
-  private async getPodFromService(namespace: string, serviceName: string): Promise<string> {
+  private async resolveTarget(options: PortForwardOptions): Promise<ResolvedTarget> {
     const api = this.kc.makeApiClient(k8s.CoreV1Api);
+    const { namespace } = options;
 
-    try {
-      // Get the service
-      const serviceResponse = await api.readNamespacedService(serviceName, namespace);
-      const service = serviceResponse.body;
-
-      if (!service.spec?.selector) {
-        throw new Error(`Service '${serviceName}' has no selector`);
-      }
-
-      // Find pods matching the service selector
-      const selector = Object.entries(service.spec.selector)
-        .map(([key, value]) => `${key}=${value}`)
-        .join(',');
-
-      const podsResponse = await api.listNamespacedPod(
-        namespace,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        selector
-      );
-
-      if (!podsResponse.body.items.length) {
-        throw new Error(`No pods found for service '${serviceName}'`);
-      }
-
-      // Return the first running pod
-      const runningPod = podsResponse.body.items.find(
-        (pod) => pod.status?.phase === 'Running'
-      );
-
-      if (!runningPod || !runningPod.metadata?.name) {
-        throw new Error(`No running pods found for service '${serviceName}'`);
-      }
-
-      return runningPod.metadata.name;
-    } catch (error) {
-      throw new Error(`Failed to get pod from service '${serviceName}': ${error}`);
+    if (options.podName) {
+      return { podName: options.podName, podPort: options.remotePort };
     }
+
+    if (options.deploymentName) {
+      const appsApi = this.kc.makeApiClient(k8s.AppsV1Api);
+      const { body: deployment } = await appsApi.readNamespacedDeployment(options.deploymentName, namespace);
+      const labels = deployment.spec?.selector?.matchLabels;
+      if (!labels) {
+        throw new Error(`Deployment '${options.deploymentName}' has no matchLabels selector`);
+      }
+      const pod = await this.findRunningPod(api, namespace, labels, `deployment '${options.deploymentName}'`);
+      return { podName: pod.metadata!.name!, podPort: options.remotePort };
+    }
+
+    const serviceName = options.serviceName!;
+    const { body: service } = await api.readNamespacedService(serviceName, namespace);
+    if (!service.spec?.selector) {
+      throw new Error(`Service '${serviceName}' has no selector`);
+    }
+
+    const pod = await this.findRunningPod(api, namespace, service.spec.selector, `service '${serviceName}'`);
+    return { podName: pod.metadata!.name!, podPort: this.resolveServiceTargetPort(service, pod, options.remotePort) };
   }
 
   /**
-   * Get pod name from deployment
+   * Translate a service port into the container port, like kubectl does
    */
-  private async getPodFromDeployment(
-    namespace: string,
-    deploymentName: string
-  ): Promise<string> {
-    const appsApi = this.kc.makeApiClient(k8s.AppsV1Api);
-    const coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
-
-    try {
-      // Get the deployment
-      const deploymentResponse = await appsApi.readNamespacedDeployment(
-        deploymentName,
-        namespace
-      );
-      const deployment = deploymentResponse.body;
-
-      if (!deployment.spec?.selector?.matchLabels) {
-        throw new Error(`Deployment '${deploymentName}' has no selector`);
-      }
-
-      // Find pods matching the deployment selector
-      const selector = Object.entries(deployment.spec.selector.matchLabels)
-        .map(([key, value]) => `${key}=${value}`)
-        .join(',');
-
-      const podsResponse = await coreApi.listNamespacedPod(
-        namespace,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        selector
-      );
-
-      if (!podsResponse.body.items.length) {
-        throw new Error(`No pods found for deployment '${deploymentName}'`);
-      }
-
-      // Return the first running pod
-      const runningPod = podsResponse.body.items.find(
-        (pod) => pod.status?.phase === 'Running'
-      );
-
-      if (!runningPod || !runningPod.metadata?.name) {
-        throw new Error(`No running pods found for deployment '${deploymentName}'`);
-      }
-
-      return runningPod.metadata.name;
-    } catch (error) {
-      throw new Error(`Failed to get pod from deployment '${deploymentName}': ${error}`);
+  private resolveServiceTargetPort(service: k8s.V1Service, pod: k8s.V1Pod, servicePort: number): number {
+    const portSpec = service.spec?.ports?.find((p) => p.port === servicePort);
+    if (!portSpec || portSpec.targetPort === undefined) {
+      return servicePort;
     }
+
+    if (typeof portSpec.targetPort === 'number') {
+      return portSpec.targetPort;
+    }
+
+    const asNumber = Number(portSpec.targetPort);
+    if (Number.isInteger(asNumber)) {
+      return asNumber;
+    }
+
+    // Named target port: look it up in the pod's containers
+    for (const container of pod.spec?.containers || []) {
+      const named = container.ports?.find((p) => p.name === portSpec.targetPort);
+      if (named) {
+        return named.containerPort;
+      }
+    }
+
+    throw new Error(`Named port '${portSpec.targetPort}' not found in pod ${pod.metadata?.name}`);
+  }
+
+  private async findRunningPod(
+    api: k8s.CoreV1Api,
+    namespace: string,
+    labels: Record<string, string>,
+    owner: string
+  ): Promise<k8s.V1Pod> {
+    const selector = Object.entries(labels)
+      .map(([key, value]) => `${key}=${value}`)
+      .join(',');
+
+    const { body } = await api.listNamespacedPod(namespace, undefined, undefined, undefined, undefined, selector);
+    const pod = body.items.find((p) => p.status?.phase === 'Running' && !p.metadata?.deletionTimestamp);
+
+    if (!pod?.metadata?.name) {
+      throw new Error(`No running pods found for ${owner}`);
+    }
+
+    return pod;
   }
 }

@@ -7,7 +7,7 @@
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "tsc && electron .",
-    "build": "tsc && vite build",
+    "build": "echo 'GUI not implemented yet (milestone 0.6.0)'",
     "build:electron": "electron-builder",
     "test": "vitest run",
     "test:watch": "vitest",

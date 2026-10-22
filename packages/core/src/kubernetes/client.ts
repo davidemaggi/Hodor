@@ -1,5 +1,5 @@
 import * as k8s from '@kubernetes/client-node';
-import { Cluster, Context, KubeConfig as HodorKubeConfig } from '../types';
+import { Cluster, Context } from '../types';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs/promises';
