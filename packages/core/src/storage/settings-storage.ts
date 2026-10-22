@@ -28,8 +28,7 @@ export class SettingsStorage {
   private settings: Settings;
 
   constructor(customPath?: string) {
-    this.settingsPath =
-      customPath || path.join(os.homedir(), '.hodor', 'settings.json');
+    this.settingsPath = customPath || path.join(os.homedir(), '.hodor', 'settings.json');
     this.settings = { ...DEFAULT_SETTINGS };
   }
 

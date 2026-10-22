@@ -39,8 +39,20 @@ const template = await templateManager.create({
   name: 'my-dev-stack',
   description: 'Development environment',
   forwards: [
-    { name: 'api', namespace: 'default', resource: 'service/api', localPort: 8080, remotePort: 8080 },
-    { name: 'db', namespace: 'default', resource: 'service/postgres', localPort: 5432, remotePort: 5432 },
+    {
+      name: 'api',
+      namespace: 'default',
+      resource: 'service/api',
+      localPort: 8080,
+      remotePort: 8080,
+    },
+    {
+      name: 'db',
+      namespace: 'default',
+      resource: 'service/postgres',
+      localPort: 5432,
+      remotePort: 5432,
+    },
   ],
   tags: ['dev', 'backend'],
 });

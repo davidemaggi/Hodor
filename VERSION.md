@@ -28,16 +28,17 @@ MAJOR.MINOR.PATCH[-prerelease]
 
 Each **major version** receives a codename based on a Game of Thrones character, following alphabetical order:
 
-| Version | Codename | Character | Status |
-|---------|----------|-----------|--------|
-| 1.x.x   | **Aerys** | Aerys II Targaryen (The Mad King) | 📋 Planned |
-| 2.x.x   | **Barristan** | Barristan Selmy | 💭 Future |
-| 3.x.x   | **Catelyn** | Catelyn Stark | 💭 Future |
-| 4.x.x   | **Daenerys** | Daenerys Targaryen | 💭 Future |
-| 5.x.x   | **Eddard** | Eddard Stark | 💭 Future |
-| ...     | ...      | ... | ... |
+| Version | Codename      | Character                         | Status     |
+| ------- | ------------- | --------------------------------- | ---------- |
+| 1.x.x   | **Aerys**     | Aerys II Targaryen (The Mad King) | 📋 Planned |
+| 2.x.x   | **Barristan** | Barristan Selmy                   | 💭 Future  |
+| 3.x.x   | **Catelyn**   | Catelyn Stark                     | 💭 Future  |
+| 4.x.x   | **Daenerys**  | Daenerys Targaryen                | 💭 Future  |
+| 5.x.x   | **Eddard**    | Eddard Stark                      | 💭 Future  |
+| ...     | ...           | ...                               | ...        |
 
 **Rules:**
+
 - Only **major versions** get codenames
 - Minor versions (1.1.0, 1.2.0) share the major's codename
 - Patch versions (1.0.1, 1.0.2) don't get individual codenames
@@ -48,10 +49,12 @@ Each **major version** receives a codename based on a Game of Thrones character,
 ## Version History
 
 ### 0.1.0-dev (Current)
+
 **Released:** 2023-10-22  
-**Codename:** Pre-release  
+**Codename:** Pre-release
 
 **Changes:**
+
 - Initial project setup
 - Repository structure established
 - Development workflow configured
@@ -59,6 +62,7 @@ Each **major version** receives a codename based on a Game of Thrones character,
 - Monorepo with pnpm workspaces configured
 
 **Next Steps:**
+
 - Milestone 0.2.0: Core package implementation
 - Milestone 0.3.0: Port-forward engine
 - Target: 1.0.0-Aerys in Q1 2024
@@ -68,10 +72,12 @@ Each **major version** receives a codename based on a Game of Thrones character,
 ## Upcoming Releases
 
 ### 1.0.0 - Aerys (Q1 2024)
+
 **Status:** 📋 Planned  
 **Type:** Major Release
 
 **Headline Features:**
+
 - Complete Kubernetes port-forward management
 - GUI (Electron + React) and CLI applications
 - Template creation, management, and execution
@@ -84,6 +90,7 @@ Each **major version** receives a codename based on a Game of Thrones character,
 - Code signing and distribution
 
 **Upgrade Notes:**
+
 - First stable release
 - No breaking changes (initial version)
 
@@ -92,6 +99,7 @@ Each **major version** receives a codename based on a Game of Thrones character,
 ## Determining Version Increments
 
 ### When to bump MAJOR (X.0.0)
+
 - Breaking API changes
 - Incompatible CLI command structure changes
 - Template format breaking changes
@@ -99,6 +107,7 @@ Each **major version** receives a codename based on a Game of Thrones character,
 - Major architectural rewrites
 
 ### When to bump MINOR (1.X.0)
+
 - New features (backward-compatible)
 - New CLI commands
 - New GUI pages or major UI features
@@ -106,6 +115,7 @@ Each **major version** receives a codename based on a Game of Thrones character,
 - Deprecation notices (but not removal)
 
 ### When to bump PATCH (1.0.X)
+
 - Bug fixes
 - Security patches
 - Documentation updates
@@ -113,12 +123,14 @@ Each **major version** receives a codename based on a Game of Thrones character,
 - Minor UI improvements
 
 ### Pre-release Suffixes
+
 - `-dev`: Active development
 - `-alpha.N`: Early testing (may be unstable)
 - `-beta.N`: Feature complete, testing
 - `-rc.N`: Release candidate (production-ready testing)
 
 **Examples:**
+
 - `0.9.0-dev` - Development towards 1.0.0
 - `1.0.0-rc.1` - First release candidate for 1.0.0
 - `1.0.0` - Stable release
@@ -131,6 +143,7 @@ Each **major version** receives a codename based on a Game of Thrones character,
 ## Release Process
 
 ### Development Releases (0.x.x-dev)
+
 1. Commit to `develop` branch
 2. Manual version bump in package.json files
 3. Update CHANGELOG.md
@@ -138,6 +151,7 @@ Each **major version** receives a codename based on a Game of Thrones character,
 5. CI builds artifacts (no distribution)
 
 ### Stable Releases (X.Y.Z)
+
 1. Create `release/X.Y.Z` branch from `develop`
 2. Bump version in all package.json files
 3. Update VERSION.md (this file)
@@ -184,22 +198,26 @@ pnpm changelog:generate
 ## Version Compatibility
 
 ### Kubernetes Versions
+
 Hodor targets compatibility with:
+
 - **Minimum:** Kubernetes 1.20
 - **Tested:** Kubernetes 1.24, 1.25, 1.26, 1.27, 1.28
 - **Maximum:** Latest stable Kubernetes
 
 ### Platform Support
+
 - **macOS:** 11 (Big Sur) and later
 - **Windows:** 10 (1809+) and later, Windows 11
 - **Linux:** Major distributions (Ubuntu 20.04+, Fedora 35+, etc.)
 
 ### Node.js Runtime
+
 - **Development:** Node.js 18+ (LTS)
 - **Bundled (Electron):** Electron's Node.js version
 
 ---
 
-*This file is automatically updated during the release process.*
+_This file is automatically updated during the release process._
 
-*Last Updated: 2023-10-22*
+_Last Updated: 2023-10-22_

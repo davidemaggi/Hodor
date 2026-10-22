@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+pnpm-lock.yaml
+# Vendored AI skills, managed by their own installers
+.agents
+.claude
+.github/skills
+.github/agents
+.github/hooks
+skills-lock.json

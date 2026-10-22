@@ -12,8 +12,7 @@ export class TemplateStorage {
   private templates: Map<string, Template> = new Map();
 
   constructor(customPath?: string) {
-    this.templatesPath =
-      customPath || path.join(os.homedir(), '.hodor', 'templates.json');
+    this.templatesPath = customPath || path.join(os.homedir(), '.hodor', 'templates.json');
   }
 
   /**
@@ -77,9 +76,7 @@ export class TemplateStorage {
   /**
    * Create a new template
    */
-  async create(
-    template: Omit<Template, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<Template> {
+  async create(template: Omit<Template, 'id' | 'createdAt' | 'updatedAt'>): Promise<Template> {
     const now = new Date();
     const newTemplate: Template = {
       ...template,

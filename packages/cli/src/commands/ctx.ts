@@ -1,74 +1,59 @@
 import chalk from 'chalk';
-import ora from 'ora';
 import inquirer from 'inquirer';
 import { ContextManager } from '@hodor/core';
+import { fail, requireKubectl } from '../utils/shared.js';
 
 /**
- * Switch Kubernetes context
+ * Switch kubectl's default context
  */
 export async function ctxCommand(contextName?: string): Promise<void> {
+  await requireKubectl();
+
   try {
     const manager = new ContextManager();
+    const contexts = await manager.listContexts();
+    const current = await manager.getCurrentContext();
 
-    // If no context provided, show selection prompt
+    if (contexts.length === 0) {
+      fail(`No contexts in ${manager.getConfigPath()}`);
+    }
+
     if (!contextName) {
-      const spinner = ora('Loading contexts...').start();
-
-      const contexts = await manager.listContexts();
-      const currentContext = await manager.getCurrentContext();
-
-      spinner.stop();
-
-      if (contexts.length === 0) {
-        console.log(chalk.yellow('No contexts found in kubeconfig.'));
-        return;
-      }
-
-      const choices = contexts.map((ctx) => {
-        const isCurrent = ctx.name === currentContext;
-        const indicator = isCurrent ? chalk.green('● ') : '  ';
-        const namespace = ctx.namespace ? chalk.dim(` [${ctx.namespace}]`) : '';
-
-        return {
-          name: `${indicator}${ctx.name}${namespace}`,
-          value: ctx.name,
-          short: ctx.name,
-        };
-      });
-
       const answer = await inquirer.prompt<{ context: string }>([
         {
           type: 'list',
           name: 'context',
-          message: 'Select context:',
-          choices,
+          message: 'Pick the new kubectl default:',
+          choices: contexts.map((ctx) => ({
+            name: `${ctx.name === current ? chalk.yellow('★ ') : '  '}${ctx.name}${ctx.namespace ? chalk.dim(` [${ctx.namespace}]`) : ''}`,
+            value: ctx.name,
+            short: ctx.name,
+          })),
+          default: current,
           pageSize: 15,
         },
       ]);
-
       contextName = answer.context;
     }
 
-    // Switch context
-    const spinner = ora(`Switching to context '${contextName}'...`).start();
+    if (contextName === current) {
+      console.log(chalk.dim(`'${contextName}' is already the default. Hodor approves.`));
+      return;
+    }
 
     await manager.switchContext(contextName);
 
-    spinner.succeed(chalk.green(`Switched to context '${contextName}'`));
-
-    // Show cluster info
-    const clusterInfo = await manager.getClusterInfo(contextName);
-    if (clusterInfo) {
-      console.log(chalk.dim(`  Cluster: ${clusterInfo.name}`));
-      console.log(chalk.dim(`  Server: ${clusterInfo.server}`));
-    }
-
-    const namespace = await manager.getContextNamespace(contextName);
-    if (namespace) {
-      console.log(chalk.dim(`  Namespace: ${namespace}`));
-    }
+    console.log(chalk.green(`✔ kubectl now points to '${contextName}'`));
+    const info = await manager.getClusterInfo(contextName);
+    if (info) console.log(chalk.dim(`  ${info.server}`));
+    console.log(chalk.dim(`  Backup of the previous kubeconfig saved in ~/.hodor/backups`));
   } catch (error: any) {
-    console.error(chalk.red(`\nError: ${error.message}`));
-    process.exit(1);
+    if (/not found/.test(error.message)) {
+      fail(
+        `${error.message} in ${new ContextManager().getConfigPath()}. ` +
+          'If it lives in another kubeconfig, merge it first: hodor config:merge <file>'
+      );
+    }
+    fail(error.message);
   }
 }

@@ -248,10 +248,7 @@ export class TemplateManager {
   /**
    * Validate template data
    */
-  private validateTemplate(data: {
-    name: string;
-    forwards: PortForwardConfig[];
-  }): void {
+  private validateTemplate(data: { name: string; forwards: PortForwardConfig[] }): void {
     if (!data.name || data.name.trim().length === 0) {
       throw new Error('Template name is required');
     }

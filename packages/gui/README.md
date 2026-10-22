@@ -47,6 +47,7 @@ src/
 ## Building
 
 The app can be built for:
+
 - **macOS:** .dmg, .zip
 - **Windows:** .exe installer, .zip
 - **Linux:** AppImage, .deb, .rpm, .tar.gz

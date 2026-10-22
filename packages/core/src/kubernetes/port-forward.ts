@@ -99,7 +99,9 @@ export class PortForwardManager extends EventEmitter {
       this.emit('started', id);
     } catch (error: any) {
       const message =
-        error?.code === 'EADDRINUSE' ? `Local port ${options.localPort} is already in use` : String(error?.message || error);
+        error?.code === 'EADDRINUSE'
+          ? `Local port ${options.localPort} is already in use`
+          : String(error?.message || error);
       this.logCapture.log(id, 'error', `Failed to start port-forward: ${message}`);
       this.emit('error', id, new Error(message));
       throw new Error(message);
@@ -130,7 +132,14 @@ export class PortForwardManager extends EventEmitter {
 
       const { podName, podPort } = forward.target;
       const pf = new k8s.PortForward(this.kc);
-      const ws = await pf.portForward(forward.options.namespace, podName, [podPort], socket, null, socket);
+      const ws = await pf.portForward(
+        forward.options.namespace,
+        podName,
+        [podPort],
+        socket,
+        null,
+        socket
+      );
 
       // Without retryCount the SDK returns the WebSocket itself
       if (typeof ws !== 'function') {
@@ -263,12 +272,20 @@ export class PortForwardManager extends EventEmitter {
 
     if (options.deploymentName) {
       const appsApi = this.kc.makeApiClient(k8s.AppsV1Api);
-      const { body: deployment } = await appsApi.readNamespacedDeployment(options.deploymentName, namespace);
+      const { body: deployment } = await appsApi.readNamespacedDeployment(
+        options.deploymentName,
+        namespace
+      );
       const labels = deployment.spec?.selector?.matchLabels;
       if (!labels) {
         throw new Error(`Deployment '${options.deploymentName}' has no matchLabels selector`);
       }
-      const pod = await this.findRunningPod(api, namespace, labels, `deployment '${options.deploymentName}'`);
+      const pod = await this.findRunningPod(
+        api,
+        namespace,
+        labels,
+        `deployment '${options.deploymentName}'`
+      );
       return { podName: pod.metadata!.name!, podPort: options.remotePort };
     }
 
@@ -278,14 +295,26 @@ export class PortForwardManager extends EventEmitter {
       throw new Error(`Service '${serviceName}' has no selector`);
     }
 
-    const pod = await this.findRunningPod(api, namespace, service.spec.selector, `service '${serviceName}'`);
-    return { podName: pod.metadata!.name!, podPort: this.resolveServiceTargetPort(service, pod, options.remotePort) };
+    const pod = await this.findRunningPod(
+      api,
+      namespace,
+      service.spec.selector,
+      `service '${serviceName}'`
+    );
+    return {
+      podName: pod.metadata!.name!,
+      podPort: this.resolveServiceTargetPort(service, pod, options.remotePort),
+    };
   }
 
   /**
    * Translate a service port into the container port, like kubectl does
    */
-  private resolveServiceTargetPort(service: k8s.V1Service, pod: k8s.V1Pod, servicePort: number): number {
+  private resolveServiceTargetPort(
+    service: k8s.V1Service,
+    pod: k8s.V1Pod,
+    servicePort: number
+  ): number {
     const portSpec = service.spec?.ports?.find((p) => p.port === servicePort);
     if (!portSpec || portSpec.targetPort === undefined) {
       return servicePort;
@@ -321,8 +350,17 @@ export class PortForwardManager extends EventEmitter {
       .map(([key, value]) => `${key}=${value}`)
       .join(',');
 
-    const { body } = await api.listNamespacedPod(namespace, undefined, undefined, undefined, undefined, selector);
-    const pod = body.items.find((p) => p.status?.phase === 'Running' && !p.metadata?.deletionTimestamp);
+    const { body } = await api.listNamespacedPod(
+      namespace,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      selector
+    );
+    const pod = body.items.find(
+      (p) => p.status?.phase === 'Running' && !p.metadata?.deletionTimestamp
+    );
 
     if (!pod?.metadata?.name) {
       throw new Error(`No running pods found for ${owner}`);

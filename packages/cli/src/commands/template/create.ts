@@ -47,7 +47,10 @@ export async function templateCreateCommand(): Promise<void> {
     ]);
 
     const tags = basicInfo.tags
-      ? basicInfo.tags.split(',').map((t) => t.trim()).filter((t) => t.length > 0)
+      ? basicInfo.tags
+          .split(',')
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0)
       : [];
 
     // Step 2: Add port-forwards
@@ -101,7 +104,10 @@ export async function templateCreateCommand(): Promise<void> {
 /**
  * Prompt for a single port-forward configuration
  */
-async function promptForForward(existingNames: string[]): Promise<PortForwardConfig> {
+export async function promptForForward(
+  existingNames: string[],
+  current?: PortForwardConfig
+): Promise<PortForwardConfig> {
   const answers = await inquirer.prompt<{
     name: string;
     namespace: string;
@@ -118,6 +124,7 @@ async function promptForForward(existingNames: string[]): Promise<PortForwardCon
       type: 'input',
       name: 'name',
       message: 'Forward name:',
+      default: current?.name,
       validate: (input: string) => {
         if (!input || input.trim().length === 0) {
           return 'Forward name is required';
@@ -132,7 +139,7 @@ async function promptForForward(existingNames: string[]): Promise<PortForwardCon
       type: 'input',
       name: 'namespace',
       message: 'Namespace:',
-      default: 'default',
+      default: current?.namespace || 'default',
       validate: (input: string) => {
         if (!input || input.trim().length === 0) {
           return 'Namespace is required';
@@ -152,12 +159,13 @@ async function promptForForward(existingNames: string[]): Promise<PortForwardCon
         { name: 'Deployment', value: 'deployment' },
         { name: 'Pod', value: 'pod' },
       ],
-      default: 'service',
+      default: current?.resourceType || 'service',
     },
     {
       type: 'input',
       name: 'resourceName',
       message: 'Resource name:',
+      default: current?.resourceName,
       validate: (input: string) => {
         if (!input || input.trim().length === 0) {
           return 'Resource name is required';
@@ -169,6 +177,7 @@ async function promptForForward(existingNames: string[]): Promise<PortForwardCon
       type: 'number',
       name: 'localPort',
       message: 'Local port:',
+      default: current?.localPort,
       validate: (input: number) => {
         if (!validatePort(input)) {
           return 'Port must be between 1 and 65535';
@@ -180,6 +189,7 @@ async function promptForForward(existingNames: string[]): Promise<PortForwardCon
       type: 'number',
       name: 'remotePort',
       message: 'Remote port:',
+      default: current?.remotePort,
       validate: (input: number) => {
         if (!validatePort(input)) {
           return 'Port must be between 1 and 65535';
@@ -191,34 +201,42 @@ async function promptForForward(existingNames: string[]): Promise<PortForwardCon
       type: 'confirm',
       name: 'addSecrets',
       message: 'Link secrets to this forward?',
-      default: false,
+      default: !!current?.secrets?.length,
     },
     {
       type: 'input',
       name: 'secrets',
       message: 'Secret names (comma-separated):',
+      default: current?.secrets?.join(', '),
       when: (answers) => answers.addSecrets,
     },
     {
       type: 'confirm',
       name: 'addConfigMaps',
       message: 'Link configmaps to this forward?',
-      default: false,
+      default: !!current?.configMaps?.length,
     },
     {
       type: 'input',
       name: 'configMaps',
       message: 'ConfigMap names (comma-separated):',
+      default: current?.configMaps?.join(', '),
       when: (answers) => answers.addConfigMaps,
     },
   ]);
 
   const secrets = answers.secrets
-    ? answers.secrets.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
+    ? answers.secrets
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
     : undefined;
 
   const configMaps = answers.configMaps
-    ? answers.configMaps.split(',').map((c) => c.trim()).filter((c) => c.length > 0)
+    ? answers.configMaps
+        .split(',')
+        .map((c) => c.trim())
+        .filter((c) => c.length > 0)
     : undefined;
 
   return {

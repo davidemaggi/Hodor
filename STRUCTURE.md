@@ -217,18 +217,22 @@ hodor/
 ## Package Dependencies
 
 ### @hodor/core
+
 Core business logic, shared by both GUI and CLI.
 
 **Dependencies:**
+
 - `@kubernetes/client-node` - Kubernetes client
 - `keytar` - Secure credential storage
 - `i18next` - Internationalization
 - `zod` - Schema validation
 
 ### @hodor/gui
+
 Electron application with React frontend.
 
 **Dependencies:**
+
 - `electron` - Desktop application framework
 - `react` - UI library
 - `react-router-dom` - Routing
@@ -237,13 +241,16 @@ Electron application with React frontend.
 - `@tanstack/react-query` - Data fetching
 
 **Dev Dependencies:**
+
 - `vite` - Build tool
 - `electron-builder` - Packaging
 
 ### @hodor/cli
+
 Command-line interface.
 
 **Dependencies:**
+
 - `commander` - CLI framework
 - `inquirer` - Interactive prompts
 - `chalk` - Terminal colors
@@ -277,4 +284,4 @@ hodor/
 
 ---
 
-*This structure will be created incrementally as we implement each milestone.*
+_This structure will be created incrementally as we implement each milestone._

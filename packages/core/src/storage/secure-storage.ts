@@ -1,194 +1,86 @@
-import * as keytar from 'keytar';
-import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
+import { Entry, findCredentials } from '@napi-rs/keyring';
 
 const SERVICE_NAME = 'com.hodor.app';
-const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
+
+export class SecureStorageUnavailableError extends Error {
+  constructor(cause: unknown) {
+    super(
+      `The system keychain is not available (${cause}). ` +
+        'On Linux install and unlock a Secret Service provider such as gnome-keyring or KWallet.'
+    );
+    this.name = 'SecureStorageUnavailableError';
+  }
+}
 
 /**
- * Secure storage for sensitive data using the system keychain
+ * Secure storage for sensitive data, backed by the OS keychain
+ * (macOS Keychain, Windows Credential Manager, Linux Secret Service).
+ *
+ * There is deliberately no plain-file fallback: if the keychain is missing we fail loudly
+ * instead of silently writing secrets to disk.
  */
 export class SecureStorage {
-  private fallbackEncryption: boolean = false;
-  private masterKey: Buffer | null = null;
+  constructor(private service: string = SERVICE_NAME) {}
 
-  constructor() {
-    this.initialize();
+  private entry(key: string): Entry {
+    return new Entry(this.service, key);
   }
 
-  /**
-   * Initialize secure storage
-   */
-  private async initialize(): Promise<void> {
+  private wrap<T>(fn: () => T): T {
     try {
-      // Test if keytar is available
-      await keytar.getPassword(SERVICE_NAME, 'test');
-      this.fallbackEncryption = false;
-    } catch (error) {
-      console.warn('Keytar not available, falling back to encrypted storage');
-      this.fallbackEncryption = true;
-      await this.initializeMasterKey();
+      return fn();
+    } catch (error: any) {
+      if (/no (matching )?entry|not found/i.test(String(error?.message))) {
+        throw error;
+      }
+      throw new SecureStorageUnavailableError(error?.message || error);
     }
-  }
-
-  /**
-   * Initialize master key for fallback encryption
-   */
-  private async initializeMasterKey(): Promise<void> {
-    // In fallback mode, we generate a master key
-    // In production, this should be stored more securely or derived from user input
-    this.masterKey = randomBytes(32);
   }
 
   /**
    * Store a secret value
    */
   async setSecret(key: string, value: string): Promise<void> {
-    try {
-      if (this.fallbackEncryption) {
-        await this.setSecretEncrypted(key, value);
-      } else {
-        await keytar.setPassword(SERVICE_NAME, key, value);
-      }
-    } catch (error) {
-      throw new Error(`Failed to store secret '${key}': ${error}`);
-    }
+    this.wrap(() => this.entry(key).setPassword(value));
   }
 
   /**
-   * Retrieve a secret value
+   * Retrieve a secret value, or null if it does not exist
    */
   async getSecret(key: string): Promise<string | null> {
     try {
-      if (this.fallbackEncryption) {
-        return await this.getSecretEncrypted(key);
-      } else {
-        return await keytar.getPassword(SERVICE_NAME, key);
-      }
+      return this.wrap(() => this.entry(key).getPassword()) ?? null;
     } catch (error) {
-      throw new Error(`Failed to retrieve secret '${key}': ${error}`);
+      if (error instanceof SecureStorageUnavailableError) throw error;
+      return null;
     }
   }
 
   /**
-   * Delete a secret
+   * Delete a secret. Returns false if it did not exist.
    */
   async deleteSecret(key: string): Promise<boolean> {
     try {
-      if (this.fallbackEncryption) {
-        return await this.deleteSecretEncrypted(key);
-      } else {
-        return await keytar.deletePassword(SERVICE_NAME, key);
-      }
+      return this.wrap(() => this.entry(key).deletePassword());
     } catch (error) {
-      throw new Error(`Failed to delete secret '${key}': ${error}`);
+      if (error instanceof SecureStorageUnavailableError) throw error;
+      return false;
     }
   }
 
   /**
-   * Find all stored credentials
+   * List the keys stored by Hodor
    */
   async findCredentials(): Promise<Array<{ account: string }>> {
-    try {
-      if (this.fallbackEncryption) {
-        // In fallback mode, we can't easily list all keys
-        return [];
-      } else {
-        return await keytar.findCredentials(SERVICE_NAME);
-      }
-    } catch (error) {
-      throw new Error(`Failed to find credentials: ${error}`);
-    }
+    return this.wrap(() => findCredentials(this.service)).map((c) => ({ account: c.account }));
   }
 
   /**
-   * Store encrypted secret (fallback method)
-   */
-  private async setSecretEncrypted(key: string, value: string): Promise<void> {
-    if (!this.masterKey) {
-      throw new Error('Master key not initialized');
-    }
-
-    const iv = randomBytes(16);
-    const cipher = createCipheriv(ENCRYPTION_ALGORITHM, this.masterKey, iv);
-
-    let encrypted = cipher.update(value, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-
-    const authTag = cipher.getAuthTag();
-
-    const stored = JSON.stringify({
-      iv: iv.toString('hex'),
-      authTag: authTag.toString('hex'),
-      encrypted,
-    });
-
-    // Store in a simple file-based storage (for fallback only)
-    // In production, you might want to use electron-store or similar
-    global.hodorSecureStorage = global.hodorSecureStorage || {};
-    global.hodorSecureStorage[key] = stored;
-  }
-
-  /**
-   * Retrieve encrypted secret (fallback method)
-   */
-  private async getSecretEncrypted(key: string): Promise<string | null> {
-    if (!this.masterKey) {
-      throw new Error('Master key not initialized');
-    }
-
-    global.hodorSecureStorage = global.hodorSecureStorage || {};
-    const stored = global.hodorSecureStorage[key];
-
-    if (!stored) {
-      return null;
-    }
-
-    const { iv, authTag, encrypted } = JSON.parse(stored);
-
-    const decipher = createDecipheriv(
-      ENCRYPTION_ALGORITHM,
-      this.masterKey,
-      Buffer.from(iv, 'hex')
-    );
-
-    decipher.setAuthTag(Buffer.from(authTag, 'hex'));
-
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    return decrypted;
-  }
-
-  /**
-   * Delete encrypted secret (fallback method)
-   */
-  private async deleteSecretEncrypted(key: string): Promise<boolean> {
-    global.hodorSecureStorage = global.hodorSecureStorage || {};
-
-    if (global.hodorSecureStorage[key]) {
-      delete global.hodorSecureStorage[key];
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Clear all secrets (use with caution!)
+   * Remove every secret stored by Hodor
    */
   async clearAll(): Promise<void> {
-    if (this.fallbackEncryption) {
-      global.hodorSecureStorage = {};
-    } else {
-      const credentials = await this.findCredentials();
-      for (const cred of credentials) {
-        await this.deleteSecret(cred.account);
-      }
+    for (const cred of await this.findCredentials()) {
+      await this.deleteSecret(cred.account);
     }
   }
-}
-
-// Type augmentation for global storage
-declare global {
-  var hodorSecureStorage: Record<string, string>;
 }

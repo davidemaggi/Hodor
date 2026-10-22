@@ -1,16 +1,16 @@
 # 🚪 Hodor
 
-> *"Hold the door!"* — Hodor holds your Kubernetes port-forwards so you don't have to.
+> _"Hold the door!"_ — Hodor holds your Kubernetes port-forwards so you don't have to.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.1.0--dev-orange.svg)](ROADMAP.md)
-[![Code Name](https://img.shields.io/badge/codename-Aerys%20(upcoming)-purple.svg)](ROADMAP.md)
+[![Code Name](<https://img.shields.io/badge/codename-Aerys%20(upcoming)-purple.svg>)](ROADMAP.md)
 
 Hodor is a modern, cross-platform Kubernetes port-forward manager that makes working with multiple clusters, namespaces, and services a breeze. Whether you're a developer juggling microservices or a DevOps engineer managing production debugging, Hodor's got your back.
 
 ## 🎯 Why Hodor?
 
-Let's be honest: managing multiple `kubectl port-forward` commands is a pain. You've got terminals everywhere, you lose track of what's forwarding where, and don't even get me started on copying connection strings from secrets. 
+Let's be honest: managing multiple `kubectl port-forward` commands is a pain. You've got terminals everywhere, you lose track of what's forwarding where, and don't even get me started on copying connection strings from secrets.
 
 Hodor fixes all of that:
 
@@ -46,11 +46,13 @@ choco install hodor
 ### First Steps
 
 **GUI Mode:**
+
 ```bash
 hodor
 ```
 
 **CLI Mode:**
+
 ```bash
 # List available clusters
 hodor clusters
@@ -137,6 +139,7 @@ See our [ROADMAP.md](ROADMAP.md) for detailed plans.
 **Next Release:** `1.0.0 - Aerys` (Q1 2024)
 
 ### Coming Soon
+
 - ✅ Core template management
 - ✅ Multi-cluster support
 - ✅ Secrets/ConfigMaps viewing
@@ -204,6 +207,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 ## 📝 Versioning
 
 Hodor follows [Semantic Versioning](https://semver.org/):
+
 - **Major.Minor.Patch** (e.g., `1.2.3`)
 - Each major version has a codename from Game of Thrones characters
   - `1.x.x` → **Aerys** (A)
@@ -227,4 +231,4 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 
 **Hold the door to your clusters. Let Hodor handle the port-forwards.**
 
-*Made with 🔥 by [Davide Maggi](https://github.com/yourusername)*
+_Made with 🔥 by [Davide Maggi](https://github.com/yourusername)_

@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-import * as yaml from 'js-yaml';
+import YAML from 'yaml';
 
 export interface KubeConfigCluster {
   name: string;
@@ -15,17 +15,7 @@ export interface KubeConfigCluster {
 
 export interface KubeConfigUser {
   name: string;
-  user: {
-    'client-certificate'?: string;
-    'client-certificate-data'?: string;
-    'client-key'?: string;
-    'client-key-data'?: string;
-    token?: string;
-    username?: string;
-    password?: string;
-    'auth-provider'?: any;
-    exec?: any;
-  };
+  user: Record<string, unknown>;
 }
 
 export interface KubeConfigContext {
@@ -44,7 +34,16 @@ export interface KubeConfigFile {
   users: KubeConfigUser[];
   contexts: KubeConfigContext[];
   'current-context'?: string;
+  [key: string]: unknown;
 }
+
+export interface DiscoveredKubeConfig {
+  path: string;
+  config: KubeConfigFile;
+}
+
+/** Directories and files inside ~/.kube that are never kubeconfigs */
+const IGNORED_ENTRIES = new Set(['cache', 'http-cache', 'kubens', 'kubectx']);
 
 /**
  * Parses and manages kubeconfig files
@@ -54,82 +53,98 @@ export class KubeConfigParser {
    * Parse a kubeconfig file
    */
   async parseFile(filePath: string): Promise<KubeConfigFile> {
+    const content = await fs.readFile(filePath, 'utf-8');
     try {
-      const content = await fs.readFile(filePath, 'utf-8');
       return this.parseContent(content);
-    } catch (error) {
-      throw new Error(`Failed to parse kubeconfig file '${filePath}': ${error}`);
+    } catch (error: any) {
+      throw new Error(`Failed to parse kubeconfig file '${filePath}': ${error.message}`);
     }
   }
 
   /**
-   * Parse kubeconfig content
+   * Parse kubeconfig content. Missing lists are normalised to empty arrays.
    */
   parseContent(content: string): KubeConfigFile {
-    try {
-      const config = yaml.load(content) as KubeConfigFile;
+    const config = YAML.parse(content) as KubeConfigFile | null;
 
-      // Validate basic structure
-      if (!config.clusters || !config.users || !config.contexts) {
-        throw new Error('Invalid kubeconfig structure: missing required fields');
-      }
-
-      return config;
-    } catch (error) {
-      throw new Error(`Failed to parse kubeconfig content: ${error}`);
+    if (!config || typeof config !== 'object' || config.kind !== 'Config') {
+      throw new Error('Not a kubeconfig (kind must be "Config")');
     }
+
+    config.clusters = config.clusters || [];
+    config.users = config.users || [];
+    config.contexts = config.contexts || [];
+
+    return config;
   }
 
   /**
-   * Load all kubeconfig files from .kube directory
+   * Find every valid kubeconfig in a directory (default: ~/.kube).
+   * Files that are not kubeconfigs are skipped silently.
    */
-  async loadAllConfigs(): Promise<Map<string, KubeConfigFile>> {
-    const kubeDir = path.join(os.homedir(), '.kube');
-    const configs = new Map<string, KubeConfigFile>();
-
+  async discover(kubeDir: string = this.getKubeDir()): Promise<DiscoveredKubeConfig[]> {
+    let entries: string[];
     try {
-      const files = await fs.readdir(kubeDir);
+      entries = await fs.readdir(kubeDir);
+    } catch (error: any) {
+      if (error.code === 'ENOENT') return [];
+      throw error;
+    }
 
-      for (const file of files) {
-        // Skip non-config files
-        if (file.startsWith('.') || file.endsWith('.lock') || file.endsWith('.tmp')) {
-          continue;
-        }
+    const found: DiscoveredKubeConfig[] = [];
 
-        const filePath = path.join(kubeDir, file);
-
-        try {
-          const stat = await fs.stat(filePath);
-
-          // Only process regular files
-          if (!stat.isFile()) {
-            continue;
-          }
-
-          const config = await this.parseFile(filePath);
-          configs.set(file, config);
-        } catch (error) {
-          // Skip files that can't be parsed
-          console.warn(`Skipping file '${file}': ${error}`);
-        }
+    for (const entry of entries.sort()) {
+      if (entry.startsWith('.') || IGNORED_ENTRIES.has(entry) || /\.(lock|tmp|bak)$/.test(entry)) {
+        continue;
       }
 
-      return configs;
-    } catch (error) {
-      throw new Error(`Failed to load kubeconfig files: ${error}`);
+      const filePath = path.join(kubeDir, entry);
+      try {
+        const stat = await fs.stat(filePath);
+        // Kubeconfigs are small; anything big is not one
+        if (!stat.isFile() || stat.size > 5 * 1024 * 1024) continue;
+
+        found.push({ path: filePath, config: await this.parseFile(filePath) });
+      } catch {
+        // Not a kubeconfig, ignore
+      }
     }
+
+    // The kubectl default file goes first even if it lives outside ~/.kube
+    const defaultPath = this.getDefaultConfigPath();
+    if (!found.some((f) => f.path === defaultPath) && path.dirname(defaultPath) !== kubeDir) {
+      try {
+        found.unshift({ path: defaultPath, config: await this.parseFile(defaultPath) });
+      } catch {
+        // Missing or invalid default config
+      }
+    }
+
+    return found;
   }
 
   /**
-   * Get the default kubeconfig path
+   * @deprecated use discover()
+   */
+  async loadAllConfigs(kubeDir?: string): Promise<Map<string, KubeConfigFile>> {
+    const found = await this.discover(kubeDir);
+    return new Map(found.map((f) => [f.path, f.config]));
+  }
+
+  getKubeDir(): string {
+    return path.join(os.homedir(), '.kube');
+  }
+
+  /**
+   * The file kubectl writes to: first entry of KUBECONFIG, or ~/.kube/config
    */
   getDefaultConfigPath(): string {
     const envPath = process.env.KUBECONFIG;
     if (envPath) {
-      // KUBECONFIG can contain multiple paths separated by ':'
-      return envPath.split(':')[0];
+      const first = envPath.split(path.delimiter).find((p) => p.trim().length > 0);
+      if (first) return first;
     }
-    return path.join(os.homedir(), '.kube', 'config');
+    return path.join(this.getKubeDir(), 'config');
   }
 
   /**
@@ -145,20 +160,11 @@ export class KubeConfigParser {
   }
 
   /**
-   * Write kubeconfig to file
+   * Write kubeconfig to file atomically, readable only by the owner
    */
-  async writeConfig(filePath: string, config: KubeConfigFile): Promise<void> {
-    try {
-      const content = yaml.dump(config, {
-        indent: 2,
-        lineWidth: -1,
-        noRefs: true,
-      });
-
-      await fs.writeFile(filePath, content, 'utf-8');
-    } catch (error) {
-      throw new Error(`Failed to write kubeconfig to '${filePath}': ${error}`);
-    }
+  async writeConfig(filePath: string, config: KubeConfigFile | string): Promise<void> {
+    const content = typeof config === 'string' ? config : YAML.stringify(config);
+    await writeFileAtomic(filePath, content);
   }
 
   /**
@@ -171,65 +177,50 @@ export class KubeConfigParser {
       errors.push('Missing apiVersion');
     }
 
-    if (!config.kind || config.kind !== 'Config') {
+    if (config.kind !== 'Config') {
       errors.push('Invalid or missing kind (must be "Config")');
     }
 
-    if (!Array.isArray(config.clusters)) {
-      errors.push('clusters must be an array');
-    }
-
-    if (!Array.isArray(config.users)) {
-      errors.push('users must be an array');
-    }
-
-    if (!Array.isArray(config.contexts)) {
-      errors.push('contexts must be an array');
-    }
-
-    // Validate clusters
-    config.clusters?.forEach((cluster, index) => {
-      if (!cluster.name) {
-        errors.push(`Cluster at index ${index} missing name`);
-      }
-      if (!cluster.cluster?.server) {
+    for (const [index, cluster] of (config.clusters || []).entries()) {
+      if (!cluster.name) errors.push(`Cluster at index ${index} missing name`);
+      if (!cluster.cluster?.server)
         errors.push(`Cluster '${cluster.name || index}' missing server`);
-      }
-    });
+    }
 
-    // Validate users
-    config.users?.forEach((user, index) => {
-      if (!user.name) {
-        errors.push(`User at index ${index} missing name`);
-      }
-    });
+    for (const [index, user] of (config.users || []).entries()) {
+      if (!user.name) errors.push(`User at index ${index} missing name`);
+    }
 
-    // Validate contexts
-    config.contexts?.forEach((context, index) => {
-      if (!context.name) {
-        errors.push(`Context at index ${index} missing name`);
-      }
+    for (const [index, context] of (config.contexts || []).entries()) {
+      if (!context.name) errors.push(`Context at index ${index} missing name`);
       if (!context.context?.cluster) {
         errors.push(`Context '${context.name || index}' missing cluster reference`);
       }
       if (!context.context?.user) {
         errors.push(`Context '${context.name || index}' missing user reference`);
       }
-    });
-
-    // Validate current-context reference
-    if (config['current-context']) {
-      const contextExists = config.contexts?.some(
-        (ctx) => ctx.name === config['current-context']
-      );
-      if (!contextExists) {
-        errors.push(`current-context '${config['current-context']}' not found in contexts`);
-      }
     }
 
-    return {
-      valid: errors.length === 0,
-      errors,
-    };
+    const current = config['current-context'];
+    if (current && !(config.contexts || []).some((ctx) => ctx.name === current)) {
+      errors.push(`current-context '${current}' not found in contexts`);
+    }
+
+    return { valid: errors.length === 0, errors };
+  }
+}
+
+/**
+ * Write a file via temp file + rename so a crash never leaves a half-written kubeconfig
+ */
+export async function writeFileAtomic(filePath: string, content: string): Promise<void> {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  await fs.writeFile(tmpPath, content, { encoding: 'utf-8', mode: 0o600 });
+  try {
+    await fs.rename(tmpPath, filePath);
+  } catch (error) {
+    await fs.rm(tmpPath, { force: true });
+    throw error;
   }
 }

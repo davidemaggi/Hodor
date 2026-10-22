@@ -1,8 +1,26 @@
 import { PortForwardConfig } from '../types';
 
+export type Platform = 'linux' | 'macos' | 'windows';
+
 export interface KubectlCommand {
-  platform: 'linux' | 'macos' | 'windows';
+  platform: Platform;
   command: string;
+}
+
+export interface CommandOptions {
+  /** kubectl context to target. Omit to use kubectl's current context. */
+  context?: string;
+}
+
+/**
+ * Quote a value only when needed: single quotes work in both bash and PowerShell,
+ * they just escape embedded quotes differently.
+ */
+function quote(value: string, platform: Platform): string {
+  if (/^[A-Za-z0-9_./:@-]+$/.test(value)) return value;
+  return platform === 'windows'
+    ? `'${value.replace(/'/g, "''")}'`
+    : `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
 /**
@@ -10,38 +28,26 @@ export interface KubectlCommand {
  */
 export class CommandGenerator {
   /**
-   * Generate kubectl command for a single port-forward
+   * Generate kubectl command for a single port-forward.
+   * Templates carry no cluster details, so the target context is optional and supplied by the caller.
    */
   generatePortForwardCommand(
     config: PortForwardConfig,
-    platform: 'linux' | 'macos' | 'windows' = 'linux'
+    platform: Platform = 'linux',
+    options: CommandOptions = {}
   ): string {
     const { namespace, resourceType, resourceName, localPort, remotePort } = config;
 
-    // Determine the resource string
-    let resource: string;
-    if (resourceType === 'pod') {
-      resource = `pod/${resourceName}`;
-    } else if (resourceType === 'service') {
-      resource = `service/${resourceName}`;
-    } else if (resourceType === 'deployment') {
-      resource = `deployment/${resourceName}`;
-    } else {
-      resource = resourceName;
-    }
-
-    // Build the command
+    const resource = `${resourceType}/${resourceName}`;
     const portMapping = localPort === remotePort ? `${localPort}` : `${localPort}:${remotePort}`;
 
-    let command = `kubectl port-forward -n ${namespace} ${resource} ${portMapping}`;
-
-    // Platform-specific adjustments
-    if (platform === 'windows') {
-      // PowerShell format - no changes needed for basic command
-      return command;
+    const parts = ['kubectl', 'port-forward'];
+    if (options.context) {
+      parts.push('--context', quote(options.context, platform));
     }
+    parts.push('-n', quote(namespace, platform), quote(resource, platform), portMapping);
 
-    return command;
+    return parts.join(' ');
   }
 
   /**
@@ -49,11 +55,12 @@ export class CommandGenerator {
    */
   generateTemplateCommands(
     forwards: PortForwardConfig[],
-    platform: 'linux' | 'macos' | 'windows' = 'linux'
+    platform: Platform = 'linux',
+    options: CommandOptions = {}
   ): KubectlCommand[] {
     return forwards.map((forward) => ({
       platform,
-      command: this.generatePortForwardCommand(forward, platform),
+      command: this.generatePortForwardCommand(forward, platform, options),
     }));
   }
 
@@ -62,9 +69,10 @@ export class CommandGenerator {
    */
   generateShellScript(
     forwards: PortForwardConfig[],
-    platform: 'linux' | 'macos' | 'windows' = 'linux'
+    platform: Platform = 'linux',
+    options: CommandOptions = {}
   ): string {
-    const commands = this.generateTemplateCommands(forwards, platform);
+    const commands = this.generateTemplateCommands(forwards, platform, options);
 
     if (platform === 'windows') {
       // PowerShell script

@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import Table from 'cli-table3';
-import { TemplateManager, TemplateStorage } from '@hodor/core';
+import { RunRegistry, TemplateManager, TemplateStorage } from '@hodor/core';
 
 /**
  * List all templates
@@ -29,6 +29,7 @@ export async function templateListCommand(options: {
       templates = manager.search(options.search);
     }
 
+    const running = new Set((await new RunRegistry().list()).map((r) => r.templateId));
     spinner.stop();
 
     if (templates.length === 0) {
@@ -57,7 +58,7 @@ export async function templateListCommand(options: {
       const updated = template.updatedAt.toLocaleDateString();
 
       table.push([
-        chalk.bold(template.name),
+        (running.has(template.id) ? chalk.green('● ') : '  ') + chalk.bold(template.name),
         description,
         template.forwards.length.toString(),
         tags,
@@ -69,9 +70,7 @@ export async function templateListCommand(options: {
 
     // Summary
     console.log(
-      chalk.dim(
-        `\n${templates.length} template${templates.length !== 1 ? 's' : ''} found`
-      )
+      chalk.dim(`\n${templates.length} template${templates.length !== 1 ? 's' : ''} found`)
     );
 
     // Show all tags if no filter applied

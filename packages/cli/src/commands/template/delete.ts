@@ -5,9 +5,12 @@ import { TemplateManager, TemplateStorage } from '@hodor/core';
 /**
  * Delete a template
  */
-export async function templateDeleteCommand(templateName: string, options: {
-  force?: boolean;
-}): Promise<void> {
+export async function templateDeleteCommand(
+  templateName: string,
+  options: {
+    force?: boolean;
+  }
+): Promise<void> {
   try {
     const storage = new TemplateStorage();
     await storage.initialize();
@@ -26,9 +29,7 @@ export async function templateDeleteCommand(templateName: string, options: {
         {
           type: 'confirm',
           name: 'confirm',
-          message: chalk.yellow(
-            `Are you sure you want to delete template '${template.name}'?`
-          ),
+          message: chalk.yellow(`Are you sure you want to delete template '${template.name}'?`),
           default: false,
         },
       ]);

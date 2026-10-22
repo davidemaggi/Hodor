@@ -2,13 +2,29 @@
  * Core type definitions for Hodor
  */
 
+/**
+ * A selectable Kubernetes target: one context from one kubeconfig file
+ */
 export interface Cluster {
+  /** Stable identifier: `<kubeconfig path>::<context name>` */
+  id: string;
+  /** Context name */
   name: string;
+  /** Cluster name referenced by the context */
+  cluster: string;
   server: string;
-  context: string;
+  user: string;
+  /** Kubeconfig file the context comes from */
+  sourceFile: string;
   namespace?: string;
-  isActive: boolean;
+  /** True for kubectl's current default context */
   isDefault: boolean;
+}
+
+export interface ClusterHealth {
+  reachable: boolean;
+  version?: string;
+  error?: string;
 }
 
 export interface Context {

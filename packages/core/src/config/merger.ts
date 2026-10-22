@@ -1,7 +1,14 @@
 import { KubeConfigFile, KubeConfigParser } from './parser';
 
+export interface MergeResult {
+  config: KubeConfigFile;
+  /** Entries skipped because an entry with the same name was already present */
+  skipped: Array<{ kind: 'cluster' | 'user' | 'context'; name: string; source: number }>;
+}
+
 /**
- * Merges multiple kubeconfig files into one
+ * Merges multiple kubeconfig files into one. The first config wins on name conflicts,
+ * matching kubectl's KUBECONFIG merge rules.
  */
 export class KubeConfigMerger {
   private parser: KubeConfigParser;
@@ -11,134 +18,74 @@ export class KubeConfigMerger {
   }
 
   /**
-   * Merge multiple kubeconfig files
+   * Merge configs and report what was skipped
    */
-  merge(configs: KubeConfigFile[]): KubeConfigFile {
+  mergeWithReport(configs: KubeConfigFile[]): MergeResult {
     if (configs.length === 0) {
       throw new Error('No configs to merge');
-    }
-
-    if (configs.length === 1) {
-      return configs[0];
     }
 
     const merged: KubeConfigFile = {
       apiVersion: 'v1',
       kind: 'Config',
+      preferences: configs[0].preferences ?? {},
       clusters: [],
       users: [],
       contexts: [],
-      'current-context': configs[0]['current-context'],
+    };
+    const skipped: MergeResult['skipped'] = [];
+
+    const add = <T extends { name: string }>(
+      kind: 'cluster' | 'user' | 'context',
+      target: T[],
+      items: T[] | undefined,
+      source: number
+    ) => {
+      for (const item of items || []) {
+        if (target.some((existing) => existing.name === item.name)) {
+          skipped.push({ kind, name: item.name, source });
+        } else {
+          target.push(item);
+        }
+      }
     };
 
-    const clusterNames = new Set<string>();
-    const userNames = new Set<string>();
-    const contextNames = new Set<string>();
+    configs.forEach((config, source) => {
+      add('cluster', merged.clusters, config.clusters, source);
+      add('user', merged.users, config.users, source);
+      add('context', merged.contexts, config.contexts, source);
+    });
 
-    for (const config of configs) {
-      // Merge clusters
-      for (const cluster of config.clusters || []) {
-        if (!clusterNames.has(cluster.name)) {
-          merged.clusters.push(cluster);
-          clusterNames.add(cluster.name);
-        } else {
-          console.warn(`Duplicate cluster name '${cluster.name}' found, skipping`);
-        }
-      }
-
-      // Merge users
-      for (const user of config.users || []) {
-        if (!userNames.has(user.name)) {
-          merged.users.push(user);
-          userNames.add(user.name);
-        } else {
-          console.warn(`Duplicate user name '${user.name}' found, skipping`);
-        }
-      }
-
-      // Merge contexts
-      for (const context of config.contexts || []) {
-        if (!contextNames.has(context.name)) {
-          merged.contexts.push(context);
-          contextNames.add(context.name);
-        } else {
-          console.warn(`Duplicate context name '${context.name}' found, skipping`);
-        }
-      }
-
-      // Keep the first non-empty current-context
-      if (!merged['current-context'] && config['current-context']) {
-        merged['current-context'] = config['current-context'];
-      }
+    const current = configs.map((c) => c['current-context']).find((c) => !!c);
+    if (current) {
+      merged['current-context'] = current;
     }
 
-    return merged;
+    return { config: merged, skipped };
+  }
+
+  /**
+   * Merge multiple kubeconfigs
+   */
+  merge(configs: KubeConfigFile[]): KubeConfigFile {
+    return this.mergeWithReport(configs).config;
   }
 
   /**
    * Merge kubeconfig files by paths
    */
-  async mergeFiles(filePaths: string[]): Promise<KubeConfigFile> {
+  async mergeFiles(filePaths: string[]): Promise<MergeResult> {
     const configs: KubeConfigFile[] = [];
-
     for (const filePath of filePaths) {
-      try {
-        const config = await this.parser.parseFile(filePath);
-        configs.push(config);
-      } catch (error) {
-        throw new Error(`Failed to load config from '${filePath}': ${error}`);
-      }
+      configs.push(await this.parser.parseFile(filePath));
     }
-
-    return this.merge(configs);
+    return this.mergeWithReport(configs);
   }
 
   /**
    * Merge a new config into an existing one
    */
-  mergeInto(target: KubeConfigFile, source: KubeConfigFile): KubeConfigFile {
-    return this.merge([target, source]);
-  }
-
-  /**
-   * Remove duplicates from a config
-   */
-  deduplicate(config: KubeConfigFile): KubeConfigFile {
-    const deduped: KubeConfigFile = {
-      ...config,
-      clusters: [],
-      users: [],
-      contexts: [],
-    };
-
-    const clusterNames = new Set<string>();
-    const userNames = new Set<string>();
-    const contextNames = new Set<string>();
-
-    // Deduplicate clusters
-    for (const cluster of config.clusters || []) {
-      if (!clusterNames.has(cluster.name)) {
-        deduped.clusters.push(cluster);
-        clusterNames.add(cluster.name);
-      }
-    }
-
-    // Deduplicate users
-    for (const user of config.users || []) {
-      if (!userNames.has(user.name)) {
-        deduped.users.push(user);
-        userNames.add(user.name);
-      }
-    }
-
-    // Deduplicate contexts
-    for (const context of config.contexts || []) {
-      if (!contextNames.has(context.name)) {
-        deduped.contexts.push(context);
-        contextNames.add(context.name);
-      }
-    }
-
-    return deduped;
+  mergeInto(target: KubeConfigFile, source: KubeConfigFile): MergeResult {
+    return this.mergeWithReport([target, source]);
   }
 }

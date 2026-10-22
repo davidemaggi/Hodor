@@ -1,20 +1,34 @@
 import * as k8s from '@kubernetes/client-node';
-import { Cluster, Context } from '../types';
+import { Context } from '../types';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs/promises';
 
 /**
- * Kubernetes client wrapper
- * Handles SDK integration with kubectl binary fallback
+ * Kubernetes client wrapper around @kubernetes/client-node
  */
 export class KubernetesClient {
   private kc: k8s.KubeConfig;
   private kubeConfigPath: string;
+  private contextName?: string;
 
-  constructor(kubeConfigPath?: string) {
+  /**
+   * @param kubeConfigPath kubeconfig file to load (default: ~/.kube/config)
+   * @param contextName context to use instead of the file's current-context
+   */
+  constructor(kubeConfigPath?: string, contextName?: string) {
     this.kubeConfigPath = kubeConfigPath || path.join(os.homedir(), '.kube', 'config');
+    this.contextName = contextName;
     this.kc = new k8s.KubeConfig();
+  }
+
+  /**
+   * Create and initialize a client bound to a specific context
+   */
+  static async forContext(kubeConfigPath: string, contextName: string): Promise<KubernetesClient> {
+    const client = new KubernetesClient(kubeConfigPath, contextName);
+    await client.initialize();
+    return client;
   }
 
   /**
@@ -22,39 +36,18 @@ export class KubernetesClient {
    */
   async initialize(): Promise<void> {
     try {
-      // Try loading from default location or specified path
       if (await this.fileExists(this.kubeConfigPath)) {
         this.kc.loadFromFile(this.kubeConfigPath);
       } else {
-        // Try loading from default location
         this.kc.loadFromDefault();
       }
     } catch (error) {
       throw new Error(`Failed to load kubeconfig: ${error}`);
     }
-  }
 
-  /**
-   * Get all clusters from kubeconfig
-   */
-  async getClusters(): Promise<Cluster[]> {
-    const clusters: Cluster[] = [];
-    const currentContext = this.kc.getCurrentContext();
-
-    for (const cluster of this.kc.getClusters()) {
-      const context = this.kc.getContexts().find((ctx) => ctx.cluster === cluster.name);
-
-      clusters.push({
-        name: cluster.name,
-        server: cluster.server,
-        context: context?.name || '',
-        namespace: context?.namespace,
-        isActive: context?.name === currentContext,
-        isDefault: context?.name === currentContext,
-      });
+    if (this.contextName) {
+      this.kc.setCurrentContext(this.contextName);
     }
-
-    return clusters;
   }
 
   /**
@@ -190,19 +183,17 @@ export class KubernetesClient {
       if (error.response?.statusCode === 404) {
         return null;
       }
-      throw new Error(
-        `Failed to get configmap '${name}' in namespace '${namespace}': ${error}`
-      );
+      throw new Error(`Failed to get configmap '${name}' in namespace '${namespace}': ${error}`);
     }
   }
 
   /**
    * Check cluster connectivity
    */
-  async checkConnection(): Promise<boolean> {
+  async checkConnection(timeoutMs = 5000): Promise<boolean> {
     try {
-      const api = this.getCoreV1Api();
-      await api.listNamespace();
+      // /version needs no RBAC permissions, unlike listing namespaces
+      await withTimeout(this.getServerVersion(), timeoutMs);
       return true;
     } catch {
       return false;
@@ -225,4 +216,16 @@ export class KubernetesClient {
       throw new Error(`Failed to get server version: ${error}`);
     }
   }
+}
+
+/**
+ * Reject if a promise does not settle in time
+ */
+export function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Timed out after ${timeoutMs}ms`)), timeoutMs);
+    timer.unref();
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }

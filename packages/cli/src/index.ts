@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import chalk from 'chalk';
 import { VERSION } from '@hodor/core';
 
 const program = new Command();
@@ -14,17 +13,18 @@ program
 // Clusters command
 program
   .command('clusters')
-  .description('List all available Kubernetes clusters')
-  .action(async () => {
+  .description('List every context in ~/.kube and check which ones are up')
+  .option('--no-check', 'Skip the reachability check')
+  .action(async (options: { check?: boolean }) => {
     const { clustersCommand } = await import('./commands/clusters.js');
-    await clustersCommand();
+    await clustersCommand(options);
   });
 
 // Context command
 program
   .command('ctx')
   .alias('context')
-  .description('Switch Kubernetes context')
+  .description("Change kubectl's default context (needs kubectl)")
   .argument('[context]', 'Context name to switch to')
   .action(async (context?: string) => {
     const { ctxCommand } = await import('./commands/ctx.js');
@@ -35,7 +35,7 @@ program
 program
   .command('ns')
   .alias('namespace')
-  .description('Switch Kubernetes namespace')
+  .description("Change the namespace of kubectl's current context (needs kubectl)")
   .argument('[namespace]', 'Namespace to switch to')
   .action(async (namespace?: string) => {
     const { nsCommand } = await import('./commands/ns.js');
@@ -47,17 +47,18 @@ program
   .command('config')
   .description('Manage kubeconfig files')
   .action(() => {
-    console.log(chalk.yellow('Use subcommands: config:merge'));
+    program.outputHelp();
   });
 
 program
   .command('config:merge')
-  .description('Merge multiple kubeconfig files')
+  .description('Merge kubeconfig files into your default kubeconfig (backed up first)')
   .argument('<files...>', 'Kubeconfig files to merge')
-  .option('-o, --output <file>', 'Output file path')
-  .action(async (files: string[], options: { output?: string }) => {
+  .option('-o, --output <file>', 'Write the result to another file instead')
+  .option('-y, --yes', 'Do not ask for confirmation')
+  .action(async (files: string[], options: { output?: string; yes?: boolean }) => {
     const { configMergeCommand } = await import('./commands/config.js');
-    await configMergeCommand(files, options.output);
+    await configMergeCommand(files, options);
   });
 
 // Template commands
@@ -65,7 +66,7 @@ program
   .command('template')
   .description('Manage port-forward templates')
   .action(() => {
-    console.log(chalk.yellow('Use subcommands: template:create, template:list, template:run, etc.'));
+    program.outputHelp();
   });
 
 program
@@ -92,11 +93,50 @@ program
   .command('template:run')
   .description('Run a template')
   .argument('<name>', 'Template name')
-  .option('-c, --cluster <cluster>', 'Cluster name to run on')
-  .action(async (name: string, options: { cluster?: string }) => {
+  .option('-c, --cluster <cluster>', 'Context name (or id) to run on')
+  .option('-l, --logs', 'Stream forward logs')
+  .action(async (name: string, options: { cluster?: string; logs?: boolean }) => {
     const { templateRunCommand } = await import('./commands/template/run.js');
     await templateRunCommand(name, options);
   });
+
+program
+  .command('template:stop')
+  .description('Stop a running template')
+  .argument('[name]', 'Template name')
+  .option('-a, --all', 'Stop every running template')
+  .action(async (name: string | undefined, options: { all?: boolean }) => {
+    const { templateStopCommand } = await import('./commands/template/stop.js');
+    await templateStopCommand(name, options);
+  });
+
+program
+  .command('template:edit')
+  .description('Edit a template (details, forwards, order)')
+  .argument('<name>', 'Template name')
+  .action(async (name: string) => {
+    const { templateEditCommand } = await import('./commands/template/edit.js');
+    await templateEditCommand(name);
+  });
+
+program
+  .command('template:command')
+  .alias('template:cmd')
+  .description('Print the plain kubectl commands for a template')
+  .argument('<name>', 'Template name')
+  .option('-f, --forward <name>', 'Only this forward')
+  .option('-p, --platform <platform>', 'linux, macos or windows (PowerShell)')
+  .option('--context <context>', 'kubectl context to target')
+  .option('-s, --script', 'Print a full script that starts and stops every forward')
+  .action(
+    async (
+      name: string,
+      options: { forward?: string; platform?: string; context?: string; script?: boolean }
+    ) => {
+      const { templateCommandCommand } = await import('./commands/template/command.js');
+      await templateCommandCommand(name, options);
+    }
+  );
 
 program
   .command('template:delete')

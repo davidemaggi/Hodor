@@ -17,6 +17,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 **Timeline:** Now - Q4 2023
 
 #### Milestone 0.1.0 - Project Setup ✅
+
 - [x] Repository initialization
 - [x] Project structure (monorepo with pnpm workspaces)
 - [x] Basic tooling (TypeScript, ESLint, Prettier)
@@ -24,6 +25,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 - [x] README and ROADMAP
 
 #### Milestone 0.2.0 - Core Package ✅
+
 - [x] Kubernetes client wrapper
   - [x] SDK integration (@kubernetes/client-node)
   - [x] kubectl binary fallback detection
@@ -39,6 +41,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
   - [x] Last-used cluster memory
 
 #### Milestone 0.3.0 - Port-Forward Engine ✅
+
 - [x] Port-forward manager
   - [x] Start/stop individual forwards
   - [x] Multiple concurrent forwards
@@ -52,6 +55,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
   - [x] Template validation
 
 #### Milestone 0.4.0 - CLI Foundation ✅
+
 - [x] CLI framework setup (Commander.js)
 - [x] Interactive prompts (Inquirer.js)
 - [x] Colorful output (Chalk)
@@ -62,6 +66,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
   - [x] `hodor config merge` - Merge kubeconfigs
 
 #### Milestone 0.5.0 - CLI Template Management ✅
+
 - [x] Template commands:
   - [x] `hodor template create` - Create template
   - [x] `hodor template list` - List templates
@@ -75,6 +80,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 - [x] Search and filtering
 
 #### Milestone 0.6.0 - GUI Foundation (Electron + React)
+
 - [ ] Electron setup
 - [ ] React + TypeScript setup
 - [ ] Routing structure
@@ -83,6 +89,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 - [ ] Component library setup
 
 #### Milestone 0.7.0 - GUI Cluster Management
+
 - [ ] Cluster list view
 - [ ] Cluster detail view
 - [ ] Context switching UI
@@ -91,6 +98,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 - [ ] Kubeconfig merge UI
 
 #### Milestone 0.8.0 - GUI Template Management
+
 - [ ] Template list view with search/filter
 - [ ] Template creation wizard
 - [ ] Template editor
@@ -104,6 +112,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 - [ ] Import/Export UI
 
 #### Milestone 0.9.0 - Secrets & ConfigMaps
+
 - [ ] Fetch secrets for running forwards
 - [ ] Fetch configmaps for running forwards
 - [ ] Display values in GUI
@@ -120,6 +129,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 **Timeline:** Q1 2024
 
 #### Goals
+
 - [ ] Feature-complete core functionality
 - [ ] Stable API
 - [ ] Full test coverage (unit + integration)
@@ -128,6 +138,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 - [ ] Security audit
 
 #### Features
+
 - [ ] i18n implementation (English + Italian)
 - [ ] kubectl command generation
   - [ ] Linux format
@@ -141,6 +152,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 - [ ] Auto-update mechanism
 
 #### Testing & Quality
+
 - [ ] Unit tests (>80% coverage)
 - [ ] Integration tests
 - [ ] E2E tests (Playwright)
@@ -148,6 +160,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 - [ ] Memory leak detection
 
 #### Release Preparation
+
 - [ ] GitHub Actions CI/CD pipeline
 - [ ] Build automation for all platforms
 - [ ] Code signing setup (Azure Artifact Sign for Windows)
@@ -167,6 +180,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 **Timeline:** Q2 2024
 
 #### Package Managers
+
 - [ ] Homebrew (macOS/Linux)
 - [ ] Winget (Windows)
 - [ ] Chocolatey (Windows)
@@ -175,6 +189,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 - [ ] npm global install option
 
 #### CI/CD Enhancements
+
 - [ ] Automated package publishing
 - [ ] Release notes generation
 - [ ] Changelog automation
@@ -189,6 +204,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 **Timeline:** Q2-Q3 2024
 
 #### Potential Features (to be refined)
+
 - [ ] Cloud provider integrations
   - [ ] AWS EKS quick access
   - [ ] Azure AKS quick access
@@ -216,6 +232,7 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
 **Timeline:** TBD
 
 #### Potential Features (exploratory)
+
 - [ ] RBAC integration
 - [ ] Audit logging
 - [ ] Centralized management server
@@ -237,6 +254,7 @@ Hodor follows **Semantic Versioning** with a twist:
   - ... (continuing alphabetically with GoT characters)
 
 **Rules:**
+
 - Patch versions (`1.0.1`, `1.0.2`) don't get codenames
 - Minor versions (`1.1.0`, `1.2.0`) share the major's codename
 - Only major versions get new codenames
@@ -246,6 +264,7 @@ Hodor follows **Semantic Versioning** with a twist:
 ## 📊 Success Metrics
 
 ### Version 1.0 Success Criteria
+
 - [ ] Zero critical bugs
 - [ ] <100ms startup time (CLI)
 - [ ] <2s startup time (GUI)
@@ -269,6 +288,7 @@ Have ideas? We'd love to hear them!
 ## 📝 Change Log
 
 ### 0.1.0-dev (Current)
+
 - Initial project setup
 - Repository structure
 - Development workflow established
@@ -276,5 +296,5 @@ Have ideas? We'd love to hear them!
 
 ---
 
-*Last Updated: 2023-10-22*  
-*Maintained by: Davide Maggi*
+_Last Updated: 2023-10-22_  
+_Maintained by: Davide Maggi_

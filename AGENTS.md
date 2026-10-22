@@ -19,6 +19,7 @@ When creating new UI components or pages:
 3. **Output:** Taste will generate complete React components with TypeScript
 
 **Example invocation:**
+
 ```bash
 /taste Create a cluster selection page that shows available Kubernetes clusters with their status
 ```
@@ -37,6 +38,7 @@ After creating UI components:
 3. **Iterate:** Apply Impeccable's suggestions and re-review if needed
 
 **Example invocation:**
+
 ```bash
 /impeccable Review the cluster selection component for accessibility and performance
 ```
@@ -113,11 +115,11 @@ hodor/
   ```typescript
   // component-name.tsx
   import React from 'react';
-  
+
   interface ComponentNameProps {
     // props definition
   }
-  
+
   export const ComponentName: React.FC<ComponentNameProps> = ({ props }) => {
     // implementation
   };
@@ -170,6 +172,7 @@ packages/core/src/i18n/
 ### Color Palette
 
 **Light Theme (Snow)**
+
 ```typescript
 {
   primary: '#2c3e50',      // Dark slate
@@ -187,6 +190,7 @@ packages/core/src/i18n/
 ```
 
 **Dark Theme (Night)**
+
 ```typescript
 {
   primary: '#ecf0f1',      // Light gray
@@ -246,6 +250,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -257,6 +262,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `ci`: CI/CD changes
 
 **Examples:**
+
 ```
 feat(core): add kubeconfig merge functionality
 
@@ -336,18 +342,21 @@ initialization, causing undefined errors.
 ### When to Use AI Skills
 
 **Use `/taste` for:**
+
 - Creating new UI pages
 - Designing component layouts
 - Building forms and interactive elements
 - Generating accessible markup
 
 **Use `/impeccable` for:**
+
 - Reviewing completed components
 - Accessibility audits
 - Performance optimization suggestions
 - Security reviews
 
 **Use AI coding assistance for:**
+
 - Implementing business logic
 - Writing tests
 - Refactoring code
@@ -429,6 +438,6 @@ pnpm format
 
 ---
 
-*This document is maintained by the project maintainers and should be updated as conventions evolve.*
+_This document is maintained by the project maintainers and should be updated as conventions evolve._
 
-*Last Updated: 2023-10-22*
+_Last Updated: 2023-10-22_

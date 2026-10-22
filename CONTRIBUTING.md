@@ -34,6 +34,7 @@ Feature suggestions are welcome! Before suggesting:
 - Consider if it fits Hodor's core purpose
 
 Include in your suggestion:
+
 - **Clear use case** — what problem does it solve?
 - **Proposed solution** — how would it work?
 - **Alternatives** — what other approaches did you consider?
@@ -44,6 +45,7 @@ Include in your suggestion:
 #### First-Time Contributors
 
 Look for issues tagged with:
+
 - `good first issue` — perfect for newcomers
 - `help wanted` — we'd love assistance on these
 
@@ -52,17 +54,20 @@ Look for issues tagged with:
 1. **Fork the repository**
 
 2. **Clone your fork:**
+
    ```bash
    git clone https://github.com/YOUR-USERNAME/hodor.git
    cd hodor
    ```
 
 3. **Add upstream remote:**
+
    ```bash
    git remote add upstream https://github.com/ORIGINAL-OWNER/hodor.git
    ```
 
 4. **Install dependencies:**
+
    ```bash
    pnpm install
    ```
@@ -91,6 +96,7 @@ Look for issues tagged with:
 #### Submitting a Pull Request
 
 1. **Push to your fork:**
+
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -162,6 +168,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 
 **Types:**
+
 - `feat` — New feature
 - `fix` — Bug fix
 - `docs` — Documentation
@@ -173,6 +180,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `ci` — CI/CD changes
 
 **Scopes:**
+
 - `core` — Core package
 - `gui` — GUI application
 - `cli` — CLI application
@@ -181,6 +189,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `deps` — Dependencies
 
 **Examples:**
+
 ```
 feat(gui): add cluster selection page
 fix(core): resolve kubeconfig parsing error
@@ -263,6 +272,7 @@ We use the `/taste` and `/impeccable` AI skills for UI development — see [AGEN
 Email security issues to: [davide.maggi@live.com](mailto:davide.maggi@live.com)
 
 Include:
+
 - Description of the vulnerability
 - Steps to reproduce
 - Potential impact
@@ -306,6 +316,7 @@ Contributors don't need to worry about this — focus on your feature/fix!
 ### Code of Conduct
 
 Be respectful and inclusive:
+
 - Use welcoming language
 - Respect differing viewpoints
 - Accept constructive criticism gracefully
@@ -318,6 +329,7 @@ We're all here to build something useful together. Be excellent to each other! �
 ## 🏆 Recognition
 
 Contributors are recognized in:
+
 - CHANGELOG.md for their contributions
 - GitHub's contributor graph
 - Release notes (for significant contributions)
@@ -338,4 +350,4 @@ Feel free to ask! Open a discussion or reach out to the maintainers.
 
 ---
 
-*This guide is inspired by open source contribution best practices and tailored for Hodor's development workflow.*
+_This guide is inspired by open source contribution best practices and tailored for Hodor's development workflow._
