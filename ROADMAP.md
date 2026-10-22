@@ -51,15 +51,15 @@ This roadmap outlines the planned features and milestones for Hodor. We follow s
   - [x] Import/export functionality
   - [x] Template validation
 
-#### Milestone 0.4.0 - CLI Foundation
-- [ ] CLI framework setup (Commander.js)
-- [ ] Interactive prompts (Inquirer.js)
-- [ ] Colorful output (Chalk)
-- [ ] Basic commands:
-  - [ ] `hodor clusters` - List clusters
-  - [ ] `hodor ctx` - Switch context
-  - [ ] `hodor ns` - Switch namespace
-  - [ ] `hodor config merge` - Merge kubeconfigs
+#### Milestone 0.4.0 - CLI Foundation ✅
+- [x] CLI framework setup (Commander.js)
+- [x] Interactive prompts (Inquirer.js)
+- [x] Colorful output (Chalk)
+- [x] Basic commands:
+  - [x] `hodor clusters` - List clusters
+  - [x] `hodor ctx` - Switch context
+  - [x] `hodor ns` - Switch namespace
+  - [x] `hodor config merge` - Merge kubeconfigs
 
 #### Milestone 0.5.0 - CLI Template Management
 - [ ] Template commands:

@@ -13,6 +13,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0-dev] - 2023-10-22
+
+### 🎉 Added - Milestone 0.4.0: CLI Foundation
+
+**CLI Framework:**
+- Commander.js integration for command structure
+- Version display with `-v, --version` flag
+- Help system with command descriptions
+- ES Module support for modern JavaScript
+
+**Interactive Commands:**
+- `hodor clusters` - List all available Kubernetes clusters
+  - Formatted table output with cluster details
+  - Shows active/inactive status
+  - Server URLs and namespace information
+  - Summary with counts
+  
+- `hodor ctx [context]` - Switch Kubernetes context
+  - Interactive context selection when no argument provided
+  - Shows current context with green indicator (●)
+  - Displays cluster info after switching
+  - Namespace information included
+
+- `hodor ns [namespace]` - Switch Kubernetes namespace
+  - Interactive namespace selection from cluster
+  - Fetches live namespace list from cluster
+  - Fallback to manual input if cluster unreachable
+  - Shows current namespace with indicator
+
+- `hodor config:merge <files...>` - Merge multiple kubeconfig files
+  - Merge multiple kubeconfig files into one
+  - Optional output file with `-o` flag
+  - Shows merge summary (clusters, users, contexts)
+  - Validates all input files exist
+
+**CLI UI Components:**
+- Colorful output using Chalk
+  - Success messages in green
+  - Errors in red
+  - Info in cyan
+  - Warnings in yellow
+  - Dim text for secondary information
+  
+- Loading spinners with Ora
+  - Context-aware messages
+  - Success/fail indicators
+  
+- Interactive prompts with Inquirer.js
+  - List selection for contexts/namespaces
+  - Current item indicators
+  - Keyboard navigation
+  
+- Formatted tables with cli-table3
+  - Clean cluster listing
+  - Column width management
+  - Header styling
+
+**Architecture:**
+- ES Modules throughout CLI package
+- Dynamic imports for commands (faster startup)
+- Clean separation of commands
+- Reusable patterns for future commands
+
+**Developer Experience:**
+- Type-safe command handlers
+- Error handling with clear messages
+- Exit codes for scripting support
+
+### 📋 Next Milestone (0.5.0)
+- Template management commands
+- Template creation wizard
+- Template execution and listing
+- Import/Export functionality
+
+---
+
 ## [0.3.0-dev] - 2023-10-22
 
 ### 🎉 Added - Milestone 0.3.0: Port-Forward Engine Enhancement
