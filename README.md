@@ -70,7 +70,7 @@ Every release has a `SHA256SUMS` file and a [GitHub build attestation](https://d
 
 ```bash
 sha256sum -c SHA256SUMS --ignore-missing          # macOS: shasum -a 256 -c SHA256SUMS --ignore-missing
-gh attestation verify Hodor-1.0.0-rc.3-mac-arm64.dmg --repo davidemaggi/Hodor
+gh attestation verify Hodor-1.0.0-rc.4-mac-arm64.dmg --repo davidemaggi/Hodor
 ```
 
 ## The desktop app
