@@ -8,7 +8,7 @@ import {
   type IpcMainInvokeEvent,
 } from 'electron';
 import * as path from 'path';
-import { SettingsStorage, type Settings } from '@hodor/core';
+import { APP_ID, SettingsStorage, type Settings } from '@hodor/core';
 import { registerIpc } from './ipc';
 import { AppRunner } from './runner';
 import { createTray } from './tray';
@@ -26,6 +26,7 @@ let quitting = false;
 const runner = new AppRunner();
 
 app.enableSandbox();
+app.setAppUserModelId(APP_ID);
 
 // One Hodor at a time: a second launch brings the existing window back
 if (!app.requestSingleInstanceLock()) {

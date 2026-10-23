@@ -1,6 +1,8 @@
 import { Entry, findCredentials } from '@napi-rs/keyring';
 
-const SERVICE_NAME = 'com.hodor.app';
+import { APP_ID } from '../app-id';
+
+const SERVICE_NAME = APP_ID;
 
 export class SecureStorageUnavailableError extends Error {
   constructor(cause: unknown) {

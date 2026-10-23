@@ -19,5 +19,8 @@ export * from './runtime';
 // Utilities
 export * from './utils';
 
+// Identity
+export * from './app-id';
+
 // Version
 export const VERSION = '0.9.0-dev';

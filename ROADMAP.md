@@ -45,7 +45,7 @@ What exists today and has been exercised against a real cluster.
 
 **Not done yet, carried forward**
 
-- 📋 Start/stop a _single_ forward from the CLI (the app can) → 1.0
+- 📋 Start/stop a _single_ forward from the CLI (the app can) → 1.1
 - 📋 Kubernetes version compatibility strategy → 1.0 (see "Decisions")
 
 ---
@@ -94,14 +94,30 @@ What exists today and has been exercised against a real cluster.
 - ✅ Closing the window with templates running hides Hodor and keeps the forwards up; on Linux it asks instead
 - ⚠️ Not verified by hand yet: clicking the tray menu items and the real close button (tested through the same code paths and a unit-tested close policy, but not by a human click)
 
-## 📋 1.0.0 "Aerys" · First stable release
+## 🔜 1.0.0 "Aerys" · First stable release
 
-- Everything above, polished
-- Italian translation next to English, CLI strings and tray/dialog strings of the app translated too
-- Installers built by GitHub Actions **only on merge to `main`**: `.dmg` and `.zip` (macOS), NSIS `.exe` and `.zip` (Windows), `.AppImage`, `.deb`, `.rpm`, `.tar.gz` (Linux)
-- **Unsigned**, but verifiable: SHA256 checksums and GitHub build-provenance attestations for every artifact (`gh attestation verify <file> --repo davidemaggi/Hodor`)
-- The installer puts the `hodor` CLI on the `PATH`
-- E2E tests (Playwright for the GUI) as the last gate before release
+**Scope**
+
+- Italian next to English: app, CLI, tray and dialogs
+- Kubernetes compatibility: integration tests on `kind` across the supported Kubernetes versions in CI
+- "A new version is out" notice from GitHub Releases (no auto-update)
+- No telemetry, said plainly in the README
+
+**Install**
+
+- The `hodor` CLI ships inside the app and runs on Electron's Node (no Node.js needed), like VS Code's `code`:
+  - Windows: per-user NSIS installer adds it to the user PATH (no admin)
+  - Linux: `.deb` / `.rpm` install `/usr/bin/hodor`; AppImage and `.tar.gz` offer it from the app
+  - macOS: the app offers "Install the hodor command" on first launch (symlink in `/usr/local/bin`)
+- Artifacts: macOS arm64 and x64 (`.dmg`, `.zip`), Windows x64 (NSIS `.exe`, `.zip`), Linux x64 and arm64 (`.AppImage`, `.deb`, `.rpm`, `.tar.gz`)
+- App id `dev.davidemaggi.hodor` (bundle id, Windows AppUserModelID, keychain service): fixed forever
+- **Unsigned**, verifiable with SHA256 checksums and GitHub build-provenance attestations; macOS users allow it once in System Settings → Privacy & Security (README explains)
+
+**Release**
+
+- Release builds run on GitHub Actions **only on merge to `main`**: version read from `package.json`, the job fails if that tag already exists, tag + GitHub Release "1.0.0 Aerys" with notes from CHANGELOG; versions with a suffix (`-rc.N`) are published as pre-releases
+- First `1.0.0-rc.1` as a pre-release to install and test on real machines, then `1.0.0`
+- E2E tests (Playwright) before release: a smoke test on the three OSes in CI, a full flow against `kind` on Linux; tray, close-to-tray and PATH checked by hand on Windows and Linux
 
 ## 📋 1.0.1 · Signed Windows builds
 
@@ -110,7 +126,8 @@ What exists today and has been exercised against a real cluster.
 
 ## 📋 1.1 · Package managers
 
-- Homebrew, winget, Chocolatey (and friends)
+- Homebrew, winget, Chocolatey (and friends); check Homebrew's current rules for unsigned/un-notarized casks first
+- Start/stop single forwards from the CLI
 
 ## 💭 Later, maybe
 

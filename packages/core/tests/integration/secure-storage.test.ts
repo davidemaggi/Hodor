@@ -3,7 +3,7 @@ import { SecureStorage } from '../../src/storage/secure-storage';
 
 /** Touches the real OS keychain under a throwaway service name. Opt in with HODOR_KEYCHAIN_IT=1. */
 describe.skipIf(!process.env.HODOR_KEYCHAIN_IT)('SecureStorage against the OS keychain', () => {
-  const storage = new SecureStorage(`com.hodor.app.test.${process.pid}`);
+  const storage = new SecureStorage(`dev.davidemaggi.hodor.test.${process.pid}`);
 
   afterAll(() => storage.clearAll());
 
