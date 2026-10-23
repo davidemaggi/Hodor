@@ -35,13 +35,13 @@ Hodor fixes that:
 
 Download the file for your system from [Releases](https://github.com/davidemaggi/Hodor/releases). One install gives you both the desktop app and the `hodor` command.
 
-| System                        | File                                     | `hodor` on your PATH                         |
-| ----------------------------- | ---------------------------------------- | -------------------------------------------- |
-| macOS (Apple silicon / Intel) | `Hodor-…-mac-arm64.dmg` / `-mac-x64.dmg` | the app offers it on first launch            |
-| Windows x64                   | `Hodor-…-win-x64.exe` (the installer)    | added by the installer (open a new terminal) |
-| Debian, Ubuntu                | the `.deb` for your architecture         | `/usr/bin/hodor`                             |
-| Fedora, RHEL, openSUSE        | the `.rpm` for your architecture         | `/usr/bin/hodor`                             |
-| Any Linux                     | `.AppImage` or `.tar.gz`                 | see below                                    |
+| System                        | File                                         | `hodor` on your PATH                         |
+| ----------------------------- | -------------------------------------------- | -------------------------------------------- |
+| macOS (Apple silicon / Intel) | `Hodor-…-mac-arm64.dmg` / `-mac-x64.dmg`     | the app offers it on first launch            |
+| Windows x64                   | `Hodor-…-win-x64-signed.exe` (the installer) | added by the installer (open a new terminal) |
+| Debian, Ubuntu                | the `.deb` for your architecture             | `/usr/bin/hodor`                             |
+| Fedora, RHEL, openSUSE        | the `.rpm` for your architecture             | `/usr/bin/hodor`                             |
+| Any Linux                     | `.AppImage` or `.tar.gz`                     | see below                                    |
 
 Changed your mind about the PATH? **Settings → Command line** shows where `hodor` points and can (re)install it.
 
@@ -56,7 +56,7 @@ Prefer the terminal? `xattr -dr com.apple.quarantine /Applications/Hodor.app` do
 
 ### "Windows protected your PC"
 
-Releases may come with a **signed** Windows installer, `Hodor-…-win-x64-signed.exe`: take that one when it's there. The plain installer next to it isn't code-signed, so SmartScreen warns about it: click **More info → Run anyway**. Either way the installer is per user and doesn't ask for admin rights.
+Take the **signed** installer, `Hodor-…-win-x64-signed.exe`. The plain one next to it isn't code-signed, so SmartScreen warns about it: click **More info → Run anyway**. A brand-new signature can still get a SmartScreen warning for a while, until it builds a reputation. Either way the installer is per user and doesn't ask for admin rights.
 
 ### AppImage and tar.gz
 
@@ -117,7 +117,7 @@ The app and the command share templates and settings (`~/.hodor`), and each sees
 
 ## Coming next
 
-Signed Windows builds in 1.0.1, then Homebrew, winget and Chocolatey, and controlling single forwards from the command line. It's all in the [roadmap](ROADMAP.md).
+Homebrew, winget and Chocolatey, and controlling single forwards from the command line. It's all in the [roadmap](ROADMAP.md).
 
 ## Build it yourself
 
