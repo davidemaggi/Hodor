@@ -9,14 +9,14 @@
 Port-forwards you can save, share, and run on any cluster, without seven terminal tabs of `kubectl port-forward`.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/davidemaggi/Hodor?include_prereleases&label=release)](https://github.com/davidemaggi/Hodor/releases)
+[![Release](https://img.shields.io/github/v/release/davidemaggi/Hodor?label=release)](https://github.com/davidemaggi/Hodor/releases)
 [![CI](https://github.com/davidemaggi/Hodor/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/davidemaggi/Hodor/actions/workflows/ci.yml)
 
 </div>
 
 ---
 
-> 🧪 **1.0 "Aerys" is in release candidate.** Grab the latest release candidate from [Releases](https://github.com/davidemaggi/Hodor/releases), try it on your clusters, and [tell me what breaks](https://github.com/davidemaggi/Hodor/issues). What's next is in the [roadmap](ROADMAP.md).
+> 🚪 **Hodor 1.0 "Aerys" is out.** Grab it from [Releases](https://github.com/davidemaggi/Hodor/releases/latest), and [tell me what breaks](https://github.com/davidemaggi/Hodor/issues). What's next is in the [roadmap](ROADMAP.md).
 
 ## Why
 
@@ -70,7 +70,7 @@ Every release has a `SHA256SUMS` file and a [GitHub build attestation](https://d
 
 ```bash
 sha256sum -c SHA256SUMS --ignore-missing          # macOS: shasum -a 256 -c SHA256SUMS --ignore-missing
-gh attestation verify Hodor-1.0.0-rc.4-mac-arm64.dmg --repo davidemaggi/Hodor
+gh attestation verify Hodor-1.0.0-mac-arm64.dmg --repo davidemaggi/Hodor
 ```
 
 ## The desktop app
