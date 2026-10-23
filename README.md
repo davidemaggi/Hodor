@@ -56,7 +56,7 @@ Prefer the terminal? `xattr -dr com.apple.quarantine /Applications/Hodor.app` do
 
 ### "Windows protected your PC"
 
-Same story: the 1.0 installer isn't code-signed (signed Windows builds arrive in 1.0.1). Click **More info → Run anyway**. The installer is per user, so it doesn't ask for admin rights.
+Releases may come with a **signed** Windows installer, `Hodor-…-win-x64-signed.exe`: take that one when it's there. The plain installer next to it isn't code-signed, so SmartScreen warns about it: click **More info → Run anyway**. Either way the installer is per user and doesn't ask for admin rights.
 
 ### AppImage and tar.gz
 

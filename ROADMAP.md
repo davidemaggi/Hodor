@@ -122,9 +122,9 @@ What exists today and has been exercised against a real cluster.
 - 🔜 E2E tests (Playwright): a smoke test on the three OSes in CI, a full flow against `kind` on Linux (both pass locally on macOS)
 - 🔜 By hand on Windows and Linux: tray, close-to-tray, PATH
 
-## 📋 1.0.1 · Signed Windows builds
+## 🔜 1.0.1 · Signed Windows builds
 
-- Windows artifacts signed with a **Certum** certificate on a self-hosted runner
+- 🔜 Windows artifacts signed with a **Certum** certificate on a self-hosted runner: the workflow is written and its packaging step checked locally (the signature survives `--prepackaged`); the first real run is the next release
 - From then on every release publishes both: the unsigned artifacts always, the signed ones when the signing runner is online (see "Decisions")
 
 ## 📋 1.1 · Package managers
@@ -143,7 +143,7 @@ What exists today and has been exercised against a real cluster.
 
 **Kubernetes versions.** Hodor talks to clusters through the official JavaScript SDK. The APIs it uses (core/v1, apps/v1, port-forward, `/version`) have been stable for years, so the SDK covers every version still in support. We'll only download a version-matched `kubectl` if we hit a real incompatibility, not preemptively.
 
-**Code signing.** Builds always run on GitHub-hosted runners. Only the Windows signing step runs on the maintainer's self-hosted runner (Certum needs it): it downloads the unsigned artifacts, signs them, uploads them as extra release assets. A preflight job checks whether that runner is online; if it isn't, the signed variant is skipped and the release still goes out unsigned. The signing job runs only on pushes to `main`, never on pull requests, behind a protected environment, because a self-hosted runner on a public repo must never execute code from forks.
+**Code signing.** Builds always run on GitHub-hosted runners. Only the Windows signing step runs on the maintainer's self-hosted runner (Certum needs it): it downloads the unpacked app, signs it, a GitHub-hosted job builds the installer from it unchanged, the runner signs the installer, and the signed files are added to the release. A preflight job checks whether that runner is online; if it isn't, the signed variant is skipped and the release still goes out unsigned. The signing job runs only on pushes to `main`, never on pull requests, behind a protected environment, because a self-hosted runner on a public repo must never execute code from forks.
 
 **Templates are cluster-agnostic.** They store namespaces, resource names and ports. The cluster is picked when you run them.
 
