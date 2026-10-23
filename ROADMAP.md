@@ -2,7 +2,7 @@
 
 Where Hodor is, and where it's going. No made-up dates: things ship when they work.
 
-**Now:** `1.0.0-rc.4` (release candidate) · **Next stop:** `1.0.0 "Aerys"`
+**Now:** `1.0.0 "Aerys"` · **Next stop:** `1.1`
 
 Legend: ✅ done and tested · 🔜 next · 📋 planned · 💭 maybe
 
@@ -94,33 +94,33 @@ What exists today and has been exercised against a real cluster.
 - ✅ Closing the window with templates running hides Hodor and keeps the forwards up; on Linux it asks instead
 - ⚠️ Not verified by hand yet: clicking the tray menu items and the real close button (tested through the same code paths and a unit-tested close policy, but not by a human click)
 
-## 🔜 1.0.0 "Aerys" · First stable release
+## ✅ 1.0.0 "Aerys" · First stable release
 
-`1.0.0-rc.1` is the first pre-release: what's ticked below works in it. 1.0.0 follows once the rc has been installed and used on real machines.
+Released after four release candidates (`1.0.0-rc.1` to `rc.4`), installed and used on real machines.
 
 **Scope**
 
 - ✅ Italian next to English: app, CLI, tray and dialogs
-- 🔜 Kubernetes compatibility: integration tests and the app's full flow on `kind` 1.34–1.37 in CI (passing locally on 1.35; the CI matrix runs from the first push)
+- ✅ Kubernetes compatibility: the core's port-forwarding and the app's full flow on `kind` 1.34–1.37, in CI on every push
 - ✅ "A new version is out" notice from GitHub Releases (no auto-update), can be turned off
 - ✅ No telemetry, said plainly in the README
+- ✅ A guided `hodor`: a menu on its own, a question for every argument left out
 
 **Install**
 
 - The `hodor` CLI ships inside the app and runs on Electron's Node (no Node.js needed), like VS Code's `code`:
-  - 🔜 Windows: per-user NSIS installer adds it to the user PATH (no admin). Built in CI, still to be tried on a Windows machine
-  - ✅ Linux: `.deb` installs `/usr/bin/hodor` and removes it again (checked in an Ubuntu 24.04 container); 🔜 `.rpm` the same, still to be tried on Fedora; the `.tar.gz` links `~/.local/bin/hodor` from the app
+  - ✅ Windows: works in a real console (checked by hand and in CI under ConPTY); 🔜 the per-user installer's PATH entry, still to be checked by hand
+  - ✅ Linux: `.deb` installs `/usr/bin/hodor` and removes it again (checked in an Ubuntu 24.04 container); 🔜 `.rpm` and AppImage on a real machine; the `.tar.gz` links `~/.local/bin/hodor` from the app
   - ✅ macOS: the app offers "Install the hodor command" on first launch (symlink in `/usr/local/bin`)
-- 🔜 Artifacts (configured; macOS arm64 and Linux x64 `.deb`/`.tar.gz` built locally, the rest first built by the rc.1 release run): macOS arm64 and x64 (`.dmg`, `.zip`), Windows x64 (NSIS `.exe`, `.zip`), Linux x64 and arm64 (`.AppImage`, `.deb`, `.rpm`, `.tar.gz`)
+- ✅ Artifacts: macOS arm64 and x64 (`.dmg`, `.zip`), Windows x64 (NSIS `.exe`, `.zip`, signed and unsigned), Linux x64 and arm64 (`.AppImage`, `.deb`, `.rpm`, `.tar.gz`)
 - ✅ App id `dev.davidemaggi.hodor` (bundle id, Windows AppUserModelID, keychain service): fixed forever
-- ✅ **Unsigned**, verifiable with SHA256 checksums and GitHub build-provenance attestations; the README explains how to open it on macOS and Windows
+- ✅ SHA256 checksums and GitHub build-provenance attestations for every file; the README explains how to open the unsigned macOS build
 
 **Release**
 
-- 🔜 Release builds (workflow written, first run on the rc.1 merge) run on GitHub Actions **only on merge to `main`**: version read from `package.json`; when its tag already exists nothing is published; tag + GitHub Release "Hodor 1.0.0 “Aerys”" with notes from CHANGELOG; versions with a suffix (`-rc.N`) are published as pre-releases
-- 🔜 `1.0.0-rc.1` as a pre-release to install and test on real machines, then `1.0.0`
-- 🔜 E2E tests (Playwright): a smoke test on the three OSes in CI, a full flow against `kind` on Linux (both pass locally on macOS)
-- 🔜 By hand on Windows and Linux: tray, close-to-tray, PATH
+- ✅ Release builds run on GitHub Actions **only on merge to `main`**: version read from `package.json`; when its tag already exists nothing is published; tag + GitHub Release with notes from CHANGELOG; versions with a suffix (`-rc.N`) are pre-releases
+- ✅ E2E tests (Playwright): smoke tests and the `hodor` command on the three OSes, the full flow against `kind` on Linux
+- ✅ By hand: the whole app on macOS and Windows, the CLI on Windows, tray and close-to-tray
 
 ## ✅ Signed Windows builds (from 1.0.0-rc.4)
 

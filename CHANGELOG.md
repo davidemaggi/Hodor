@@ -5,6 +5,37 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-23
+
+**Hodor 1.0 "Aerys"**, the first stable release. Hodor holds your Kubernetes port-forwards open: save them as templates, run them on any cluster, from the desktop app or the `hodor` command. Four release candidates went before it; the app is the same as `1.0.0-rc.4`.
+
+### What's in it
+
+- **Clusters:** every context from every kubeconfig in `~/.kube`, which ones answer and their server version, kubectl's default and the last one you used. Browse namespaces, services and pods with their ports
+- **Templates:** forwards saved by name, description and tags, without the cluster: you pick it when you run. Built by clicking ports, edited freely, searched, dragged into order, imported and exported
+- **Running:** start and stop a forward, a template or everything; live state, connections, pod and logs per forward. Editing a running template offers a restart
+- **Linked secrets and config maps:** see and copy their values while the forward runs, masked until you ask; the clipboard is wiped after 30 seconds
+- **Tray:** close the window and your forwards keep running; copy addresses and linked values from the tray
+- **kubectl:** switch its default context and namespace (when kubectl is installed), merge kubeconfigs with preview and backup, and get the equivalent `kubectl port-forward` commands for bash or PowerShell
+- **The `hodor` command** comes with the app and needs no Node.js. `hodor` on its own opens a menu, and every command asks for what you leave out. The Windows installer puts it on your PATH, the Linux deb/rpm packages add `/usr/bin/hodor`, and on macOS the app offers to link it on first launch (Settings → Command line, any time)
+- **English and Italian**, Snow and Night themes (or follow the system)
+- An optional check for new releases on GitHub, which is the only thing Hodor ever asks the internet. No telemetry
+
+### Downloads
+
+- **Windows x64:** `Hodor-1.0.0-win-x64-signed.exe` (installer) or `-signed.zip`, code-signed by Davide Maggi (Certum). The unsigned `.exe` and `.zip` are there too
+- **macOS** (Apple silicon `arm64`, Intel `x64`): `.dmg`, `.zip`. Not notarized by Apple yet: the README shows how to open it the first time
+- **Linux** x64 and arm64: `.AppImage`, `.deb`, `.rpm`, `.tar.gz`
+
+`SHA256SUMS` lists every file's checksum, and every file has a GitHub build attestation (`gh attestation verify <file> --repo davidemaggi/Hodor`).
+
+### Tested on
+
+- Kubernetes 1.34, 1.35, 1.36 and 1.37, on kind clusters in CI: the core's port-forwarding and the app's whole flow
+- The app's smoke tests and the `hodor` command in a real terminal (ConPTY on Windows) on Linux, macOS and Windows, in CI
+- By hand: the app on macOS and Windows, the CLI on Windows, the tray and close-to-tray
+- The `.deb` installed in an Ubuntu 24.04 container. The `.rpm`, the AppImage and the Windows installer's PATH entry haven't been checked by hand yet: tell us if something's off
+
 ## [1.0.0-rc.4] - 2026-10-23
 
 The fourth release candidate of Hodor 1.0 "Aerys", the first with a signed Windows build.
