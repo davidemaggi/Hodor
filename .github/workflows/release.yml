@@ -220,8 +220,9 @@ jobs:
           name: win-unpacked
           path: win-unpacked
       - name: Sign
-        # Windows PowerShell: always there, unlike PowerShell 7
-        shell: powershell
+        # Windows PowerShell: always there, unlike PowerShell 7. Its default policy (Restricted on
+        # Windows client) refuses the step's script file, so allow it for this process only.
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
         env:
           CODESIGN_CERT_SUBJECT: ${{ vars.CODESIGN_CERT_SUBJECT }}
           CODESIGN_TIMESTAMP_URL: ${{ vars.CODESIGN_TIMESTAMP_URL }}
@@ -322,8 +323,9 @@ jobs:
           name: windows-signed-app
           path: out
       - name: Sign and check
-        # Windows PowerShell: always there, unlike PowerShell 7
-        shell: powershell
+        # Windows PowerShell: always there, unlike PowerShell 7. Its default policy (Restricted on
+        # Windows client) refuses the step's script file, so allow it for this process only.
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
         env:
           CODESIGN_CERT_SUBJECT: ${{ vars.CODESIGN_CERT_SUBJECT }}
           CODESIGN_TIMESTAMP_URL: ${{ vars.CODESIGN_TIMESTAMP_URL }}

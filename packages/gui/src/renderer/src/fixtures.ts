@@ -361,7 +361,7 @@ export const fixtureApi: HodorApi = {
     info: () =>
       later(
         {
-          version: '1.0.0-rc.4',
+          version: '1.0.0',
           codename: 'Aerys',
           platform: 'darwin',
           kubectl: params.has('nokubectl') ? null : '/usr/local/bin/kubectl',
@@ -383,11 +383,11 @@ export const fixtureApi: HodorApi = {
       later(
         params.has('update')
           ? {
-              current: '1.0.0-rc.4',
+              current: '1.0.0',
               latest: '1.0.0',
               url: 'https://github.com/davidemaggi/Hodor/releases/tag/v1.0.0',
             }
-          : { current: '1.0.0-rc.4' },
+          : { current: '1.0.0' },
         200
       ),
     openRelease: async () => undefined,
