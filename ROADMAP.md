@@ -122,10 +122,10 @@ What exists today and has been exercised against a real cluster.
 - 🔜 E2E tests (Playwright): a smoke test on the three OSes in CI, a full flow against `kind` on Linux (both pass locally on macOS)
 - 🔜 By hand on Windows and Linux: tray, close-to-tray, PATH
 
-## 🔜 1.0.1 · Signed Windows builds
+## ✅ Signed Windows builds (from 1.0.0-rc.4)
 
-- 🔜 Windows artifacts signed with a **Certum** certificate on a self-hosted runner: the workflow is written and its packaging step checked locally (the signature survives `--prepackaged`); the first real run is the next release
-- From then on every release publishes both: the unsigned artifacts always, the signed ones when the signing runner is online (see "Decisions")
+- ✅ Windows artifacts signed with a **Certum** certificate on a self-hosted runner: `Hodor.exe` and the installer carry the "Open Source Developer Davide Maggi" signature, with checksums and attestations (first done for `1.0.0-rc.4`)
+- ✅ Every release publishes both: the unsigned artifacts always, the signed ones when the signing runner is online (see "Decisions")
 
 ## 📋 1.1 · Package managers
 
