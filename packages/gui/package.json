@@ -1,6 +1,6 @@
 {
   "name": "@hodor/gui",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "private": true,
   "description": "Hodor desktop app",
   "desktopName": "hodor-app.desktop",
@@ -26,6 +26,7 @@
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
     "@hodor/core": "workspace:*",
+    "@lydell/node-pty": "1.2.0-beta.15",
     "@playwright/test": "^1.64.1",
     "@tanstack/react-query": "^5.104.5",
     "@types/node": "^20.9.0",

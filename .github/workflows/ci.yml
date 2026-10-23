@@ -54,10 +54,10 @@ jobs:
 
       - name: E2E smoke (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run -a pnpm e2e e2e/smoke.spec.ts
+        run: xvfb-run -a pnpm e2e e2e/smoke.spec.ts e2e/cli.spec.ts
       - name: E2E smoke
         if: runner.os != 'Linux'
-        run: pnpm e2e e2e/smoke.spec.ts
+        run: pnpm e2e e2e/smoke.spec.ts e2e/cli.spec.ts
       - uses: actions/upload-artifact@v7.0.2
         if: failure()
         with:

@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import inquirer from 'inquirer';
+import { prompt } from '../utils/prompt.js';
 import { ContextManager, KubernetesClient } from '@hodor/core';
 import { fail, requireKubectl } from '../utils/shared.js';
 import { t } from '../i18n.js';
@@ -33,7 +33,7 @@ export async function nsCommand(namespaceName?: string): Promise<void> {
         spinner.warn(t('ns.listFailed'));
       }
 
-      const answer = await inquirer.prompt<{ namespace: string }>([
+      const answer = await prompt<{ namespace: string }>([
         names
           ? {
               type: 'list',
