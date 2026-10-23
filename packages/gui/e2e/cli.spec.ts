@@ -122,44 +122,54 @@ function terminal(...args: string[]) {
   const exit = new Promise<number>((done) => proc.onExit(({ exitCode }) => done(exitCode)));
   return {
     output: () => strip(output),
+    /** Run the steps; on failure, show what the terminal said */
+    async steps(body: () => Promise<void>) {
+      try {
+        await body();
+      } catch (error) {
+        console.log(`--- hodor ${args.join(' ')} said:\n${strip(output)}\n---`);
+        throw error;
+      } finally {
+        proc.kill();
+      }
+    },
     /** Wait for some text, then type */
     async answer(text: string, keys: string) {
       await expect.poll(() => strip(output), { timeout: 20_000 }).toContain(text);
       proc.write(keys);
     },
+    /** Wait for the last words, then for the process to exit by itself */
     async ends(text: string) {
       await expect.poll(() => strip(output), { timeout: 30_000 }).toContain(text);
-      return exit;
+      return Promise.race([
+        exit,
+        new Promise<string>((done) => setTimeout(() => done('still running'), 10_000)),
+      ]);
     },
-    kill: () => proc.kill(),
   };
 }
 
 test('template:run without a name: pick the template, then the cluster', async () => {
   const hodor = terminal('template:run');
-  try {
+  await hodor.steps(async () => {
     await hodor.answer('Which template?', ENTER);
     await hodor.answer('Run on which cluster?', ENTER);
     // The fake cluster refuses connections: getting this far means both lists took the answers
     expect(await hodor.ends('No forward could be started')).toBe(1);
     expect(hodor.output()).not.toContain('ERR_USE_AFTER_CLOSE');
-  } finally {
-    hodor.kill();
-  }
+  });
 });
 
 test('hodor on its own: the menu leads to deleting a template', async () => {
   const hodor = terminal();
-  try {
+  await hodor.steps(async () => {
     // Run, Stop, List, Create, Edit, Delete
     await hodor.answer('What do you need?', DOWN.repeat(5) + ENTER);
     await hodor.answer('Delete which template?', ENTER);
     await hodor.answer("delete template 'dns'?", `y${ENTER}`);
     expect(await hodor.ends("Template 'dns' deleted")).toBe(0);
     expect(hodor.output()).not.toContain('ERR_USE_AFTER_CLOSE');
-  } finally {
-    hodor.kill();
-  }
+  });
 });
 
 test('without a terminal it asks for the argument instead of hanging', async () => {

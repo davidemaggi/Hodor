@@ -47,5 +47,13 @@ export const prompt: PromptModule = ((questions: any, answers?: any) => {
     process.exit(1);
   }
   promptModule ??= inquirer.createPromptModule({ input, output: process.stdout });
-  return promptModule(questions, answers);
+  const pending = promptModule(questions, answers);
+  // A console we opened ourselves would keep the process alive after the last answer:
+  // hold it only while a question is open
+  if (input !== process.stdin) {
+    input.ref();
+    const release = () => input.unref();
+    pending.then(release, release);
+  }
+  return pending;
 }) as PromptModule;
