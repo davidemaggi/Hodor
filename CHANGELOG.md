@@ -5,6 +5,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [1.0.0-rc.3] - 2026-10-23
+
+The third release candidate of Hodor 1.0 "Aerys", the first with a signed Windows build.
+
 ### Added
 
 - Signed Windows builds: when the signing runner is online, each release also gets `Hodor-…-win-x64-signed.exe` and `-signed.zip`, code-signed with a Certum certificate, with their own checksums and attestations
