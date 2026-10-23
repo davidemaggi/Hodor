@@ -1,0 +1,106 @@
+# Hodor packaging. Release builds run on GitHub Actions on merge to main (see .github/workflows/release.yml).
+appId: dev.davidemaggi.hodor
+productName: Hodor
+copyright: Copyright © 2026 Davide Maggi
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+
+directories:
+  output: dist
+  buildResources: build
+
+# Everything is bundled into out/: the app ships no node_modules
+files:
+  - out/main/**
+  - out/preload/**
+  - out/renderer/**
+  - resources/**
+  - package.json
+  - '!**/*.map'
+  - '!node_modules/**'
+npmRebuild: false
+
+extraResources:
+  # The CLI, bundled into one file, runs on the app's Electron through the launchers in bin/
+  - from: ../cli/bundle
+    to: cli
+  - from: resources/bin
+    to: bin
+
+mac:
+  category: public.app-category.developer-tools
+  icon: build/icon.icns
+  # No Apple Developer ID yet: ad-hoc signature ("-") so the bundle is consistent; Gatekeeper asks once
+  identity: '-'
+  # Hardened runtime is for notarization; with an ad-hoc signature it would block loading Electron's own frameworks
+  hardenedRuntime: false
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+
+dmg:
+  title: ${productName} ${version}
+
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  include: build/installer.nsh
+
+linux:
+  icon: build/icon.png
+  category: Development
+  # "hodor" on the PATH is the CLI; the desktop app binary gets its own name
+  executableName: hodor-app
+  synopsis: Holds your Kubernetes port-forwards open
+  description: Save port-forwards as templates and run them on any cluster.
+  target:
+    - AppImage
+    - deb
+    - rpm
+    - tar.gz
+
+# electron-builder's default dependencies plus ALSA and GBM, which Electron loads even when it
+# only runs the CLI; minimal installs (servers, containers) don't have them
+deb:
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+    - libasound2t64 | libasound2
+    - libgbm1
+  afterInstall: build/linux/after-install.sh
+  afterRemove: build/linux/after-remove.sh
+
+rpm:
+  depends:
+    - gtk3
+    - libnotify
+    - nss
+    - libXScrnSaver
+    - libXtst
+    - xdg-utils
+    - at-spi2-core
+    - libuuid
+    - alsa-lib
+    - mesa-libgbm
+  afterInstall: build/linux/after-install.sh
+  afterRemove: build/linux/after-remove.sh
+
+publish: null

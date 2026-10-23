@@ -1,0 +1,166 @@
+name: Release
+
+# A merge to main releases the version in package.json, once: when its tag already exists
+# the run stops after the first job. Run it by hand to build everything without publishing.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the release (off = build the artifacts only)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  meta:
+    name: Version and notes
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      title: ${{ steps.meta.outputs.title }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      exists: ${{ steps.tag.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @hodor/core build
+      - id: meta
+        run: node scripts/release-meta.mjs
+      - id: tag
+        name: Already released?
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${{ steps.meta.outputs.tag }}" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::${{ steps.meta.outputs.tag }} is already released; bump the version to release again"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-notes
+          path: release-notes.md
+
+  build:
+    name: Build (${{ matrix.name }})
+    needs: meta
+    if: needs.meta.outputs.exists == 'false'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            args: --mac
+          - name: Windows x64
+            os: windows-latest
+            args: --win
+          - name: Linux x64
+            os: ubuntu-latest
+            args: --linux
+          - name: Linux arm64
+            os: ubuntu-24.04-arm
+            args: --linux
+            # electron-builder's own fpm is x64 only
+            system-fpm: true
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Linux packaging tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+          if [ "${{ matrix.system-fpm }}" = "true" ]; then
+            sudo apt-get install -y ruby ruby-dev build-essential
+            sudo gem install fpm --no-document
+          fi
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test
+      - run: pnpm --filter @hodor/cli bundle
+      - name: Package
+        working-directory: packages/gui
+        run: pnpm exec electron-builder ${{ matrix.args }} --publish never
+        env:
+          # Unsigned for 1.0: don't let electron-builder pick up a certificate from the runner
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          USE_SYSTEM_FPM: ${{ matrix.system-fpm && 'true' || '' }}
+
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: hodor-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            packages/gui/dist/*.dmg
+            packages/gui/dist/*.zip
+            packages/gui/dist/*.exe
+            packages/gui/dist/*.AppImage
+            packages/gui/dist/*.deb
+            packages/gui/dist/*.rpm
+            packages/gui/dist/*.tar.gz
+
+  release:
+    name: Publish ${{ needs.meta.outputs.tag }}
+    needs: [meta, build]
+    # Publishing by hand works from main only
+    if: github.event_name == 'push' || (inputs.publish && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: hodor-*
+          path: artifacts
+          merge-multiple: true
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: release-notes
+
+      - name: Checksums
+        working-directory: artifacts
+        run: |
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - uses: actions/attest-build-provenance@v4.2.2
+        with:
+          subject-path: artifacts/*
+
+      - uses: softprops/action-gh-release@v3.0.3
+        with:
+          tag_name: ${{ needs.meta.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ needs.meta.outputs.title }}
+          body_path: release-notes.md
+          prerelease: ${{ needs.meta.outputs.prerelease == 'true' }}
+          make_latest: ${{ needs.meta.outputs.prerelease != 'true' }}
+          files: artifacts/*
+          fail_on_unmatched_files: true
+
+  # 1.0.1 adds a signed Windows build here: a job on the self-hosted "hodor-signing" runner
+  # (Certum), published next to the unsigned files, and skipped when that runner is offline.

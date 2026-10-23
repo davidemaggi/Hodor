@@ -1,0 +1,277 @@
+{
+  "help": {
+    "headings": {
+      "usage": "Usage:",
+      "arguments": "Arguments:",
+      "options": "Options:",
+      "commands": "Commands:"
+    },
+    "program": {
+      "description": "🚪 Hodor - Kubernetes Port-Forward Manager",
+      "version": "Output the current version",
+      "help": "Display help for command"
+    },
+    "args": {
+      "templateName": "Template name"
+    },
+    "clusters": {
+      "description": "List every context in ~/.kube and check which ones are up",
+      "noCheck": "Skip the reachability check"
+    },
+    "ctx": {
+      "description": "Change kubectl's default context (needs kubectl)",
+      "context": "Context name to switch to"
+    },
+    "ns": {
+      "description": "Change the namespace of kubectl's current context (needs kubectl)",
+      "namespace": "Namespace to switch to"
+    },
+    "config": {
+      "description": "Manage kubeconfig files"
+    },
+    "configMerge": {
+      "description": "Merge kubeconfig files into your default kubeconfig (backed up first)",
+      "files": "Kubeconfig files to merge",
+      "output": "Write the result to another file instead",
+      "yes": "Do not ask for confirmation"
+    },
+    "template": {
+      "description": "Manage port-forward templates"
+    },
+    "templateCreate": {
+      "description": "Create a new port-forward template"
+    },
+    "templateList": {
+      "description": "List all templates",
+      "tags": "Filter by tags",
+      "search": "Search templates"
+    },
+    "templateRun": {
+      "description": "Run a template",
+      "cluster": "Context name (or id) to run on",
+      "logs": "Stream forward logs"
+    },
+    "templateStop": {
+      "description": "Stop a running template",
+      "all": "Stop every running template"
+    },
+    "templateEdit": {
+      "description": "Edit a template (details, forwards, order)"
+    },
+    "templateCommand": {
+      "description": "Print the plain kubectl commands for a template",
+      "forward": "Only this forward",
+      "platform": "linux, macos or windows (PowerShell)",
+      "context": "kubectl context to target",
+      "script": "Print a full script that starts and stops every forward"
+    },
+    "templateDelete": {
+      "description": "Delete a template",
+      "force": "Skip confirmation"
+    },
+    "templateExport": {
+      "description": "Export a template",
+      "output": "Output file path",
+      "multiple": "Export multiple templates"
+    },
+    "templateImport": {
+      "description": "Import a template",
+      "file": "Template file to import"
+    }
+  },
+  "common": {
+    "error": "Error: {{error}}",
+    "backupSaved": "Backup of the previous kubeconfig saved in ~/.hodor/backups",
+    "templateNotFound": "Template '{{name}}' not found. Hodor checked twice. Try: hodor template:list",
+    "noKubectl": "kubectl is not installed, so there is no kubectl default to change. Hodor itself works fine without it.",
+    "clusterNotFound": "Cluster '{{name}}' not found. See: hodor clusters",
+    "noClusters": "No clusters found in ~/.kube. Hodor holds doors, but there are no doors here.",
+    "pickCluster": "Run on which cluster? {{hint}}",
+    "pickClusterHint": "(★ = kubectl default)"
+  },
+  "clusters": {
+    "looking": "Looking for kubeconfigs...",
+    "empty": "No clusters found in ~/.kube.",
+    "emptyHint": "Drop a kubeconfig in there, or merge one with: hodor config:merge <file>",
+    "knocking_one": "Knocking on {{count}} door...",
+    "knocking_other": "Knocking on {{count}} doors...",
+    "table": {
+      "context": "Context",
+      "server": "Server",
+      "namespace": "Namespace",
+      "status": "Status",
+      "kubeconfig": "Kubeconfig"
+    },
+    "status": {
+      "notChecked": "not checked",
+      "up": "up {{version}}",
+      "unreachable": "unreachable"
+    },
+    "summary_one": "{{count}} context",
+    "summary_other": "{{count}} contexts",
+    "reachable_one": ", {{count}} reachable",
+    "reachable_other": ", {{count}} reachable",
+    "legendDefault": "kubectl default",
+    "legendLastUsed": "last used by Hodor",
+    "loadFailed": "Failed to load clusters: {{error}}"
+  },
+  "config": {
+    "fileNotFound": "File not found: {{file}}",
+    "previewTitle": "Merge preview",
+    "previewTarget": "Target:",
+    "previewContexts": "Contexts:",
+    "none": "none",
+    "skipped": "{{kind}} '{{name}}' from {{source}} skipped: name already taken",
+    "confirm": "Write merged kubeconfig to {{target}}?",
+    "cancelled": "Nothing written. The door stays shut.",
+    "backup": "Backup: {{path}}",
+    "merged_one": "Merged {{count}} file into {{target}}",
+    "merged_other": "Merged {{count}} files into {{target}}",
+    "failed": "Merge failed: {{error}}"
+  },
+  "ctx": {
+    "noContexts": "No contexts in {{path}}",
+    "pick": "Pick the new kubectl default:",
+    "alreadyDefault": "'{{name}}' is already the default. Hodor approves.",
+    "switched": "kubectl now points to '{{name}}'",
+    "notFoundHint": "{{error}} in {{path}}. If it lives in another kubeconfig, merge it first: hodor config:merge <file>"
+  },
+  "ns": {
+    "noContext": "kubectl has no current context. Pick one first: hodor ctx",
+    "listing": "Listing namespaces in '{{context}}'...",
+    "listFailed": "Could not list namespaces (cluster unreachable or no permission).",
+    "pick": "Pick a namespace:",
+    "input": "Namespace name:",
+    "switched": "'{{context}}' now defaults to namespace '{{namespace}}'"
+  },
+  "templates": {
+    "command": {
+      "unknownPlatform": "Unknown platform '{{platform}}'. Use one of: {{platforms}}",
+      "forwardNotFound": "Forward '{{forward}}' not found in '{{template}}'",
+      "contextHint": "# Uses kubectl's current context. Add --context <name> to target another one."
+    },
+    "create": {
+      "title": "🚪 Hodor Template Creator",
+      "name": "Template name:",
+      "nameRequired": "Template name is required",
+      "nameExists": "Template '{{name}}' already exists",
+      "description": "Description (optional):",
+      "tags": "Tags (comma-separated, optional):",
+      "addForwards": "Add port-forwards to your template:",
+      "addAnother": "Add another port-forward?",
+      "creating": "Creating template...",
+      "created": "Template '{{name}}' created successfully!",
+      "id": "ID: {{id}}",
+      "forwards": "Forwards: {{count}}",
+      "tagList": "Tags: {{tags}}",
+      "runHint": "Run this template with:"
+    },
+    "forward": {
+      "name": "Forward name:",
+      "nameRequired": "Forward name is required",
+      "nameExists": "Forward name '{{name}}' already exists in this template",
+      "namespace": "Namespace:",
+      "namespaceRequired": "Namespace is required",
+      "namespaceInvalid": "Invalid namespace name",
+      "resourceType": "Resource type:",
+      "resourceName": "Resource name:",
+      "resourceNameRequired": "Resource name is required",
+      "localPort": "Local port:",
+      "remotePort": "Remote port:",
+      "portRange": "Port must be between 1 and 65535",
+      "linkSecrets": "Link secrets to this forward?",
+      "secretNames": "Secret names (comma-separated):",
+      "linkConfigMaps": "Link configmaps to this forward?",
+      "configMapNames": "ConfigMap names (comma-separated):"
+    },
+    "delete": {
+      "notFound": "Template '{{name}}' not found.",
+      "confirm": "Are you sure you want to delete template '{{name}}'?",
+      "cancelled": "Deletion cancelled.",
+      "deleted": "Template '{{name}}' deleted successfully."
+    },
+    "edit": {
+      "whatNow": "What now?",
+      "actions": {
+        "details": "Edit name, description, tags",
+        "add": "Add a forward",
+        "edit": "Edit a forward",
+        "remove": "Remove a forward",
+        "move": "Reorder forwards",
+        "save": "Save",
+        "discard": "Discard changes"
+      },
+      "needsOne": "a template needs at least one",
+      "onlyOne": "only one forward",
+      "discarded": "Changes discarded.",
+      "name": "Name:",
+      "nameRequired": "Name is required",
+      "nameTaken": "'{{name}}' is taken",
+      "description": "Description:",
+      "tags": "Tags (comma-separated):",
+      "whichForward": "Which forward?",
+      "removeWhich": "Remove which forward?",
+      "moveWhich": "Move which forward?",
+      "toPosition": "To position:",
+      "nothingChanged": "Nothing changed.",
+      "notSaved": "Not saved: {{error}}",
+      "saved": "Saved '{{name}}'",
+      "restartPrompt": "This template is running. Restart it with the new settings?",
+      "restartRequested": "Restart requested, the running Hodor will pick it up in a second.",
+      "keepsOld": "The running instance keeps the old settings until you restart it."
+    },
+    "export": {
+      "notFoundSkipping": "Template '{{name}}' not found, skipping...",
+      "noneToExport": "No templates found to export.",
+      "exportingMany_one": "Exporting {{count}} template...",
+      "exportingMany_other": "Exporting {{count}} templates...",
+      "exportingOne": "Exporting template '{{name}}'...",
+      "exported_one": "Template exported to: {{file}}",
+      "exported_other": "Templates exported to: {{file}}"
+    },
+    "import": {
+      "importedMany_one": "Imported {{count}} template:",
+      "importedMany_other": "Imported {{count}} templates:",
+      "imported": "Template '{{name}}' imported successfully!"
+    },
+    "list": {
+      "loading": "Loading templates...",
+      "empty": "No templates found.",
+      "emptyHint": "Create a new template with: hodor template:create",
+      "table": {
+        "name": "Name",
+        "description": "Description",
+        "forwards": "Forwards",
+        "tags": "Tags",
+        "updated": "Updated"
+      },
+      "noDescription": "No description",
+      "none": "none",
+      "found_one": "{{count}} template found",
+      "found_other": "{{count}} templates found",
+      "availableTags": "Available tags: {{tags}}",
+      "loadFailed": "Failed to load templates"
+    },
+    "run": {
+      "alreadyRunning": "'{{name}}' is already running (pid {{pid}}). Stop it with: hodor template:stop {{name}}",
+      "holding_one": "Holding {{count}} door on '{{cluster}}'...",
+      "holding_other": "Holding {{count}} doors on '{{cluster}}'...",
+      "connectFailed": "Could not connect to '{{cluster}}': {{error}}",
+      "noneStarted": "No forward could be started",
+      "up": "HODOR! {{name}} is up on {{cluster}}",
+      "partial": "{{name}} is partially up ({{running}}/{{total}})",
+      "changed": "Template changed, restarting...",
+      "deleted": "Template was deleted. Stopping.",
+      "lettingGo": "Letting go of the door...",
+      "stopped": "Stopped. Hodor rests.",
+      "ctrlC": "Ctrl+C to stop",
+      "logsHint": "add --logs to watch what happens"
+    },
+    "stop": {
+      "nothingRunning": "Nothing is running. All doors are already closed.",
+      "whichOne": "Tell me which template to stop, or use --all",
+      "notRunning": "'{{name}}' is not running. Running: {{running}}",
+      "stopped": "Stopped {{name}}"
+    }
+  }
+}

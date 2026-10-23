@@ -5,6 +5,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+pnpm-debug.log*
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
@@ -81,7 +82,15 @@ out
 # Nuxt.js build / generate output
 .nuxt
 dist
+dist-electron
 .output
+
+# Build output directories
+build/
+out/
+release/
+packages/*/dist/
+packages/*/build/
 
 # Gatsby files
 .cache/
@@ -147,3 +156,102 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Electron-builder output
+*.dmg
+*.exe
+*.AppImage
+*.deb
+*.rpm
+*.snap
+*.tar.gz
+*.zip
+*.blockmap
+
+# Electron specific
+.webpack/
+.vite/
+app/
+app-builds/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# IDE
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-*
+
+# Testing
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Hodor specific
+# User data and secure storage
+*.hodor-data
+.hodor/
+hodor-storage/
+
+# Downloaded kubectl binaries
+kubectl-bin/
+bin/kubectl*
+
+# Temporary kubeconfig files during testing
+test-kubeconfigs/
+*.kubeconfig.tmp
+
+# Azure signing artifacts
+*.asc
+*.sig
+
+# Package manager artifacts
+*.pkg
+*.msi
+
+# Development certificates
+certs/
+*.pem
+*.key
+*.crt
+!fixtures/**/*.pem
+!fixtures/**/*.key
+!fixtures/**/*.crt
+
+# Taste working files: screenshots are regenerated, notes and the dealt direction are kept
+.taste-skill/inspect/
+.taste-skill/electron/
+
+# CLI one-file bundle for the desktop app
+packages/cli/bundle/
+packages/gui/test-results/
+packages/gui/playwright-report/
+
+# electron-builder's inputs (icons, installer scripts) are source, not output
+!packages/gui/build/
+# Written by scripts/release-meta.mjs
+release-notes.md

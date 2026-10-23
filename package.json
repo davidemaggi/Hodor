@@ -1,0 +1,67 @@
+{
+  "name": "hodor-monorepo",
+  "version": "1.0.0-rc.1",
+  "private": true,
+  "description": "Hodor - Modern Kubernetes Port-Forward Manager",
+  "keywords": [
+    "kubernetes",
+    "k8s",
+    "port-forward",
+    "kubectl",
+    "devtools",
+    "electron",
+    "cli"
+  ],
+  "author": "Davide Maggi <davide.maggi@live.com>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidemaggi/Hodor.git"
+  },
+  "packageManager": "pnpm@8.10.0",
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --stream -r dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm -r test:coverage",
+    "test:watch": "pnpm -r test:watch",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "clean": "pnpm -r clean && rm -rf node_modules",
+    "prepare": "husky install",
+    "dist": "pnpm --filter @hodor/core build && pnpm --filter @hodor/gui dist",
+    "e2e": "pnpm --filter @hodor/gui e2e",
+    "release:meta": "node scripts/release-meta.mjs"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.9.0",
+    "@typescript-eslint/parser": "^6.9.0",
+    "eslint": "^8.52.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.0.2",
+    "prettier": "^3.0.3",
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.6"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}
