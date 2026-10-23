@@ -19,7 +19,8 @@ function terminalInput(): NodeJS.ReadStream | null {
   keyboard = null;
   if (process.platform === 'win32' && process.versions.electron) {
     try {
-      const fd = fs.openSync('CONIN$', 'r+');
+      // The device name in full: a bare 'CONIN$' is taken as a file in the current folder
+      const fd = fs.openSync('\\\\.\\CONIN$', 'r+');
       if (tty.isatty(fd)) keyboard = new tty.ReadStream(fd);
       else fs.closeSync(fd);
     } catch {
