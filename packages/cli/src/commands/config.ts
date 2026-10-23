@@ -3,6 +3,7 @@ import inquirer from 'inquirer';
 import * as fs from 'fs/promises';
 import { ContextManager, KubeConfigMerger, KubeConfigParser } from '@hodor/core';
 import { fail } from '../utils/shared.js';
+import { t } from '../i18n.js';
 
 /**
  * Merge kubeconfig files. By default they go into kubectl's default kubeconfig (backed up first).
@@ -13,7 +14,7 @@ export async function configMergeCommand(
 ): Promise<void> {
   try {
     for (const file of files) {
-      await fs.access(file).catch(() => fail(`File not found: ${file}`));
+      await fs.access(file).catch(() => fail(t('config.fileNotFound', { file })));
     }
 
     const parser = new KubeConfigParser();
@@ -30,15 +31,17 @@ export async function configMergeCommand(
       : await new KubeConfigMerger().planMerge(target, files);
     const { config, skipped, inputs } = plan;
 
-    console.log(chalk.cyan('\nMerge preview'));
-    console.log(chalk.dim(`  Target:   ${target}`));
-    console.log(
-      chalk.dim(`  Contexts: ${config.contexts.map((c) => c.name).join(', ') || 'none'}`)
-    );
+    const targetLabel = t('config.previewTarget');
+    const contextsLabel = t('config.previewContexts');
+    const width = Math.max(targetLabel.length, contextsLabel.length) + 1;
+    const contextNames = config.contexts.map((c) => c.name).join(', ') || t('config.none');
+    console.log(chalk.cyan(`\n${t('config.previewTitle')}`));
+    console.log(chalk.dim(`  ${targetLabel.padEnd(width)}${target}`));
+    console.log(chalk.dim(`  ${contextsLabel.padEnd(width)}${contextNames}`));
     for (const s of skipped) {
       console.log(
         chalk.yellow(
-          `  ⚠ ${s.kind} '${s.name}' from ${inputs[s.source]} skipped: name already taken`
+          `  ⚠ ${t('config.skipped', { kind: s.kind, name: s.name, source: inputs[s.source] })}`
         )
       );
     }
@@ -48,12 +51,12 @@ export async function configMergeCommand(
         {
           type: 'confirm',
           name: 'ok',
-          message: `Write merged kubeconfig to ${target}?`,
+          message: t('config.confirm', { target }),
           default: true,
         },
       ]);
       if (!ok) {
-        console.log(chalk.dim('Nothing written. The door stays shut.'));
+        console.log(chalk.dim(t('config.cancelled')));
         return;
       }
     }
@@ -62,13 +65,11 @@ export async function configMergeCommand(
       await parser.writeConfig(target, config);
     } else {
       const { backup } = await manager.mergeFiles(files);
-      if (backup) console.log(chalk.dim(`  Backup: ${backup}`));
+      if (backup) console.log(chalk.dim(`  ${t('config.backup', { path: backup })}`));
     }
 
-    console.log(
-      chalk.green(`✔ Merged ${files.length} file${files.length !== 1 ? 's' : ''} into ${target}`)
-    );
+    console.log(chalk.green(`✔ ${t('config.merged', { count: files.length, target })}`));
   } catch (error: any) {
-    fail(`Merge failed: ${error.message}`);
+    fail(t('config.failed', { error: error.message }));
   }
 }

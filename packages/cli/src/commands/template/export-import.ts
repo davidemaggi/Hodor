@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import * as fs from 'fs/promises';
 import { TemplateManager, TemplateStorage } from '@hodor/core';
+import { t } from '../../i18n.js';
 
 /**
  * Export a template
@@ -16,6 +17,7 @@ export async function templateExportCommand(
 
     let json: string;
     let filename: string;
+    let count = 1;
 
     if (options.multiple && options.multiple.length > 0) {
       // Export multiple templates
@@ -24,41 +26,44 @@ export async function templateExportCommand(
       for (const name of options.multiple) {
         const template = manager.getByName(name);
         if (!template) {
-          console.log(chalk.yellow(`⚠ Template '${name}' not found, skipping...`));
+          console.log(chalk.yellow(`⚠ ${t('templates.export.notFoundSkipping', { name })}`));
           continue;
         }
         templateIds.push(template.id);
       }
 
       if (templateIds.length === 0) {
-        console.log(chalk.red('No templates found to export.'));
+        console.log(chalk.red(t('templates.export.noneToExport')));
         process.exit(1);
       }
 
       json = manager.exportMultiple(templateIds);
+      count = templateIds.length;
       filename = options.output || 'hodor-templates.json';
 
-      console.log(chalk.green(`✓ Exporting ${templateIds.length} templates...`));
+      console.log(
+        chalk.green(`✓ ${t('templates.export.exportingMany', { count: templateIds.length })}`)
+      );
     } else {
       // Export single template
       const template = manager.getByName(templateName);
       if (!template) {
-        console.log(chalk.red(`\nTemplate '${templateName}' not found.`));
+        console.log(chalk.red(`\n${t('templates.delete.notFound', { name: templateName })}`));
         process.exit(1);
       }
 
       json = manager.export(template.id);
       filename = options.output || `${templateName}.json`;
 
-      console.log(chalk.green(`✓ Exporting template '${template.name}'...`));
+      console.log(chalk.green(`✓ ${t('templates.export.exportingOne', { name: template.name })}`));
     }
 
     // Write to file
     await fs.writeFile(filename, json, 'utf-8');
 
-    console.log(chalk.green(`✓ Template(s) exported to: ${filename}`));
+    console.log(chalk.green(`✓ ${t('templates.export.exported', { count, file: filename })}`));
   } catch (error: any) {
-    console.error(chalk.red(`\nError: ${error.message}`));
+    console.error(chalk.red(`\n${t('common.error', { error: error.message })}`));
     process.exit(1);
   }
 }
@@ -80,19 +85,23 @@ export async function templateImportCommand(filePath: string): Promise<void> {
     if (data.templates && Array.isArray(data.templates)) {
       // Multiple templates
       const templates = await manager.importMultiple(json);
-      console.log(chalk.green(`✓ Imported ${templates.length} template(s):`));
+      console.log(
+        chalk.green(`✓ ${t('templates.import.importedMany', { count: templates.length })}`)
+      );
       for (const template of templates) {
         console.log(chalk.dim(`  - ${template.name}`));
       }
     } else {
       // Single template
       const template = await manager.import(json);
-      console.log(chalk.green(`✓ Template '${template.name}' imported successfully!`));
-      console.log(chalk.dim(`  ID: ${template.id}`));
-      console.log(chalk.dim(`  Forwards: ${template.forwards.length}`));
+      console.log(chalk.green(`✓ ${t('templates.import.imported', { name: template.name })}`));
+      console.log(chalk.dim(`  ${t('templates.create.id', { id: template.id })}`));
+      console.log(
+        chalk.dim(`  ${t('templates.create.forwards', { count: template.forwards.length })}`)
+      );
     }
   } catch (error: any) {
-    console.error(chalk.red(`\nError: ${error.message}`));
+    console.error(chalk.red(`\n${t('common.error', { error: error.message })}`));
     process.exit(1);
   }
 }

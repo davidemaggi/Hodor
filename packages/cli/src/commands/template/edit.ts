@@ -4,6 +4,7 @@ import { RunRegistry } from '@hodor/core';
 import type { PortForwardConfig, Template } from '@hodor/core';
 import { fail, openTemplates, requireTemplate } from '../../utils/shared.js';
 import { promptForForward } from './create.js';
+import { t } from '../../i18n.js';
 
 type Action = 'details' | 'add' | 'edit' | 'remove' | 'move' | 'save' | 'discard';
 
@@ -46,30 +47,35 @@ export async function templateEditCommand(name: string): Promise<void> {
       {
         type: 'list',
         name: 'action',
-        message: 'What now?',
+        message: t('templates.edit.whatNow'),
         choices: [
-          { name: 'Edit name, description, tags', value: 'details' },
-          { name: 'Add a forward', value: 'add' },
-          { name: 'Edit a forward', value: 'edit' },
+          { name: t('templates.edit.actions.details'), value: 'details' },
+          { name: t('templates.edit.actions.add'), value: 'add' },
+          { name: t('templates.edit.actions.edit'), value: 'edit' },
           {
-            name: 'Remove a forward',
+            name: t('templates.edit.actions.remove'),
             value: 'remove',
-            disabled: draft.forwards.length <= 1 && 'a template needs at least one',
+            disabled: draft.forwards.length <= 1 && t('templates.edit.needsOne'),
           },
           {
-            name: 'Reorder forwards',
+            name: t('templates.edit.actions.move'),
             value: 'move',
-            disabled: draft.forwards.length <= 1 && 'only one forward',
+            disabled: draft.forwards.length <= 1 && t('templates.edit.onlyOne'),
           },
           new inquirer.Separator(),
-          { name: dirty ? chalk.green('Save') : 'Save', value: 'save' },
-          { name: 'Discard changes', value: 'discard' },
+          {
+            name: dirty
+              ? chalk.green(t('templates.edit.actions.save'))
+              : t('templates.edit.actions.save'),
+            value: 'save',
+          },
+          { name: t('templates.edit.actions.discard'), value: 'discard' },
         ],
       },
     ]);
 
     if (action === 'discard') {
-      console.log(chalk.dim('Changes discarded.'));
+      console.log(chalk.dim(t('templates.edit.discarded')));
       return;
     }
 
@@ -81,25 +87,25 @@ export async function templateEditCommand(name: string): Promise<void> {
         {
           type: 'input',
           name: 'name',
-          message: 'Name:',
+          message: t('templates.edit.name'),
           default: draft.name,
           validate: (v: string) =>
             !v.trim()
-              ? 'Name is required'
+              ? t('templates.edit.nameRequired')
               : manager.nameExists(v, draft.id)
-                ? `'${v}' is taken`
+                ? t('templates.edit.nameTaken', { name: v })
                 : true,
         },
         {
           type: 'input',
           name: 'description',
-          message: 'Description:',
+          message: t('templates.edit.description'),
           default: draft.description || '',
         },
         {
           type: 'input',
           name: 'tags',
-          message: 'Tags (comma-separated):',
+          message: t('templates.edit.tags'),
           default: draft.tags.join(', '),
         },
       ]);
@@ -112,18 +118,18 @@ export async function templateEditCommand(name: string): Promise<void> {
     } else if (action === 'add') {
       draft.forwards.push(await promptForForward(draft.forwards.map((f) => f.name)));
     } else if (action === 'edit') {
-      const index = await pickForward(draft, 'Which forward?');
+      const index = await pickForward(draft, t('templates.edit.whichForward'));
       const others = draft.forwards.filter((_, i) => i !== index).map((f) => f.name);
       draft.forwards[index] = await promptForForward(others, draft.forwards[index]);
     } else if (action === 'remove') {
-      draft.forwards.splice(await pickForward(draft, 'Remove which forward?'), 1);
+      draft.forwards.splice(await pickForward(draft, t('templates.edit.removeWhich')), 1);
     } else if (action === 'move') {
-      const from = await pickForward(draft, 'Move which forward?');
+      const from = await pickForward(draft, t('templates.edit.moveWhich'));
       const { to } = await inquirer.prompt<{ to: number }>([
         {
           type: 'list',
           name: 'to',
-          message: 'To position:',
+          message: t('templates.edit.toPosition'),
           choices: draft.forwards.map((_, i) => ({ name: `${i + 1}`, value: i })),
           default: from,
         },
@@ -134,7 +140,7 @@ export async function templateEditCommand(name: string): Promise<void> {
   }
 
   if (!dirty) {
-    console.log(chalk.dim('Nothing changed.'));
+    console.log(chalk.dim(t('templates.edit.nothingChanged')));
     return;
   }
 
@@ -146,9 +152,9 @@ export async function templateEditCommand(name: string): Promise<void> {
       forwards: draft.forwards,
     });
   } catch (error: any) {
-    fail(`Not saved: ${error.message}`);
+    fail(t('templates.edit.notSaved', { error: error.message }));
   }
-  console.log(chalk.green(`✔ Saved '${draft.name}'`));
+  console.log(chalk.green(`✔ ${t('templates.edit.saved', { name: draft.name })}`));
 
   const registry = new RunRegistry();
   if (await registry.isRunning(draft.id)) {
@@ -156,16 +162,14 @@ export async function templateEditCommand(name: string): Promise<void> {
       {
         type: 'confirm',
         name: 'restart',
-        message: 'This template is running. Restart it with the new settings?',
+        message: t('templates.edit.restartPrompt'),
         default: true,
       },
     ]);
     if (restart && (await registry.requestRestart(draft.id))) {
-      console.log(
-        chalk.green('✔ Restart requested, the running Hodor will pick it up in a second.')
-      );
+      console.log(chalk.green(`✔ ${t('templates.edit.restartRequested')}`));
     } else {
-      console.log(chalk.dim('The running instance keeps the old settings until you restart it.'));
+      console.log(chalk.dim(t('templates.edit.keepsOld')));
     }
   }
 }

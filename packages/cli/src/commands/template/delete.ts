@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { TemplateManager, TemplateStorage } from '@hodor/core';
+import { t } from '../../i18n.js';
 
 /**
  * Delete a template
@@ -19,7 +20,7 @@ export async function templateDeleteCommand(
     // Find template
     const template = manager.getByName(templateName);
     if (!template) {
-      console.log(chalk.red(`\nTemplate '${templateName}' not found.`));
+      console.log(chalk.red(`\n${t('templates.delete.notFound', { name: templateName })}`));
       process.exit(1);
     }
 
@@ -29,13 +30,13 @@ export async function templateDeleteCommand(
         {
           type: 'confirm',
           name: 'confirm',
-          message: chalk.yellow(`Are you sure you want to delete template '${template.name}'?`),
+          message: chalk.yellow(t('templates.delete.confirm', { name: template.name })),
           default: false,
         },
       ]);
 
       if (!answer.confirm) {
-        console.log(chalk.dim('Deletion cancelled.'));
+        console.log(chalk.dim(t('templates.delete.cancelled')));
         return;
       }
     }
@@ -43,9 +44,9 @@ export async function templateDeleteCommand(
     // Delete template
     await manager.delete(template.id);
 
-    console.log(chalk.green(`✓ Template '${template.name}' deleted successfully.`));
+    console.log(chalk.green(`✓ ${t('templates.delete.deleted', { name: template.name })}`));
   } catch (error: any) {
-    console.error(chalk.red(`\nError: ${error.message}`));
+    console.error(chalk.red(`\n${t('common.error', { error: error.message })}`));
     process.exit(1);
   }
 }

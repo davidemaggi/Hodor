@@ -2,12 +2,13 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { TemplateManager, TemplateStorage, validatePort, validateResourceName } from '@hodor/core';
 import type { PortForwardConfig } from '@hodor/core';
+import { t } from '../../i18n.js';
 
 /**
  * Create a new template
  */
 export async function templateCreateCommand(): Promise<void> {
-  console.log(chalk.cyan('\n🚪 Hodor Template Creator\n'));
+  console.log(chalk.cyan(`\n${t('templates.create.title')}\n`));
 
   try {
     const storage = new TemplateStorage();
@@ -23,13 +24,13 @@ export async function templateCreateCommand(): Promise<void> {
       {
         type: 'input',
         name: 'name',
-        message: 'Template name:',
+        message: t('templates.create.name'),
         validate: (input: string) => {
           if (!input || input.trim().length === 0) {
-            return 'Template name is required';
+            return t('templates.create.nameRequired');
           }
           if (manager.nameExists(input)) {
-            return `Template '${input}' already exists`;
+            return t('templates.create.nameExists', { name: input });
           }
           return true;
         },
@@ -37,12 +38,12 @@ export async function templateCreateCommand(): Promise<void> {
       {
         type: 'input',
         name: 'description',
-        message: 'Description (optional):',
+        message: t('templates.create.description'),
       },
       {
         type: 'input',
         name: 'tags',
-        message: 'Tags (comma-separated, optional):',
+        message: t('templates.create.tags'),
       },
     ]);
 
@@ -57,7 +58,7 @@ export async function templateCreateCommand(): Promise<void> {
     const forwards: PortForwardConfig[] = [];
     let addMore = true;
 
-    console.log(chalk.dim('\nAdd port-forwards to your template:\n'));
+    console.log(chalk.dim(`\n${t('templates.create.addForwards')}\n`));
 
     while (addMore) {
       const forward = await promptForForward(forwards.map((f) => f.name));
@@ -67,7 +68,7 @@ export async function templateCreateCommand(): Promise<void> {
         {
           type: 'confirm',
           name: 'continue',
-          message: 'Add another port-forward?',
+          message: t('templates.create.addAnother'),
           default: true,
         },
       ]);
@@ -76,7 +77,7 @@ export async function templateCreateCommand(): Promise<void> {
     }
 
     // Step 3: Create template
-    console.log(chalk.dim('\nCreating template...\n'));
+    console.log(chalk.dim(`\n${t('templates.create.creating')}\n`));
 
     const template = await manager.create({
       name: basicInfo.name,
@@ -85,18 +86,22 @@ export async function templateCreateCommand(): Promise<void> {
       tags,
     });
 
-    console.log(chalk.green(`✓ Template '${template.name}' created successfully!`));
-    console.log(chalk.dim(`  ID: ${template.id}`));
-    console.log(chalk.dim(`  Forwards: ${template.forwards.length}`));
+    console.log(chalk.green(`✓ ${t('templates.create.created', { name: template.name })}`));
+    console.log(chalk.dim(`  ${t('templates.create.id', { id: template.id })}`));
+    console.log(
+      chalk.dim(`  ${t('templates.create.forwards', { count: template.forwards.length })}`)
+    );
 
     if (template.tags.length > 0) {
-      console.log(chalk.dim(`  Tags: ${template.tags.join(', ')}`));
+      console.log(
+        chalk.dim(`  ${t('templates.create.tagList', { tags: template.tags.join(', ') })}`)
+      );
     }
 
-    console.log(chalk.dim('\nRun this template with:'));
+    console.log(chalk.dim(`\n${t('templates.create.runHint')}`));
     console.log(chalk.cyan(`  hodor template:run ${template.name}`));
   } catch (error: any) {
-    console.error(chalk.red(`\nError: ${error.message}`));
+    console.error(chalk.red(`\n${t('common.error', { error: error.message })}`));
     process.exit(1);
   }
 }
@@ -123,14 +128,14 @@ export async function promptForForward(
     {
       type: 'input',
       name: 'name',
-      message: 'Forward name:',
+      message: t('templates.forward.name'),
       default: current?.name,
       validate: (input: string) => {
         if (!input || input.trim().length === 0) {
-          return 'Forward name is required';
+          return t('templates.forward.nameRequired');
         }
         if (existingNames.includes(input)) {
-          return `Forward name '${input}' already exists in this template`;
+          return t('templates.forward.nameExists', { name: input });
         }
         return true;
       },
@@ -138,14 +143,14 @@ export async function promptForForward(
     {
       type: 'input',
       name: 'namespace',
-      message: 'Namespace:',
+      message: t('templates.forward.namespace'),
       default: current?.namespace || 'default',
       validate: (input: string) => {
         if (!input || input.trim().length === 0) {
-          return 'Namespace is required';
+          return t('templates.forward.namespaceRequired');
         }
         if (!validateResourceName(input)) {
-          return 'Invalid namespace name';
+          return t('templates.forward.namespaceInvalid');
         }
         return true;
       },
@@ -153,7 +158,7 @@ export async function promptForForward(
     {
       type: 'list',
       name: 'resourceType',
-      message: 'Resource type:',
+      message: t('templates.forward.resourceType'),
       choices: [
         { name: 'Service', value: 'service' },
         { name: 'Deployment', value: 'deployment' },
@@ -164,11 +169,11 @@ export async function promptForForward(
     {
       type: 'input',
       name: 'resourceName',
-      message: 'Resource name:',
+      message: t('templates.forward.resourceName'),
       default: current?.resourceName,
       validate: (input: string) => {
         if (!input || input.trim().length === 0) {
-          return 'Resource name is required';
+          return t('templates.forward.resourceNameRequired');
         }
         return true;
       },
@@ -176,11 +181,11 @@ export async function promptForForward(
     {
       type: 'number',
       name: 'localPort',
-      message: 'Local port:',
+      message: t('templates.forward.localPort'),
       default: current?.localPort,
       validate: (input: number) => {
         if (!validatePort(input)) {
-          return 'Port must be between 1 and 65535';
+          return t('templates.forward.portRange');
         }
         return true;
       },
@@ -188,11 +193,11 @@ export async function promptForForward(
     {
       type: 'number',
       name: 'remotePort',
-      message: 'Remote port:',
+      message: t('templates.forward.remotePort'),
       default: current?.remotePort,
       validate: (input: number) => {
         if (!validatePort(input)) {
-          return 'Port must be between 1 and 65535';
+          return t('templates.forward.portRange');
         }
         return true;
       },
@@ -200,26 +205,26 @@ export async function promptForForward(
     {
       type: 'confirm',
       name: 'addSecrets',
-      message: 'Link secrets to this forward?',
+      message: t('templates.forward.linkSecrets'),
       default: !!current?.secrets?.length,
     },
     {
       type: 'input',
       name: 'secrets',
-      message: 'Secret names (comma-separated):',
+      message: t('templates.forward.secretNames'),
       default: current?.secrets?.join(', '),
       when: (answers) => answers.addSecrets,
     },
     {
       type: 'confirm',
       name: 'addConfigMaps',
-      message: 'Link configmaps to this forward?',
+      message: t('templates.forward.linkConfigMaps'),
       default: !!current?.configMaps?.length,
     },
     {
       type: 'input',
       name: 'configMaps',
-      message: 'ConfigMap names (comma-separated):',
+      message: t('templates.forward.configMapNames'),
       default: current?.configMaps?.join(', '),
       when: (answers) => answers.addConfigMaps,
     },

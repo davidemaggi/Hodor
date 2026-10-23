@@ -7,7 +7,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/locales/*.json"],
   "exclude": ["node_modules", "dist", "tests"],
   "references": [{ "path": "../core" }]
 }

@@ -1,0 +1,286 @@
+{
+  "help": {
+    "headings": {
+      "usage": "Uso:",
+      "arguments": "Argomenti:",
+      "options": "Opzioni:",
+      "commands": "Comandi:"
+    },
+    "program": {
+      "description": "🚪 Hodor - Gestore di port-forward per Kubernetes",
+      "version": "Mostra la versione corrente",
+      "help": "Mostra l'aiuto del comando"
+    },
+    "args": {
+      "templateName": "Nome del template"
+    },
+    "clusters": {
+      "description": "Elenca tutti i context in ~/.kube e controlla quali rispondono",
+      "noCheck": "Salta il controllo di raggiungibilità"
+    },
+    "ctx": {
+      "description": "Cambia il context di default di kubectl (serve kubectl)",
+      "context": "Nome del context da usare"
+    },
+    "ns": {
+      "description": "Cambia il namespace del context corrente di kubectl (serve kubectl)",
+      "namespace": "Namespace da usare"
+    },
+    "config": {
+      "description": "Gestisci i file kubeconfig"
+    },
+    "configMerge": {
+      "description": "Unisci dei kubeconfig nel tuo kubeconfig di default (prima ne faccio un backup)",
+      "files": "File kubeconfig da unire",
+      "output": "Scrivi il risultato in un altro file",
+      "yes": "Non chiedere conferma"
+    },
+    "template": {
+      "description": "Gestisci i template di port-forward"
+    },
+    "templateCreate": {
+      "description": "Crea un nuovo template di port-forward"
+    },
+    "templateList": {
+      "description": "Elenca tutti i template",
+      "tags": "Filtra per tag",
+      "search": "Cerca tra i template"
+    },
+    "templateRun": {
+      "description": "Avvia un template",
+      "cluster": "Nome (o id) del context su cui avviarlo",
+      "logs": "Mostra i log dei forward in tempo reale"
+    },
+    "templateStop": {
+      "description": "Ferma un template in esecuzione",
+      "all": "Ferma tutti i template in esecuzione"
+    },
+    "templateEdit": {
+      "description": "Modifica un template (dettagli, forward, ordine)"
+    },
+    "templateCommand": {
+      "description": "Stampa i semplici comandi kubectl equivalenti a un template",
+      "forward": "Solo questo forward",
+      "platform": "linux, macos o windows (PowerShell)",
+      "context": "Context di kubectl da usare",
+      "script": "Stampa uno script completo che avvia e ferma tutti i forward"
+    },
+    "templateDelete": {
+      "description": "Elimina un template",
+      "force": "Salta la conferma"
+    },
+    "templateExport": {
+      "description": "Esporta un template",
+      "output": "Percorso del file di output",
+      "multiple": "Esporta più template"
+    },
+    "templateImport": {
+      "description": "Importa un template",
+      "file": "File del template da importare"
+    }
+  },
+  "common": {
+    "error": "Errore: {{error}}",
+    "backupSaved": "Backup del kubeconfig precedente salvato in ~/.hodor/backups",
+    "templateNotFound": "Template '{{name}}' non trovato. Hodor ha controllato due volte. Prova: hodor template:list",
+    "noKubectl": "kubectl non è installato, quindi non c'è nessun default di kubectl da cambiare. Hodor invece funziona benissimo anche senza.",
+    "clusterNotFound": "Cluster '{{name}}' non trovato. Dai un'occhiata a: hodor clusters",
+    "noClusters": "Nessun cluster trovato in ~/.kube. Hodor tiene le porte, ma qui di porte non ce ne sono.",
+    "pickCluster": "Su quale cluster lo avvio? {{hint}}",
+    "pickClusterHint": "(★ = default di kubectl)"
+  },
+  "clusters": {
+    "looking": "Cerco i kubeconfig...",
+    "empty": "Nessun cluster trovato in ~/.kube.",
+    "emptyHint": "Mettici dentro un kubeconfig, oppure uniscine uno con: hodor config:merge <file>",
+    "knocking_one": "Busso a {{count}} porta...",
+    "knocking_many": "Busso a {{count}} porte...",
+    "knocking_other": "Busso a {{count}} porte...",
+    "table": {
+      "context": "Context",
+      "server": "Server",
+      "namespace": "Namespace",
+      "status": "Stato",
+      "kubeconfig": "Kubeconfig"
+    },
+    "status": {
+      "notChecked": "non controllato",
+      "up": "attivo {{version}}",
+      "unreachable": "irraggiungibile"
+    },
+    "summary_one": "{{count}} context",
+    "summary_many": "{{count}} context",
+    "summary_other": "{{count}} context",
+    "reachable_one": ", {{count}} raggiungibile",
+    "reachable_many": ", {{count}} raggiungibili",
+    "reachable_other": ", {{count}} raggiungibili",
+    "legendDefault": "default di kubectl",
+    "legendLastUsed": "l'ultimo usato da Hodor",
+    "loadFailed": "Non riesco a caricare i cluster: {{error}}"
+  },
+  "config": {
+    "fileNotFound": "File non trovato: {{file}}",
+    "previewTitle": "Anteprima del merge",
+    "previewTarget": "Destinazione:",
+    "previewContexts": "Context:",
+    "none": "nessuno",
+    "skipped": "{{kind}} '{{name}}' da {{source}} saltato: il nome è già preso",
+    "confirm": "Scrivo il kubeconfig unito in {{target}}?",
+    "cancelled": "Non ho scritto niente. La porta resta chiusa.",
+    "backup": "Backup: {{path}}",
+    "merged_one": "Unito {{count}} file in {{target}}",
+    "merged_many": "Uniti {{count}} file in {{target}}",
+    "merged_other": "Uniti {{count}} file in {{target}}",
+    "failed": "Merge fallito: {{error}}"
+  },
+  "ctx": {
+    "noContexts": "Nessun context in {{path}}",
+    "pick": "Scegli il nuovo default di kubectl:",
+    "alreadyDefault": "'{{name}}' è già il default. Hodor approva.",
+    "switched": "Ora kubectl punta a '{{name}}'",
+    "notFoundHint": "{{error}} in {{path}}. Se sta in un altro kubeconfig, prima fai il merge: hodor config:merge <file>"
+  },
+  "ns": {
+    "noContext": "kubectl non ha un context corrente. Scegline uno prima: hodor ctx",
+    "listing": "Elenco i namespace in '{{context}}'...",
+    "listFailed": "Non riesco a elencare i namespace (cluster irraggiungibile o permessi mancanti).",
+    "pick": "Scegli un namespace:",
+    "input": "Nome del namespace:",
+    "switched": "Ora '{{context}}' usa di default il namespace '{{namespace}}'"
+  },
+  "templates": {
+    "command": {
+      "unknownPlatform": "Piattaforma '{{platform}}' sconosciuta. Usane una tra: {{platforms}}",
+      "forwardNotFound": "Forward '{{forward}}' non trovato in '{{template}}'",
+      "contextHint": "# Usa il context corrente di kubectl. Aggiungi --context <nome> per puntarne un altro."
+    },
+    "create": {
+      "title": "🚪 Creazione template di Hodor",
+      "name": "Nome del template:",
+      "nameRequired": "Il nome del template è obbligatorio",
+      "nameExists": "Il template '{{name}}' esiste già",
+      "description": "Descrizione (facoltativa):",
+      "tags": "Tag (separati da virgola, facoltativi):",
+      "addForwards": "Aggiungi i port-forward al tuo template:",
+      "addAnother": "Aggiungo un altro port-forward?",
+      "creating": "Creo il template...",
+      "created": "Template '{{name}}' creato!",
+      "id": "ID: {{id}}",
+      "forwards": "Forward: {{count}}",
+      "tagList": "Tag: {{tags}}",
+      "runHint": "Avvialo con:"
+    },
+    "forward": {
+      "name": "Nome del forward:",
+      "nameRequired": "Il nome del forward è obbligatorio",
+      "nameExists": "C'è già un forward '{{name}}' in questo template",
+      "namespace": "Namespace:",
+      "namespaceRequired": "Il namespace è obbligatorio",
+      "namespaceInvalid": "Nome del namespace non valido",
+      "resourceType": "Tipo di risorsa:",
+      "resourceName": "Nome della risorsa:",
+      "resourceNameRequired": "Il nome della risorsa è obbligatorio",
+      "localPort": "Porta locale:",
+      "remotePort": "Porta remota:",
+      "portRange": "La porta deve essere tra 1 e 65535",
+      "linkSecrets": "Colleghi dei secret a questo forward?",
+      "secretNames": "Nomi dei secret (separati da virgola):",
+      "linkConfigMaps": "Colleghi delle configmap a questo forward?",
+      "configMapNames": "Nomi delle ConfigMap (separati da virgola):"
+    },
+    "delete": {
+      "notFound": "Template '{{name}}' non trovato.",
+      "confirm": "Vuoi davvero eliminare il template '{{name}}'?",
+      "cancelled": "Eliminazione annullata.",
+      "deleted": "Template '{{name}}' eliminato."
+    },
+    "edit": {
+      "whatNow": "E adesso?",
+      "actions": {
+        "details": "Modifica nome, descrizione, tag",
+        "add": "Aggiungi un forward",
+        "edit": "Modifica un forward",
+        "remove": "Rimuovi un forward",
+        "move": "Riordina i forward",
+        "save": "Salva",
+        "discard": "Scarta le modifiche"
+      },
+      "needsOne": "un template ne deve avere almeno uno",
+      "onlyOne": "c'è un solo forward",
+      "discarded": "Modifiche scartate.",
+      "name": "Nome:",
+      "nameRequired": "Il nome è obbligatorio",
+      "nameTaken": "'{{name}}' è già preso",
+      "description": "Descrizione:",
+      "tags": "Tag (separati da virgola):",
+      "whichForward": "Quale forward?",
+      "removeWhich": "Quale forward rimuovo?",
+      "moveWhich": "Quale forward sposto?",
+      "toPosition": "In che posizione:",
+      "nothingChanged": "Nessuna modifica.",
+      "notSaved": "Non salvato: {{error}}",
+      "saved": "'{{name}}' salvato",
+      "restartPrompt": "Questo template è in esecuzione. Lo riavvio con le nuove impostazioni?",
+      "restartRequested": "Riavvio richiesto, l'Hodor in esecuzione se ne accorge tra un secondo.",
+      "keepsOld": "L'istanza in esecuzione tiene le vecchie impostazioni finché non la riavvii."
+    },
+    "export": {
+      "notFoundSkipping": "Template '{{name}}' non trovato, lo salto...",
+      "noneToExport": "Nessun template da esportare.",
+      "exportingMany_one": "Esporto {{count}} template...",
+      "exportingMany_many": "Esporto {{count}} template...",
+      "exportingMany_other": "Esporto {{count}} template...",
+      "exportingOne": "Esporto il template '{{name}}'...",
+      "exported_one": "Template esportato in: {{file}}",
+      "exported_many": "Template esportati in: {{file}}",
+      "exported_other": "Template esportati in: {{file}}"
+    },
+    "import": {
+      "importedMany_one": "Importato {{count}} template:",
+      "importedMany_many": "Importati {{count}} template:",
+      "importedMany_other": "Importati {{count}} template:",
+      "imported": "Template '{{name}}' importato!"
+    },
+    "list": {
+      "loading": "Carico i template...",
+      "empty": "Nessun template trovato.",
+      "emptyHint": "Creane uno con: hodor template:create",
+      "table": {
+        "name": "Nome",
+        "description": "Descrizione",
+        "forwards": "Forward",
+        "tags": "Tag",
+        "updated": "Aggiornato"
+      },
+      "noDescription": "Nessuna descrizione",
+      "none": "nessuno",
+      "found_one": "{{count}} template trovato",
+      "found_many": "{{count}} template trovati",
+      "found_other": "{{count}} template trovati",
+      "availableTags": "Tag disponibili: {{tags}}",
+      "loadFailed": "Non riesco a caricare i template"
+    },
+    "run": {
+      "alreadyRunning": "'{{name}}' è già in esecuzione (pid {{pid}}). Fermalo con: hodor template:stop {{name}}",
+      "holding_one": "Tengo {{count}} porta su '{{cluster}}'...",
+      "holding_many": "Tengo {{count}} porte su '{{cluster}}'...",
+      "holding_other": "Tengo {{count}} porte su '{{cluster}}'...",
+      "connectFailed": "Non riesco a collegarmi a '{{cluster}}': {{error}}",
+      "noneStarted": "Non è partito nessun forward",
+      "up": "HODOR! {{name}} è attivo su {{cluster}}",
+      "partial": "{{name}} è attivo solo in parte ({{running}}/{{total}})",
+      "changed": "Il template è cambiato, lo riavvio...",
+      "deleted": "Il template è stato eliminato. Mi fermo.",
+      "lettingGo": "Lascio andare la porta...",
+      "stopped": "Fermato. Hodor si riposa.",
+      "ctrlC": "Ctrl+C per fermare",
+      "logsHint": "aggiungi --logs per vedere cosa succede"
+    },
+    "stop": {
+      "nothingRunning": "Non c'è niente in esecuzione. Le porte sono già tutte chiuse.",
+      "whichOne": "Dimmi quale template fermare, oppure usa --all",
+      "notRunning": "'{{name}}' non è in esecuzione. In esecuzione: {{running}}",
+      "stopped": "{{name}} fermato"
+    }
+  }
+}

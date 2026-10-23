@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { CommandGenerator } from '@hodor/core';
 import type { Platform } from '@hodor/core';
 import { fail, openTemplates, requireTemplate } from '../../utils/shared.js';
+import { t } from '../../i18n.js';
 
 const PLATFORMS: Platform[] = ['linux', 'macos', 'windows'];
 
@@ -23,14 +24,16 @@ export async function templateCommandCommand(
   const template = requireTemplate(await openTemplates(), name);
   const platform = (options.platform || currentPlatform()) as Platform;
   if (!PLATFORMS.includes(platform)) {
-    fail(`Unknown platform '${platform}'. Use one of: ${PLATFORMS.join(', ')}`);
+    fail(t('templates.command.unknownPlatform', { platform, platforms: PLATFORMS.join(', ') }));
   }
 
   const forwards = options.forward
     ? template.forwards.filter((f) => f.name === options.forward)
     : template.forwards;
   if (forwards.length === 0) {
-    fail(`Forward '${options.forward}' not found in '${template.name}'`);
+    fail(
+      t('templates.command.forwardNotFound', { forward: options.forward, template: template.name })
+    );
   }
 
   const generator = new CommandGenerator();
@@ -45,8 +48,6 @@ export async function templateCommandCommand(
     console.log(cmd.command);
   }
   if (!options.context && process.stdout.isTTY) {
-    console.error(
-      chalk.dim("\n# Uses kubectl's current context. Add --context <name> to target another one.")
-    );
+    console.error(chalk.dim(`\n${t('templates.command.contextHint')}`));
   }
 }

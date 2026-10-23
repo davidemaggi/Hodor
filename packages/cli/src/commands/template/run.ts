@@ -3,6 +3,7 @@ import ora from 'ora';
 import { ClusterDiscovery, RunRegistry, TemplateExecutor } from '@hodor/core';
 import type { LogEntry, TemplateExecution } from '@hodor/core';
 import { fail, openTemplates, pickCluster, requireTemplate } from '../../utils/shared.js';
+import { t } from '../../i18n.js';
 
 const LEVEL_COLORS: Record<LogEntry['level'], (s: string) => string> = {
   debug: chalk.dim,
@@ -39,14 +40,12 @@ export async function templateRunCommand(
   const registry = new RunRegistry();
   const existing = await registry.get(template.id);
   if (existing) {
-    fail(
-      `'${template.name}' is already running (pid ${existing.pid}). Stop it with: hodor template:stop ${template.name}`
-    );
+    fail(t('templates.run.alreadyRunning', { name: template.name, pid: existing.pid }));
   }
 
   const cluster = await pickCluster(options.cluster);
   const spinner = ora(
-    `Holding ${template.forwards.length} door${template.forwards.length !== 1 ? 's' : ''} on '${cluster.name}'...`
+    t('templates.run.holding', { count: template.forwards.length, cluster: cluster.name })
   ).start();
 
   let executor: TemplateExecutor;
@@ -54,7 +53,7 @@ export async function templateRunCommand(
     executor = new TemplateExecutor(await new ClusterDiscovery().connect(cluster));
   } catch (error: any) {
     spinner.stop();
-    fail(`Could not connect to '${cluster.name}': ${error.message}`);
+    fail(t('templates.run.connectFailed', { cluster: cluster.name, error: error.message }));
   }
 
   if (options.logs) {
@@ -70,7 +69,7 @@ export async function templateRunCommand(
   const running = execution.forwards.filter((f) => f.status === 'running').length;
 
   if (running === 0) {
-    spinner.fail('No forward could be started');
+    spinner.fail(t('templates.run.noneStarted'));
     printExecution(execution);
     await executor.stop(template.id);
     process.exit(1);
@@ -78,8 +77,14 @@ export async function templateRunCommand(
 
   spinner.succeed(
     running === execution.forwards.length
-      ? chalk.green(`HODOR! ${template.name} is up on ${cluster.name}`)
-      : chalk.yellow(`${template.name} is partially up (${running}/${execution.forwards.length})`)
+      ? chalk.green(t('templates.run.up', { name: template.name, cluster: cluster.name }))
+      : chalk.yellow(
+          t('templates.run.partial', {
+            name: template.name,
+            running,
+            total: execution.forwards.length,
+          })
+        )
   );
   printExecution(execution);
 
@@ -90,11 +95,11 @@ export async function templateRunCommand(
   });
 
   const stopWatching = registry.watchRestart(template.id, async () => {
-    console.log(chalk.cyan('\n↻ Template changed, restarting...'));
+    console.log(chalk.cyan(`\n↻ ${t('templates.run.changed')}`));
     const fresh = (await openTemplates()).get(template.id);
     await executor.stop(template.id);
     if (!fresh) {
-      console.log(chalk.yellow('Template was deleted. Stopping.'));
+      console.log(chalk.yellow(t('templates.run.deleted')));
       await shutdown(0);
       return;
     }
@@ -106,10 +111,10 @@ export async function templateRunCommand(
     if (shuttingDown) return;
     shuttingDown = true;
     stopWatching();
-    console.log(chalk.dim('\nLetting go of the door...'));
+    console.log(chalk.dim(`\n${t('templates.run.lettingGo')}`));
     await executor.stopAll();
     await registry.unregister(template.id);
-    console.log(chalk.green('Stopped. Hodor rests.'));
+    console.log(chalk.green(t('templates.run.stopped')));
     process.exit(code);
   };
 
@@ -117,6 +122,8 @@ export async function templateRunCommand(
   process.on('SIGTERM', () => shutdown(0));
 
   console.log(
-    chalk.dim(`\nCtrl+C to stop${options.logs ? '' : ' · add --logs to watch what happens'}`)
+    chalk.dim(
+      `\n${t('templates.run.ctrlC')}${options.logs ? '' : ` · ${t('templates.run.logsHint')}`}`
+    )
   );
 }

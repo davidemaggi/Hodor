@@ -1,20 +1,33 @@
-#!/usr/bin/env node
-
-import { Command } from 'commander';
+import { Command, Help } from 'commander';
 import { VERSION } from '@hodor/core';
+import { initI18n, t } from './i18n.js';
+
+await initI18n();
 
 const program = new Command();
 
+// Help headings and the built-in help option/command are inherited by every subcommand
 program
   .name('hodor')
-  .description('🚪 Hodor - Kubernetes Port-Forward Manager')
-  .version(VERSION, '-v, --version', 'Output the current version');
+  .description(t('help.program.description'))
+  .version(VERSION, '-v, --version', t('help.program.version'))
+  .helpOption('-h, --help', t('help.program.help'))
+  .addHelpCommand('help [command]', t('help.program.help'))
+  .configureHelp({
+    formatHelp: (cmd, helper) =>
+      Help.prototype.formatHelp
+        .call(helper, cmd, helper)
+        .replace(/^Usage:/m, t('help.headings.usage'))
+        .replace(/^Arguments:$/m, t('help.headings.arguments'))
+        .replace(/^Options:$/m, t('help.headings.options'))
+        .replace(/^Commands:$/m, t('help.headings.commands')),
+  });
 
 // Clusters command
 program
   .command('clusters')
-  .description('List every context in ~/.kube and check which ones are up')
-  .option('--no-check', 'Skip the reachability check')
+  .description(t('help.clusters.description'))
+  .option('--no-check', t('help.clusters.noCheck'))
   .action(async (options: { check?: boolean }) => {
     const { clustersCommand } = await import('./commands/clusters.js');
     await clustersCommand(options);
@@ -24,8 +37,8 @@ program
 program
   .command('ctx')
   .alias('context')
-  .description("Change kubectl's default context (needs kubectl)")
-  .argument('[context]', 'Context name to switch to')
+  .description(t('help.ctx.description'))
+  .argument('[context]', t('help.ctx.context'))
   .action(async (context?: string) => {
     const { ctxCommand } = await import('./commands/ctx.js');
     await ctxCommand(context);
@@ -35,8 +48,8 @@ program
 program
   .command('ns')
   .alias('namespace')
-  .description("Change the namespace of kubectl's current context (needs kubectl)")
-  .argument('[namespace]', 'Namespace to switch to')
+  .description(t('help.ns.description'))
+  .argument('[namespace]', t('help.ns.namespace'))
   .action(async (namespace?: string) => {
     const { nsCommand } = await import('./commands/ns.js');
     await nsCommand(namespace);
@@ -45,17 +58,17 @@ program
 // Config command
 program
   .command('config')
-  .description('Manage kubeconfig files')
+  .description(t('help.config.description'))
   .action(() => {
     program.outputHelp();
   });
 
 program
   .command('config:merge')
-  .description('Merge kubeconfig files into your default kubeconfig (backed up first)')
-  .argument('<files...>', 'Kubeconfig files to merge')
-  .option('-o, --output <file>', 'Write the result to another file instead')
-  .option('-y, --yes', 'Do not ask for confirmation')
+  .description(t('help.configMerge.description'))
+  .argument('<files...>', t('help.configMerge.files'))
+  .option('-o, --output <file>', t('help.configMerge.output'))
+  .option('-y, --yes', t('help.configMerge.yes'))
   .action(async (files: string[], options: { output?: string; yes?: boolean }) => {
     const { configMergeCommand } = await import('./commands/config.js');
     await configMergeCommand(files, options);
@@ -64,7 +77,7 @@ program
 // Template commands
 program
   .command('template')
-  .description('Manage port-forward templates')
+  .description(t('help.template.description'))
   .action(() => {
     program.outputHelp();
   });
@@ -72,7 +85,7 @@ program
 program
   .command('template:create')
   .alias('template:new')
-  .description('Create a new port-forward template')
+  .description(t('help.templateCreate.description'))
   .action(async () => {
     const { templateCreateCommand } = await import('./commands/template/create.js');
     await templateCreateCommand();
@@ -81,9 +94,9 @@ program
 program
   .command('template:list')
   .alias('template:ls')
-  .description('List all templates')
-  .option('-t, --tags <tags...>', 'Filter by tags')
-  .option('-s, --search <query>', 'Search templates')
+  .description(t('help.templateList.description'))
+  .option('-t, --tags <tags...>', t('help.templateList.tags'))
+  .option('-s, --search <query>', t('help.templateList.search'))
   .action(async (options: { tags?: string[]; search?: string }) => {
     const { templateListCommand } = await import('./commands/template/list.js');
     await templateListCommand(options);
@@ -91,10 +104,10 @@ program
 
 program
   .command('template:run')
-  .description('Run a template')
-  .argument('<name>', 'Template name')
-  .option('-c, --cluster <cluster>', 'Context name (or id) to run on')
-  .option('-l, --logs', 'Stream forward logs')
+  .description(t('help.templateRun.description'))
+  .argument('<name>', t('help.args.templateName'))
+  .option('-c, --cluster <cluster>', t('help.templateRun.cluster'))
+  .option('-l, --logs', t('help.templateRun.logs'))
   .action(async (name: string, options: { cluster?: string; logs?: boolean }) => {
     const { templateRunCommand } = await import('./commands/template/run.js');
     await templateRunCommand(name, options);
@@ -102,9 +115,9 @@ program
 
 program
   .command('template:stop')
-  .description('Stop a running template')
-  .argument('[name]', 'Template name')
-  .option('-a, --all', 'Stop every running template')
+  .description(t('help.templateStop.description'))
+  .argument('[name]', t('help.args.templateName'))
+  .option('-a, --all', t('help.templateStop.all'))
   .action(async (name: string | undefined, options: { all?: boolean }) => {
     const { templateStopCommand } = await import('./commands/template/stop.js');
     await templateStopCommand(name, options);
@@ -112,8 +125,8 @@ program
 
 program
   .command('template:edit')
-  .description('Edit a template (details, forwards, order)')
-  .argument('<name>', 'Template name')
+  .description(t('help.templateEdit.description'))
+  .argument('<name>', t('help.args.templateName'))
   .action(async (name: string) => {
     const { templateEditCommand } = await import('./commands/template/edit.js');
     await templateEditCommand(name);
@@ -122,12 +135,12 @@ program
 program
   .command('template:command')
   .alias('template:cmd')
-  .description('Print the plain kubectl commands for a template')
-  .argument('<name>', 'Template name')
-  .option('-f, --forward <name>', 'Only this forward')
-  .option('-p, --platform <platform>', 'linux, macos or windows (PowerShell)')
-  .option('--context <context>', 'kubectl context to target')
-  .option('-s, --script', 'Print a full script that starts and stops every forward')
+  .description(t('help.templateCommand.description'))
+  .argument('<name>', t('help.args.templateName'))
+  .option('-f, --forward <name>', t('help.templateCommand.forward'))
+  .option('-p, --platform <platform>', t('help.templateCommand.platform'))
+  .option('--context <context>', t('help.templateCommand.context'))
+  .option('-s, --script', t('help.templateCommand.script'))
   .action(
     async (
       name: string,
@@ -141,9 +154,9 @@ program
 program
   .command('template:delete')
   .alias('template:rm')
-  .description('Delete a template')
-  .argument('<name>', 'Template name')
-  .option('-f, --force', 'Skip confirmation')
+  .description(t('help.templateDelete.description'))
+  .argument('<name>', t('help.args.templateName'))
+  .option('-f, --force', t('help.templateDelete.force'))
   .action(async (name: string, options: { force?: boolean }) => {
     const { templateDeleteCommand } = await import('./commands/template/delete.js');
     await templateDeleteCommand(name, options);
@@ -151,10 +164,10 @@ program
 
 program
   .command('template:export')
-  .description('Export a template')
-  .argument('<name>', 'Template name')
-  .option('-o, --output <file>', 'Output file path')
-  .option('-m, --multiple <names...>', 'Export multiple templates')
+  .description(t('help.templateExport.description'))
+  .argument('<name>', t('help.args.templateName'))
+  .option('-o, --output <file>', t('help.templateExport.output'))
+  .option('-m, --multiple <names...>', t('help.templateExport.multiple'))
   .action(async (name: string, options: { output?: string; multiple?: string[] }) => {
     const { templateExportCommand } = await import('./commands/template/export-import.js');
     await templateExportCommand(name, options);
@@ -162,8 +175,8 @@ program
 
 program
   .command('template:import')
-  .description('Import a template')
-  .argument('<file>', 'Template file to import')
+  .description(t('help.templateImport.description'))
+  .argument('<file>', t('help.templateImport.file'))
   .action(async (file: string) => {
     const { templateImportCommand } = await import('./commands/template/export-import.js');
     await templateImportCommand(file);

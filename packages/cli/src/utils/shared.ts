@@ -8,6 +8,7 @@ import {
   findKubectl,
 } from '@hodor/core';
 import type { Cluster, Template } from '@hodor/core';
+import { t } from '../i18n.js';
 
 export async function openTemplates(): Promise<TemplateManager> {
   const storage = new TemplateStorage();
@@ -29,7 +30,7 @@ export function fail(message: string): never {
 export function requireTemplate(manager: TemplateManager, name: string): Template {
   const template = manager.getByName(name);
   if (!template) {
-    fail(`Template '${name}' not found. Hodor checked twice. Try: hodor template:list`);
+    fail(t('common.templateNotFound', { name }));
   }
   return template;
 }
@@ -39,9 +40,7 @@ export function requireTemplate(manager: TemplateManager, name: string): Templat
  */
 export async function requireKubectl(): Promise<void> {
   if (!(await findKubectl())) {
-    fail(
-      'kubectl is not installed, so there is no kubectl default to change. Hodor itself works fine without it.'
-    );
+    fail(t('common.noKubectl'));
   }
 }
 
@@ -60,14 +59,14 @@ export async function pickCluster(explicit?: string): Promise<Cluster> {
 
   if (explicit) {
     const cluster = await discovery.find(explicit);
-    if (!cluster) fail(`Cluster '${explicit}' not found. See: hodor clusters`);
+    if (!cluster) fail(t('common.clusterNotFound', { name: explicit }));
     await settings.set('lastUsedCluster', cluster.id);
     return cluster;
   }
 
   const clusters = await discovery.list();
   if (clusters.length === 0) {
-    fail('No clusters found in ~/.kube. Hodor holds doors, but there are no doors here.');
+    fail(t('common.noClusters'));
   }
 
   const showSource = new Set(clusters.map((c) => c.sourceFile)).size > 1;
@@ -78,7 +77,7 @@ export async function pickCluster(explicit?: string): Promise<Cluster> {
     {
       type: 'list',
       name: 'id',
-      message: `Run on which cluster? ${chalk.dim('(★ = kubectl default)')}`,
+      message: t('common.pickCluster', { hint: chalk.dim(t('common.pickClusterHint')) }),
       choices: clusters.map((c) => ({
         name: clusterLabel(c, showSource),
         value: c.id,
