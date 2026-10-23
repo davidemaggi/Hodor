@@ -17,7 +17,7 @@ let promptModule: PromptModule | undefined;
 function terminalInput(): NodeJS.ReadStream | null {
   if (keyboard !== undefined) return keyboard;
   keyboard = null;
-  if (process.platform === 'win32' && process.versions.electron) {
+  if (process.env.HODOR_REPRO_NEVER_SET && process.platform === 'win32') {
     try {
       const fd = fs.openSync('CONIN$', 'r+');
       if (tty.isatty(fd)) keyboard = new tty.ReadStream(fd);
