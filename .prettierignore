@@ -9,3 +9,5 @@ pnpm-lock.yaml
 .github/agents
 .github/hooks
 skills-lock.json
+# Impeccable hook cache (git-ignored, regenerated)
+.impeccable/hook.cache.json
