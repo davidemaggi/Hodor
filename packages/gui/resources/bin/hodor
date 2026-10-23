@@ -1,0 +1,18 @@
+#!/bin/sh
+# Hodor CLI launcher: runs the bundled CLI on the app's own Electron, so no Node.js is needed.
+# Works through symlinks (/usr/local/bin/hodor, /usr/bin/hodor, ~/.local/bin/hodor).
+set -e
+self="$0"
+while [ -L "$self" ]; do
+  target=$(readlink "$self")
+  case "$target" in
+    /*) self="$target" ;;
+    *) self="$(dirname "$self")/$target" ;;
+  esac
+done
+resources="$(cd "$(dirname "$self")/.." && pwd)"
+case "$(uname -s)" in
+  Darwin) electron="$resources/../MacOS/Hodor" ;;
+  *) electron="$resources/../hodor-app" ;;
+esac
+ELECTRON_RUN_AS_NODE=1 exec "$electron" "$resources/cli/hodor.mjs" "$@"

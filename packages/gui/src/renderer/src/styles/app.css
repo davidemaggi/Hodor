@@ -409,3 +409,10 @@ kbd { margin-left: auto; padding: 1px 6px; border: 1px solid var(--control); bor
   .templates-table .label-wide { display: none; }
   .templates-table .row-actions .btn.ghost { padding: 0 8px; }
 }
+
+/* ---------- 1.0: command line, updates ---------- */
+.cli-state { overflow-wrap: anywhere; }
+.cli-state.ok { color: var(--positive); }
+.switch-row-full { cursor: pointer; }
+.panel .btn { justify-self: start; }
+.update-note { display: block; width: 100%; margin: 0 0 4px; padding: 6px 8px; border: 0; border-radius: var(--radius-control); background: var(--pill-positive-bg); color: var(--pill-positive-ink); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }

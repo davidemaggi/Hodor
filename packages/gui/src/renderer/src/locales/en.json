@@ -7,7 +7,8 @@
     "label": "Main",
     "doorsHeld": "{{count}} doors held",
     "doorsHeld_one": "1 door held",
-    "selectedCluster": "The cluster you picked last"
+    "selectedCluster": "The cluster you picked last",
+    "updateAvailable": "Hodor {{version}} is out"
   },
   "scope": {
     "kubectl": "kubectl",
@@ -164,14 +165,33 @@
     "themeLight": "Snow",
     "themeDark": "Night",
     "language": "Language",
-    "languageDesc": "More languages are on the way. Italian is first in line.",
+    "languageDesc": "Applies to the app, the tray and the hodor command.",
     "about": "About",
     "aboutDesc": "What this Hodor knows about your machine.",
     "version": "Version",
     "kubectl": "kubectl",
     "kubectlMissing": "Not installed. Switching kubectl's default context is hidden until it is.",
     "dataDir": "Data folder",
-    "saved": "Saved"
+    "saved": "Saved",
+    "cli": "Command line",
+    "cliDesc": "The hodor command, for your terminal and scripts.",
+    "cliState": {
+      "installed": "Installed: {{path}}",
+      "notOnPath": "Installed in {{path}}, but that folder isn't on your PATH yet. Open a new terminal; if it still isn't found, add the folder to your PATH.",
+      "missing": "Not installed yet. It goes in {{path}}.",
+      "other": "Another hodor is first on your PATH: {{path}}",
+      "dev": "Available in installed builds; in development use node packages/cli/bin/hodor.",
+      "appimage": "The AppImage moves every time it runs, so it can't put hodor on your PATH. Use the .deb, .rpm or .tar.gz for the command."
+    },
+    "cliInstall": "Install the hodor command",
+    "cliInstalling": "Installing…",
+    "updates": "Updates",
+    "updatesDesc": "Hodor asks GitHub for the newest release now and then. Nothing about you is sent.",
+    "checkUpdates": "Tell me when a new version is out",
+    "updateUnknown": "Couldn't check right now.",
+    "upToDate": "You're on the latest: {{version}}.",
+    "updateAvailable": "Hodor {{version}} is out.",
+    "openRelease": "See what's new"
   },
   "merge": {
     "title": "Merge into {{target}}",

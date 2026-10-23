@@ -2,30 +2,14 @@ import { Menu, Tray, nativeImage, type MenuItemConstructorOptions } from 'electr
 import * as path from 'path';
 import type { LinkedResources, RunningTemplate } from '../shared/api';
 import type { MainServices } from './ipc';
-
-// Main-process copy. Collected here so it can join the renderer's i18n when translations land (1.0).
-const STRINGS = {
-  idle: 'Nothing running',
-  doors: (n: number) => (n === 1 ? '1 door held' : `${n} doors held`),
-  copyAddress: (address: string) => `Copy ${address}`,
-  secret: (name: string) => `Secret ${name}`,
-  configMap: (name: string) => `Config map ${name}`,
-  unreadable: (error?: string) => `Can't read it${error ? `: ${error}` : ''}`,
-  empty: 'No keys',
-  loading: 'Loading keys…',
-  stopForward: 'Stop this forward',
-  startForward: 'Start this forward',
-  stopTemplate: (name: string) => `Stop ${name}`,
-  stopAll: 'Stop everything',
-  open: 'Open Hodor',
-  quit: 'Quit Hodor',
-  state: { stopped: 'stopped', error: 'error', closed: 'not listening' },
-};
+import type { MainStrings } from '../shared/main-strings';
 
 const LINKED_TTL_MS = 60_000;
 
 interface TrayOptions {
   services: MainServices;
+  /** Current strings; read on every rebuild so a language change applies right away */
+  strings: () => MainStrings;
   iconDir: string;
   showWindow: () => void;
   quit: () => void;
@@ -35,7 +19,7 @@ interface TrayOptions {
  * The menu bar / system tray: what's running, copy addresses and linked values, stop things.
  * Keeps working while the window is hidden.
  */
-export function createTray({ services, iconDir, showWindow, quit }: TrayOptions) {
+export function createTray({ services, strings, iconDir, showWindow, quit }: TrayOptions) {
   const isMac = process.platform === 'darwin';
   const icon = nativeImage.createFromPath(
     path.join(iconDir, isMac ? 'trayTemplate.png' : 'tray.png')
@@ -53,6 +37,8 @@ export function createTray({ services, iconDir, showWindow, quit }: TrayOptions)
       .catch(() => undefined)
       .finally(() => void refresh());
   };
+
+  let STRINGS = strings();
 
   const linkedItems = (
     r: RunningTemplate,
@@ -103,6 +89,8 @@ export function createTray({ services, iconDir, showWindow, quit }: TrayOptions)
   };
 
   const build = () => {
+    STRINGS = strings();
+    STRINGS = strings();
     const doors = runs.reduce((sum, r) => sum + r.forwards.length, 0);
     const items: MenuItemConstructorOptions[] = [
       { label: doors ? STRINGS.doors(doors) : STRINGS.idle, enabled: false },

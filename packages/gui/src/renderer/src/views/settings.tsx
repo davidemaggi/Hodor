@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { ThemePreference } from '@hodor/core';
-import { api } from '../api';
+import { api, errorMessage } from '../api';
+import { Command } from '../components/command';
 import { LANGUAGES } from '../i18n';
-import { useAppInfo, useSettings } from '../queries';
+import { useAppInfo, useSettings, useUpdateCheck } from '../queries';
 import { Skeleton } from '../components/states';
 import { tildify } from '../format';
 
@@ -13,6 +14,73 @@ const THEMES: Array<{ value: ThemePreference; key: string }> = [
   { value: 'light', key: 'settings.themeLight' },
   { value: 'dark', key: 'settings.themeDark' },
 ];
+
+/** Is `hodor` on the PATH, and a button to put it there */
+const CommandLine: React.FC = () => {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const status = useQuery({ queryKey: ['cli'], queryFn: () => api.app.cliStatus() });
+  const install = useMutation({
+    mutationFn: () => api.app.installCli(),
+    onSuccess: (next) => queryClient.setQueryData(['cli'], next),
+  });
+  const state = status.data?.state;
+  const canInstall = state === 'missing' || state === 'other' || state === 'notOnPath';
+
+  return (
+    <div className="setting">
+      <div>
+        <h2>{t('settings.cli')}</h2>
+        <p className="desc">{t('settings.cliDesc')}</p>
+      </div>
+      <div className="panel">
+        {!status.data ? (
+          <Skeleton width={240} />
+        ) : (
+          <p className={state === 'installed' ? 'cli-state ok' : 'cli-state'}>
+            {t(`settings.cliState.${state}`, {
+              path: tildify(status.data.path ?? status.data.target ?? ''),
+            })}
+          </p>
+        )}
+        {canInstall && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() => install.mutate()}
+            disabled={install.isPending}
+          >
+            {install.isPending ? t('settings.cliInstalling') : t('settings.cliInstall')}
+          </button>
+        )}
+        {install.isError && <p className="inline-error">{errorMessage(install.error)}</p>}
+        <Command value="hodor --help" />
+      </div>
+    </div>
+  );
+};
+
+/** Current version against the newest release */
+const UpdateLine: React.FC = () => {
+  const { t } = useTranslation();
+  const update = useUpdateCheck();
+  if (update.isPending) return <Skeleton width={200} />;
+  if (!update.data) return <p className="hint">{t('settings.updateUnknown')}</p>;
+  if (!update.data.latest)
+    return <p className="hint">{t('settings.upToDate', { version: update.data.current })}</p>;
+  return (
+    <p>
+      {t('settings.updateAvailable', { version: update.data.latest })}{' '}
+      <button
+        type="button"
+        className="link-btn"
+        onClick={() => api.app.openRelease(update.data!.url!)}
+      >
+        {t('settings.openRelease')}
+      </button>
+    </p>
+  );
+};
 
 export const SettingsView: React.FC = () => {
   const { t } = useTranslation();
@@ -99,6 +167,27 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
+      <CommandLine />
+
+      <div className="setting">
+        <div>
+          <h2 id="updates">{t('settings.updates')}</h2>
+          <p className="desc">{t('settings.updatesDesc')}</p>
+        </div>
+        <div className="panel">
+          <label className="row switch-row-full">
+            <span>{t('settings.checkUpdates')}</span>
+            <input
+              type="checkbox"
+              className="switch plain"
+              checked={settings.data?.checkUpdates !== false}
+              onChange={(e) => update.mutate({ checkUpdates: e.target.checked })}
+            />
+          </label>
+          <UpdateLine />
+        </div>
+      </div>
+
       <div className="setting">
         <div>
           <h2>{t('settings.about')}</h2>
@@ -107,7 +196,16 @@ export const SettingsView: React.FC = () => {
         <div className="panel">
           <dl>
             <dt>{t('settings.version')}</dt>
-            <dd className="num">{info.data?.version ?? <Skeleton width={80} />}</dd>
+            <dd className="num">
+              {info.data ? (
+                <>
+                  {info.data.version}
+                  {info.data.codename && <span className="muted"> · {info.data.codename}</span>}
+                </>
+              ) : (
+                <Skeleton width={80} />
+              )}
+            </dd>
             <dt>{t('settings.kubectl')}</dt>
             <dd className={info.data?.kubectl ? 'mono' : undefined}>
               {info.data ? (

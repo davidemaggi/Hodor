@@ -17,6 +17,13 @@ import type {
 export interface HodorApi {
   app: {
     info(): Promise<AppInfo>;
+    /** Is the `hodor` command on the PATH? */
+    cliStatus(): Promise<CliStatus>;
+    installCli(): Promise<CliStatus>;
+    /** Null when the check is turned off or GitHub can't be reached */
+    checkUpdate(): Promise<UpdateInfo | null>;
+    /** Open the GitHub release page of a version in the browser */
+    openRelease(url: string): Promise<void>;
   };
   clusters: {
     list(): Promise<Cluster[]>;
@@ -88,8 +95,24 @@ export interface HodorApi {
   };
 }
 
+export interface CliStatus {
+  /** dev: not an installed build · appimage: can't be linked · other: a different hodor is on PATH */
+  state: 'installed' | 'notOnPath' | 'missing' | 'other' | 'dev' | 'appimage';
+  path?: string;
+  target?: string;
+}
+
+export interface UpdateInfo {
+  current: string;
+  /** Set when a newer release exists */
+  latest?: string;
+  url?: string;
+}
+
 export interface AppInfo {
   version: string;
+  /** The major's Game of Thrones name, e.g. "Aerys" */
+  codename?: string;
   platform: 'darwin' | 'win32' | 'linux' | string;
   /** Path of the kubectl binary, or null when it is not installed */
   kubectl: string | null;
@@ -216,10 +239,15 @@ export type SettingsPatch = Partial<{
   theme: ThemePreference;
   language: string;
   productionClusters: string[];
+  checkUpdates: boolean;
 }>;
 
 export const CHANNELS = {
   appInfo: 'hodor:app:info',
+  appCliStatus: 'hodor:app:cli-status',
+  appInstallCli: 'hodor:app:install-cli',
+  appCheckUpdate: 'hodor:app:check-update',
+  appOpenRelease: 'hodor:app:open-release',
   clustersList: 'hodor:clusters:list',
   clustersHealth: 'hodor:clusters:health',
   templatesList: 'hodor:templates:list',

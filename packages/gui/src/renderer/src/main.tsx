@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { StrictMode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Navigate, RouterProvider, createHashRouter } from 'react-router-dom';
 import { ClusterDetailView } from './views/cluster-detail';
@@ -11,7 +11,7 @@ import '@fontsource/ibm-plex-sans/600.css';
 import '@fontsource/ibm-plex-mono/400.css';
 import './styles/tokens.css';
 import './styles/app.css';
-import './i18n';
+import { applyLanguage } from './i18n';
 import { Shell } from './shell';
 import { useClusters, useSettings } from './queries';
 import { useTheme } from './theme';
@@ -58,6 +58,7 @@ const router = createHashRouter([
 const App: React.FC = () => {
   const settings = useSettings();
   useTheme(settings.data?.theme);
+  useEffect(() => applyLanguage(settings.data?.language), [settings.data?.language]);
   return <RouterProvider router={router} />;
 };
 

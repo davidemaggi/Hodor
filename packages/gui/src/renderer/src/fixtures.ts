@@ -361,7 +361,8 @@ export const fixtureApi: HodorApi = {
     info: () =>
       later(
         {
-          version: '0.9.0-dev',
+          version: '1.0.0-rc.1',
+          codename: 'Aerys',
           platform: 'darwin',
           kubectl: params.has('nokubectl') ? null : '/usr/local/bin/kubectl',
           dataDir: `${home}/.hodor`,
@@ -369,6 +370,27 @@ export const fixtureApi: HodorApi = {
         },
         50
       ),
+    cliStatus: () =>
+      later(
+        {
+          state: params.has('nocli') ? 'missing' : 'installed',
+          path: params.has('nocli') ? '/usr/local/bin/hodor' : '/usr/local/bin/hodor',
+        } as const,
+        100
+      ),
+    installCli: () => later({ state: 'installed', path: '/usr/local/bin/hodor' } as const, 600),
+    checkUpdate: () =>
+      later(
+        params.has('update')
+          ? {
+              current: '1.0.0-rc.1',
+              latest: '1.0.0',
+              url: 'https://github.com/davidemaggi/Hodor/releases/tag/v1.0.0',
+            }
+          : { current: '1.0.0-rc.1' },
+        200
+      ),
+    openRelease: async () => undefined,
   },
   clusters: {
     list: () => later(clusters),

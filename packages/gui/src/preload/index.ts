@@ -5,6 +5,10 @@ import { CHANNELS, type HodorApi } from '../shared/api';
 const api: HodorApi = {
   app: {
     info: () => ipcRenderer.invoke(CHANNELS.appInfo),
+    cliStatus: () => ipcRenderer.invoke(CHANNELS.appCliStatus),
+    installCli: () => ipcRenderer.invoke(CHANNELS.appInstallCli),
+    checkUpdate: () => ipcRenderer.invoke(CHANNELS.appCheckUpdate),
+    openRelease: (url) => ipcRenderer.invoke(CHANNELS.appOpenRelease, url),
   },
   clusters: {
     list: () => ipcRenderer.invoke(CHANNELS.clustersList),

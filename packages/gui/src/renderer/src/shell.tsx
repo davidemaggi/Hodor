@@ -3,7 +3,15 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { DoorOpen, Layers, Search, Server, Settings, Star } from 'lucide-react';
 import { Mark } from './components/mark';
-import { useAppInfo, useClusters, useProduction, useRunning, useSettings } from './queries';
+import {
+  useAppInfo,
+  useClusters,
+  useProduction,
+  useRunning,
+  useSettings,
+  useUpdateCheck,
+} from './queries';
+import { api } from './api';
 import { clusterPath } from './views/clusters';
 import { Palette } from './components/palette';
 import { useShortcuts } from './hooks/use-shortcuts';
@@ -15,6 +23,7 @@ export const Shell: React.FC = () => {
   const running = useRunning();
   const settings = useSettings();
   const production = useProduction();
+  const update = useUpdateCheck();
   const [palette, setPalette] = useState(false);
   const openPalette = useCallback(() => setPalette(true), []);
   useShortcuts(openPalette);
@@ -90,7 +99,21 @@ export const Shell: React.FC = () => {
             <Settings aria-hidden="true" />
             {t('nav.settings')}
           </NavLink>
-          {info.data && <p className="version num">v{info.data.version}</p>}
+          {update.data?.latest && update.data.url && (
+            <button
+              type="button"
+              className="update-note"
+              onClick={() => api.app.openRelease(update.data!.url!)}
+            >
+              {t('nav.updateAvailable', { version: update.data.latest })}
+            </button>
+          )}
+          {info.data && (
+            <p className="version num">
+              v{info.data.version}
+              {info.data.codename ? ` · ${info.data.codename}` : ''}
+            </p>
+          )}
         </div>
       </nav>
 

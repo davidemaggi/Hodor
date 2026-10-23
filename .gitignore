@@ -245,3 +245,11 @@ certs/
 # Taste working files: screenshots are regenerated, notes and the dealt direction are kept
 .taste-skill/inspect/
 .taste-skill/electron/
+
+# CLI one-file bundle for the desktop app
+packages/cli/bundle/
+packages/gui/test-results/
+packages/gui/playwright-report/
+
+# electron-builder's inputs (icons, installer scripts) are source, not output
+!packages/gui/build/

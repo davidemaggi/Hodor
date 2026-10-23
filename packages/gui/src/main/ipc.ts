@@ -1,5 +1,14 @@
-import { clipboard, dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
+import {
+  clipboard,
+  dialog,
+  ipcMain,
+  shell,
+  type BrowserWindow,
+  type IpcMainInvokeEvent,
+} from 'electron';
 import type { AppRunner } from './runner';
+import { cliStatus, installCli } from './cli-install';
+import { RELEASES_URL, checkForUpdate } from './update-check';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs/promises';
 import * as net from 'net';
@@ -20,6 +29,7 @@ import {
   TemplateStorage,
   VERSION,
   findKubectl,
+  codename,
   keysOf,
   valueOf,
   type Template,
@@ -218,6 +228,7 @@ export function registerIpc(
 
   handle(CHANNELS.appInfo, async () => ({
     version: VERSION,
+    codename: codename(VERSION),
     platform: process.platform,
     kubectl: (await findKubectl()) ?? null,
     dataDir: path.join(os.homedir(), '.hodor'),
@@ -225,6 +236,23 @@ export function registerIpc(
   }));
 
   handle(CHANNELS.clustersList, () => discovery.list());
+
+  handle(CHANNELS.appCliStatus, () => cliStatus());
+  handle(CHANNELS.appInstallCli, () => installCli());
+  handle(CHANNELS.appCheckUpdate, async () => {
+    if ((await settingsStore()).get('checkUpdates') === false) return null;
+    try {
+      return await checkForUpdate();
+    } catch {
+      return null;
+    }
+  });
+  handle(CHANNELS.appOpenRelease, async (arg) => {
+    const url = z.string().url().parse(arg);
+    // Only our own release pages
+    if (!url.startsWith(`${RELEASES_URL}/`)) throw new Error('Not a Hodor release page');
+    await shell.openExternal(url);
+  });
 
   handle(CHANNELS.clustersHealth, async (arg) =>
     discovery.checkHealth(await requireCluster(clusterIdSchema.parse(arg)))

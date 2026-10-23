@@ -13,6 +13,8 @@ import { registerIpc } from './ipc';
 import { AppRunner } from './runner';
 import { createTray } from './tray';
 import { closeDecision } from './close-policy';
+import { mainStrings } from '../shared/main-strings';
+import { cliStatus, installCli } from './cli-install';
 
 // Snow and Night frame colours, so the window never flashes the wrong theme while loading
 const FRAME = { light: '#eef2f6', dark: '#0b0c0d' } as const;
@@ -23,10 +25,16 @@ const rendererFile = path.join(__dirname, '../renderer/index.html');
 
 let mainWindow: BrowserWindow | null = null;
 let quitting = false;
+let language = 'en';
+const strings = () => mainStrings(language);
 const runner = new AppRunner();
 
 app.enableSandbox();
 app.setAppUserModelId(APP_ID);
+
+// Tests (and anyone who needs a second, isolated instance) can move Electron's data folder,
+// which also scopes the single-instance lock
+if (process.env.HODOR_USER_DATA) app.setPath('userData', process.env.HODOR_USER_DATA);
 
 // One Hodor at a time: a second launch brings the existing window back
 if (!app.requestSingleInstanceLock()) {
@@ -47,17 +55,14 @@ function showWindow(): void {
 async function quitWithConfirm(): Promise<void> {
   const running = runner.ids().length;
   if (running > 0) {
+    const s = strings().quitDialog;
     const options = {
       type: 'question' as const,
-      buttons: ['Stop and quit', 'Cancel'],
+      buttons: [s.stopAndQuit, s.cancel],
       defaultId: 1,
       cancelId: 1,
-      message:
-        running === 1
-          ? 'A template is running. Stop it and quit?'
-          : `${running} templates are running. Stop them and quit?`,
-      detail:
-        'Their port-forwards close when Hodor quits. Templates started from the terminal keep running.',
+      message: s.message(running),
+      detail: s.detail,
     };
     const { response } = mainWindow
       ? await dialog.showMessageBox(mainWindow, options)
@@ -67,6 +72,26 @@ async function quitWithConfirm(): Promise<void> {
   quitting = true;
   await runner.shutdown();
   app.quit();
+}
+
+/** Once, on an installed build: offer to put `hodor` on the PATH (Windows does it in the installer) */
+async function offerCli(): Promise<void> {
+  if (!app.isPackaged || process.platform === 'win32' || !mainWindow) return;
+  const settings = new SettingsStorage();
+  await settings.initialize();
+  if (settings.get('cliPromptShown')) return;
+  if ((await cliStatus()).state !== 'missing') return;
+  await settings.set('cliPromptShown', true);
+  const s = strings().cliPrompt;
+  const { response } = await dialog.showMessageBox(mainWindow, {
+    type: 'question',
+    buttons: [s.install, s.notNow],
+    defaultId: 0,
+    cancelId: 1,
+    message: s.message,
+    detail: s.detail,
+  });
+  if (response === 0) await installCli().catch(() => undefined);
 }
 
 function isTrustedSender(event: IpcMainInvokeEvent): boolean {
@@ -117,7 +142,10 @@ function createWindow(): void {
     },
   });
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show());
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show();
+    void offerCli();
+  });
 
   // With templates running, closing the window keeps Hodor (and the forwards) alive in the tray
   mainWindow.on('close', async (event) => {
@@ -126,14 +154,14 @@ function createWindow(): void {
     event.preventDefault();
     if (decision === 'ask') {
       // Not every Linux desktop shows tray icons: ask instead of vanishing
+      const s = strings().closeDialog;
       const { response } = await dialog.showMessageBox(mainWindow!, {
         type: 'question',
-        buttons: ['Keep running in the background', 'Stop and quit', 'Cancel'],
+        buttons: [s.keep, s.stopAndQuit, s.cancel],
         defaultId: 0,
         cancelId: 2,
-        message: 'Templates are running',
-        detail:
-          'Keep their port-forwards open in the background? You can get back to Hodor from its tray icon or by opening it again.',
+        message: s.message,
+        detail: s.detail,
       });
       if (response === 0) mainWindow?.hide();
       else if (response === 1) await quitWithConfirm();
@@ -175,15 +203,21 @@ app.whenReady().then(async () => {
   const settings = new SettingsStorage();
   await settings.initialize();
   applyTheme(settings.getAll());
+  language = settings.get('language');
 
   const services = registerIpc(
     isTrustedSender,
-    (next) => applyTheme(next),
+    (next) => {
+      applyTheme(next);
+      language = next.language;
+      void tray.refresh();
+    },
     () => mainWindow,
     runner
   );
   const tray = createTray({
     services,
+    strings,
     iconDir: path.join(app.getAppPath(), 'resources'),
     showWindow,
     quit: () => void quitWithConfirm(),

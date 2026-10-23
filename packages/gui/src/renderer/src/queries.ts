@@ -37,3 +37,11 @@ export function useProduction() {
     busy: toggle.isPending,
   };
 }
+
+/** Newest release on GitHub; null when the check is off or GitHub can't be reached */
+export const useUpdateCheck = () =>
+  useQuery({
+    queryKey: ['update'],
+    queryFn: () => api.app.checkUpdate(),
+    staleTime: 6 * 60 * 60 * 1000,
+  });
