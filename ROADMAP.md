@@ -2,7 +2,7 @@
 
 Where Hodor is, and where it's going. No made-up dates: things ship when they work.
 
-**Now:** `0.9.0-dev` · **Next stop:** `1.0.0 "Aerys"`
+**Now:** `1.0.0-rc.1` (release candidate) · **Next stop:** `1.0.0 "Aerys"`
 
 Legend: ✅ done and tested · 🔜 next · 📋 planned · 💭 maybe
 
@@ -96,28 +96,31 @@ What exists today and has been exercised against a real cluster.
 
 ## 🔜 1.0.0 "Aerys" · First stable release
 
+`1.0.0-rc.1` is the first pre-release: what's ticked below works in it. 1.0.0 follows once the rc has been installed and used on real machines.
+
 **Scope**
 
-- Italian next to English: app, CLI, tray and dialogs
-- Kubernetes compatibility: integration tests on `kind` across the supported Kubernetes versions in CI
-- "A new version is out" notice from GitHub Releases (no auto-update)
-- No telemetry, said plainly in the README
+- ✅ Italian next to English: app, CLI, tray and dialogs
+- 🔜 Kubernetes compatibility: integration tests and the app's full flow on `kind` 1.34–1.37 in CI (passing locally on 1.35; the CI matrix runs from the first push)
+- ✅ "A new version is out" notice from GitHub Releases (no auto-update), can be turned off
+- ✅ No telemetry, said plainly in the README
 
 **Install**
 
 - The `hodor` CLI ships inside the app and runs on Electron's Node (no Node.js needed), like VS Code's `code`:
-  - Windows: per-user NSIS installer adds it to the user PATH (no admin)
-  - Linux: `.deb` / `.rpm` install `/usr/bin/hodor`; AppImage and `.tar.gz` offer it from the app
-  - macOS: the app offers "Install the hodor command" on first launch (symlink in `/usr/local/bin`)
-- Artifacts: macOS arm64 and x64 (`.dmg`, `.zip`), Windows x64 (NSIS `.exe`, `.zip`), Linux x64 and arm64 (`.AppImage`, `.deb`, `.rpm`, `.tar.gz`)
-- App id `dev.davidemaggi.hodor` (bundle id, Windows AppUserModelID, keychain service): fixed forever
-- **Unsigned**, verifiable with SHA256 checksums and GitHub build-provenance attestations; macOS users allow it once in System Settings → Privacy & Security (README explains)
+  - 🔜 Windows: per-user NSIS installer adds it to the user PATH (no admin). Built in CI, still to be tried on a Windows machine
+  - ✅ Linux: `.deb` installs `/usr/bin/hodor` and removes it again (checked in an Ubuntu 24.04 container); 🔜 `.rpm` the same, still to be tried on Fedora; the `.tar.gz` links `~/.local/bin/hodor` from the app
+  - ✅ macOS: the app offers "Install the hodor command" on first launch (symlink in `/usr/local/bin`)
+- 🔜 Artifacts (configured; macOS arm64 and Linux x64 `.deb`/`.tar.gz` built locally, the rest first built by the rc.1 release run): macOS arm64 and x64 (`.dmg`, `.zip`), Windows x64 (NSIS `.exe`, `.zip`), Linux x64 and arm64 (`.AppImage`, `.deb`, `.rpm`, `.tar.gz`)
+- ✅ App id `dev.davidemaggi.hodor` (bundle id, Windows AppUserModelID, keychain service): fixed forever
+- ✅ **Unsigned**, verifiable with SHA256 checksums and GitHub build-provenance attestations; the README explains how to open it on macOS and Windows
 
 **Release**
 
-- Release builds run on GitHub Actions **only on merge to `main`**: version read from `package.json`, the job fails if that tag already exists, tag + GitHub Release "1.0.0 Aerys" with notes from CHANGELOG; versions with a suffix (`-rc.N`) are published as pre-releases
-- First `1.0.0-rc.1` as a pre-release to install and test on real machines, then `1.0.0`
-- E2E tests (Playwright) before release: a smoke test on the three OSes in CI, a full flow against `kind` on Linux; tray, close-to-tray and PATH checked by hand on Windows and Linux
+- 🔜 Release builds (workflow written, first run on the rc.1 merge) run on GitHub Actions **only on merge to `main`**: version read from `package.json`; when its tag already exists nothing is published; tag + GitHub Release "Hodor 1.0.0 “Aerys”" with notes from CHANGELOG; versions with a suffix (`-rc.N`) are published as pre-releases
+- 🔜 `1.0.0-rc.1` as a pre-release to install and test on real machines, then `1.0.0`
+- 🔜 E2E tests (Playwright): a smoke test on the three OSes in CI, a full flow against `kind` on Linux (both pass locally on macOS)
+- 🔜 By hand on Windows and Linux: tray, close-to-tray, PATH
 
 ## 📋 1.0.1 · Signed Windows builds
 

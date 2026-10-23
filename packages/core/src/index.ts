@@ -23,4 +23,4 @@ export * from './utils';
 export * from './app-id';
 
 // Version
-export const VERSION = '0.9.0-dev';
+export const VERSION = '1.0.0-rc.1';

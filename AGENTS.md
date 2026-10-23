@@ -22,10 +22,13 @@ Rules for any AI agent (Claude Code, Copilot, …) touching this repo. Humans ar
 - From 1.0.1, Windows artifacts are also signed with Certum on a self-hosted runner (label `hodor-signing`). A preflight job checks the runner is online; if not, the signed upload is **skipped, not failed**.
 - The signing job never runs on `pull_request` events, uses a protected environment with required approval, and only handles artifacts produced by the GitHub-hosted build. It must not check out or build code itself.
 - Never put signing credentials in the repo or in workflow logs.
+- How a release happens (`.github/workflows/release.yml`): a push to `main` reads the version from `package.json`. If the tag `v<version>` already exists the run stops there, so merging without a bump publishes nothing. Otherwise it builds every OS, writes `SHA256SUMS`, attests every file and publishes the GitHub release; a version with `-` (e.g. `1.0.0-rc.1`) is a pre-release.
+- The release notes are the `## [<version>]` section of `CHANGELOG.md`, and the run fails without one. Preview title and notes with `pnpm --filter @hodor/core build && pnpm release:meta`.
+- `workflow_dispatch` builds the artifacts without publishing (a dry run, from any branch); publishing by hand works from `main` only.
 
 ## Versioning
 
-- [SemVer](https://semver.org/). Pre-1.0 work is `0.x.y-dev`.
+- [SemVer](https://semver.org/). Release candidates are `X.Y.Z-rc.N`.
 - Bump the version in the root `package.json`, every `packages/*/package.json` and `VERSION` in `packages/core/src/index.ts` together.
 - Each major has a Game of Thrones codename, one letter per major (`1.x` = **Aerys**, `2.x` = B…). Minors share the major's name, patches have none. The maintainer picks the names.
 
@@ -67,14 +70,28 @@ User data lives in `~/.hodor/` (templates, settings, run registry, kubeconfig ba
   - The real app: `pnpm --filter @hodor/gui build`, then run Electron with `--remote-debugging-port` and a sandboxed `HOME` to drive it over the DevTools protocol.
   - If Electron starts as plain Node ("Cannot read properties of undefined (reading 'enableSandbox')"), the shell has `ELECTRON_RUN_AS_NODE=1` (set by VS Code/Electron-based terminals). Run with `env -u ELECTRON_RUN_AS_NODE`.
 - Native gestures (tray menu clicks, the window's close button, file dialogs) can't be driven over CDP and macOS blocks synthetic keystrokes: keep their decisions in small pure functions with unit tests (e.g. `close-policy.ts`) and say they weren't clicked.
-- **E2E** (Playwright for the GUI) comes last, before the 1.0 release.
+- **E2E** (Playwright, `packages/gui/e2e`, run with `pnpm e2e` after `pnpm build`):
+  - `e2e/fixtures.ts` starts the built app with a throwaway `HOME`/`USERPROFILE` and `HODOR_USER_DATA` (moves Electron's data folder and with it the single-instance lock, so a Hodor already open doesn't swallow the test).
+  - `smoke.spec.ts` runs everywhere. `cluster.spec.ts` needs `HODOR_E2E_KUBECONFIG` (a kubeconfig whose default context has `kube-system/kube-dns`); the fixture copies it into the throwaway HOME.
+  - Locally, a throwaway cluster: download `kind` into a temp dir, `kind create cluster --kubeconfig <tmp>/kubeconfig`, point `HODOR_E2E_KUBECONFIG` (and `KUBECONFIG` + `HODOR_IT=1` for the core) at it, delete the cluster afterwards.
+  - On Linux run under `xvfb-run -a`; the fixture adds `--no-sandbox` there.
+- **CI** (`.github/workflows/ci.yml`): lint and format; build, unit tests, the CLI bundle and the smoke E2E on Linux, macOS and Windows; the core integration test and the cluster E2E on kind for every supported Kubernetes version. Adding a Kubernetes version means adding its kind image (pinned by digest) to the matrix.
+
+## Packaging
+
+- `pnpm dist` builds installers for the current OS into `packages/gui/dist` (electron-builder, config in `packages/gui/electron-builder.yml`, inputs in `packages/gui/build/`).
+- The Electron main process is bundled with its dependencies, so no `node_modules` ship and every dependency of `@hodor/gui` is a devDependency. A native module must be listed as `external` in `electron.vite.config.mts` and shipped on purpose.
+- The CLI ships inside the app: `pnpm --filter @hodor/cli bundle` makes one file, `packages/cli/bundle/hodor.mjs`, run by `resources/bin/hodor` (sh) and `hodor.cmd` with the app's own Electron in Node mode (`ELECTRON_RUN_AS_NODE=1`). No Node.js needed on the user's machine.
+- On the PATH: the NSIS installer adds `resources\bin` to the user PATH (`build/installer.nsh`); deb/rpm link `/usr/bin/hodor` (`build/linux/*.sh`, which must keep electron-builder's own steps); macOS and the tar.gz link it from the app (`src/main/cli-install.ts`). The Linux app binary is `hodor-app`, because `hodor` is the CLI.
+- macOS builds are ad-hoc signed (`identity: "-"`), which Apple silicon requires; there's no Developer ID yet.
+- Check a Linux package for real in a container, e.g. `docker run --platform linux/amd64 -v $PWD/packages/gui/dist:/d ubuntu:24.04` and `apt-get install /d/<file>.deb`, then run `hodor --version`.
 
 ## Security rules
 
 - Templates contain **only** namespaces, resource names, ports, tags and linked secret/configmap _names_. Never servers, contexts, users or credentials. There's a test for it; keep it passing.
 - Port-forwards bind to `127.0.0.1` unless the user explicitly asks otherwise.
 - Kubeconfig writes go through `writeFileAtomic` (mode `0600`) and `ContextManager`, which backs up first.
-- Sensitive values go to the OS keychain (`SecureStorage`). No plain-file fallback.
+- Sensitive values go to the OS keychain (`SecureStorage`). No plain-file fallback. (1.0 stores none, so the keychain module isn't shipped.)
 - Secret/configmap values are never logged or written to disk. Show them, copy them, forget them.
 - Electron (0.6+): `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, strict CSP, a narrow typed IPC surface.
 

@@ -3,9 +3,37 @@
 All notable changes to Hodor end up here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [SemVer](https://semver.org/).
 
-Nothing has been released yet: everything below lives on `develop`.
-
 ## [Unreleased]
+
+## [1.0.0-rc.1] - 2026-10-23
+
+The first release candidate of Hodor 1.0 "Aerys". Hodor holds your Kubernetes port-forwards open: save them as templates, run them on any cluster, from the desktop app or the `hodor` command.
+
+This is a **pre-release**: please try it and [open an issue](https://github.com/davidemaggi/Hodor/issues) when something breaks. The builds are **not code-signed** yet, so macOS and Windows will warn you the first time; the README explains how to open it anyway and how to check the download.
+
+### What's in it
+
+- **Clusters:** every context from every kubeconfig in `~/.kube`, which ones answer and their server version, kubectl's default and the last one you used. Browse namespaces, services and pods with their ports
+- **Templates:** forwards saved by name, description and tags, without the cluster: you pick it when you run. Built by clicking ports, edited freely, searched, dragged into order, imported and exported
+- **Running:** start and stop a forward, a template or everything; live state, connections, pod and logs per forward. Editing a running template offers a restart
+- **Linked secrets and config maps:** see and copy their values while the forward runs, masked until you ask; the clipboard is wiped after 30 seconds
+- **Tray:** close the window and your forwards keep running; copy addresses and linked values from the tray
+- **kubectl:** switch its default context and namespace (when kubectl is installed), merge kubeconfigs with preview and backup, and get the equivalent `kubectl port-forward` commands for bash or PowerShell
+- **The `hodor` command** comes with the app: the Windows installer puts it on your PATH, the Linux deb/rpm packages add `/usr/bin/hodor`, and on macOS the app offers to link it on first launch (Settings → Command line, any time)
+- **English and Italian**, Snow and Night themes (or follow the system)
+- An optional check for new releases on GitHub, which is the only thing Hodor ever asks the internet. No telemetry
+
+### Downloads
+
+macOS (Apple silicon and Intel): `.dmg`, `.zip` · Windows x64: installer `.exe`, `.zip` · Linux x64 and arm64: `.AppImage`, `.deb`, `.rpm`, `.tar.gz`. `SHA256SUMS` lists every file's checksum and each one has a GitHub build attestation.
+
+### Tested on
+
+Kubernetes 1.34, 1.35, 1.36 and 1.37, on kind clusters in CI. The app's smoke tests run on Linux, macOS and Windows.
+
+## Before 1.0
+
+The development milestones below were never released on their own; they are all part of 1.0.
 
 ### 0.9.0-dev
 

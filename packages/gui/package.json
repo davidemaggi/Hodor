@@ -1,8 +1,9 @@
 {
   "name": "@hodor/gui",
-  "version": "0.9.0-dev",
+  "version": "1.0.0-rc.1",
   "private": true,
   "description": "Hodor desktop app",
+  "desktopName": "hodor-app.desktop",
   "author": "Davide Maggi <davide.maggi@live.com>",
   "license": "Apache-2.0",
   "main": "./out/main/index.js",
@@ -17,8 +18,8 @@
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "clean": "rm -rf out",
-    "dist": "pnpm build && electron-builder",
-    "dist:dir": "pnpm build && electron-builder --dir",
+    "dist": "pnpm --filter @hodor/cli bundle && pnpm build && electron-builder --publish never",
+    "dist:dir": "pnpm --filter @hodor/cli bundle && pnpm build && electron-builder --dir",
     "e2e": "playwright test"
   },
   "devDependencies": {
