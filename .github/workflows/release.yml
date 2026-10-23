@@ -226,6 +226,7 @@ jobs:
           CODESIGN_CERT_SUBJECT: ${{ vars.CODESIGN_CERT_SUBJECT }}
           CODESIGN_TIMESTAMP_URL: ${{ vars.CODESIGN_TIMESTAMP_URL }}
           SIGNTOOL_PATH: ${{ vars.SIGNTOOL_PATH }}
+          CODESIGN_CERT_SHA1: ${{ vars.CODESIGN_CERT_SHA1 }}
         run: |
           $ErrorActionPreference = 'Stop'
           # signtool: the SIGNTOOL_PATH variable, else the PATH, else the usual SDK folders (newest first)
@@ -245,13 +246,26 @@ jobs:
             throw "signtool.exe not found. Looked at SIGNTOOL_PATH ('$env:SIGNTOOL_PATH'), the PATH and: $($searched -join '; '). Set the SIGNTOOL_PATH repository variable to its full path, or install the Windows SDK signing tools."
           }
           Write-Host "Using $signtool"
-          if (-not $env:CODESIGN_CERT_SUBJECT) { throw 'CODESIGN_CERT_SUBJECT is not set' }
+
+          # The certificate: by thumbprint when CODESIGN_CERT_SHA1 is set, else by subject text
+          if ($env:CODESIGN_CERT_SHA1) { $certificate = @('/sha1', ($env:CODESIGN_CERT_SHA1 -replace '\s', '')) }
+          elseif ($env:CODESIGN_CERT_SUBJECT) { $certificate = @('/n', $env:CODESIGN_CERT_SUBJECT, '/a') }
+          else { throw 'Set CODESIGN_CERT_SHA1 or CODESIGN_CERT_SUBJECT' }
+          # When signing fails: who we run as, and which code-signing certificates that account can see
+          function Show-Certificates {
+            Write-Host "Running as $([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
+            foreach ($store in 'Cert:\CurrentUser\My', 'Cert:\LocalMachine\My') {
+              $found = @(Get-ChildItem $store -CodeSigningCert -ErrorAction SilentlyContinue)
+              Write-Host "$store : $($found.Count) code-signing certificate(s)"
+              $found | ForEach-Object { Write-Host "  $($_.Subject) | $($_.Thumbprint) | until $($_.NotAfter)" }
+            }
+          }
           if (-not $env:CODESIGN_TIMESTAMP_URL) { throw 'CODESIGN_TIMESTAMP_URL is not set' }
 
           $files = @('win-unpacked\Hodor.exe', 'win-unpacked\resources\elevate.exe') | Where-Object { Test-Path $_ }
           if (-not ($files -contains 'win-unpacked\Hodor.exe')) { throw 'Hodor.exe is missing from the build' }
-          & $signtool sign /n "$env:CODESIGN_CERT_SUBJECT" /fd sha256 /tr "$env:CODESIGN_TIMESTAMP_URL" /td sha256 /a $files
-          if ($LASTEXITCODE) { throw "signtool sign failed ($LASTEXITCODE)" }
+          & $signtool sign @certificate /fd sha256 /tr "$env:CODESIGN_TIMESTAMP_URL" /td sha256 $files
+          if ($LASTEXITCODE) { Show-Certificates; throw "signtool sign failed ($LASTEXITCODE)" }
           & $signtool verify /pa /all $files
           if ($LASTEXITCODE) { throw "signtool verify failed ($LASTEXITCODE)" }
       - uses: actions/upload-artifact@v7.0.2
@@ -312,6 +326,7 @@ jobs:
           CODESIGN_CERT_SUBJECT: ${{ vars.CODESIGN_CERT_SUBJECT }}
           CODESIGN_TIMESTAMP_URL: ${{ vars.CODESIGN_TIMESTAMP_URL }}
           SIGNTOOL_PATH: ${{ vars.SIGNTOOL_PATH }}
+          CODESIGN_CERT_SHA1: ${{ vars.CODESIGN_CERT_SHA1 }}
         run: |
           $ErrorActionPreference = 'Stop'
           # signtool: the SIGNTOOL_PATH variable, else the PATH, else the usual SDK folders (newest first)
@@ -332,10 +347,24 @@ jobs:
           }
           Write-Host "Using $signtool"
 
+          # The certificate: by thumbprint when CODESIGN_CERT_SHA1 is set, else by subject text
+          if ($env:CODESIGN_CERT_SHA1) { $certificate = @('/sha1', ($env:CODESIGN_CERT_SHA1 -replace '\s', '')) }
+          elseif ($env:CODESIGN_CERT_SUBJECT) { $certificate = @('/n', $env:CODESIGN_CERT_SUBJECT, '/a') }
+          else { throw 'Set CODESIGN_CERT_SHA1 or CODESIGN_CERT_SUBJECT' }
+          # When signing fails: who we run as, and which code-signing certificates that account can see
+          function Show-Certificates {
+            Write-Host "Running as $([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
+            foreach ($store in 'Cert:\CurrentUser\My', 'Cert:\LocalMachine\My') {
+              $found = @(Get-ChildItem $store -CodeSigningCert -ErrorAction SilentlyContinue)
+              Write-Host "$store : $($found.Count) code-signing certificate(s)"
+              $found | ForEach-Object { Write-Host "  $($_.Subject) | $($_.Thumbprint) | until $($_.NotAfter)" }
+            }
+          }
+
           $installer = Get-ChildItem out\*-signed.exe | Select-Object -First 1
           if (-not $installer) { throw 'No installer to sign' }
-          & $signtool sign /n "$env:CODESIGN_CERT_SUBJECT" /fd sha256 /tr "$env:CODESIGN_TIMESTAMP_URL" /td sha256 /a $installer.FullName
-          if ($LASTEXITCODE) { throw "signtool sign failed ($LASTEXITCODE)" }
+          & $signtool sign @certificate /fd sha256 /tr "$env:CODESIGN_TIMESTAMP_URL" /td sha256 $installer.FullName
+          if ($LASTEXITCODE) { Show-Certificates; throw "signtool sign failed ($LASTEXITCODE)" }
 
           # The app inside the zip must still carry the signature from sign-app
           $zip = Get-ChildItem out\*-signed.zip | Select-Object -First 1
