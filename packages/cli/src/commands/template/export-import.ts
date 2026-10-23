@@ -1,81 +1,78 @@
 import chalk from 'chalk';
 import * as fs from 'fs/promises';
-import { TemplateManager, TemplateStorage } from '@hodor/core';
+import type { Template } from '@hodor/core';
+import { prompt } from '../../utils/prompt.js';
+import {
+  askForFile,
+  chooseTemplates,
+  expandHome,
+  fail,
+  openTemplates,
+} from '../../utils/shared.js';
 import { t } from '../../i18n.js';
 
 /**
- * Export a template
+ * Export one or more templates to a file. Without names, pick them from a list.
  */
 export async function templateExportCommand(
-  templateName: string,
+  names: string[],
   options: { output?: string; multiple?: string[] }
 ): Promise<void> {
   try {
-    const storage = new TemplateStorage();
-    await storage.initialize();
-    const manager = new TemplateManager(storage);
+    const manager = await openTemplates();
+    const wanted = [...names, ...(options.multiple ?? [])];
+    let output = options.output;
 
-    let json: string;
-    let filename: string;
-    let count = 1;
-
-    if (options.multiple && options.multiple.length > 0) {
-      // Export multiple templates
-      const templateIds: string[] = [];
-
-      for (const name of options.multiple) {
-        const template = manager.getByName(name);
-        if (!template) {
-          console.log(chalk.yellow(`⚠ ${t('templates.export.notFoundSkipping', { name })}`));
-          continue;
-        }
-        templateIds.push(template.id);
-      }
-
-      if (templateIds.length === 0) {
-        console.log(chalk.red(t('templates.export.noneToExport')));
-        process.exit(1);
-      }
-
-      json = manager.exportMultiple(templateIds);
-      count = templateIds.length;
-      filename = options.output || 'hodor-templates.json';
-
-      console.log(
-        chalk.green(`✓ ${t('templates.export.exportingMany', { count: templateIds.length })}`)
-      );
+    let templates: Template[];
+    if (wanted.length === 0) {
+      templates = await chooseTemplates(manager, t('templates.export.pick'));
     } else {
-      // Export single template
-      const template = manager.getByName(templateName);
-      if (!template) {
-        console.log(chalk.red(`\n${t('templates.delete.notFound', { name: templateName })}`));
-        process.exit(1);
+      templates = [];
+      for (const name of wanted) {
+        const template = manager.getByName(name);
+        if (template) templates.push(template);
+        else console.log(chalk.yellow(`⚠ ${t('templates.export.notFoundSkipping', { name })}`));
       }
-
-      json = manager.export(template.id);
-      filename = options.output || `${templateName}.json`;
-
-      console.log(chalk.green(`✓ ${t('templates.export.exportingOne', { name: template.name })}`));
+      if (templates.length === 0) fail(t('templates.export.noneToExport'));
     }
 
-    // Write to file
+    const suggested = templates.length === 1 ? `${templates[0].name}.json` : 'hodor-templates.json';
+    if (!output && wanted.length === 0) {
+      ({ output } = await prompt<{ output: string }>([
+        {
+          type: 'input',
+          name: 'output',
+          message: t('templates.export.askFile'),
+          default: suggested,
+          filter: (input: string) => expandHome(input.trim()),
+        },
+      ]));
+    }
+    const filename = output || suggested;
+
+    const json =
+      templates.length === 1
+        ? manager.export(templates[0].id)
+        : manager.exportMultiple(templates.map((template) => template.id));
     await fs.writeFile(filename, json, 'utf-8');
 
-    console.log(chalk.green(`✓ ${t('templates.export.exported', { count, file: filename })}`));
+    console.log(
+      chalk.green(
+        `✓ ${t('templates.export.exported', { count: templates.length, file: filename })}`
+      )
+    );
   } catch (error: any) {
-    console.error(chalk.red(`\n${t('common.error', { error: error.message })}`));
-    process.exit(1);
+    fail(t('common.error', { error: error.message }));
   }
 }
 
 /**
  * Import a template
  */
-export async function templateImportCommand(filePath: string): Promise<void> {
+export async function templateImportCommand(filePath?: string): Promise<void> {
   try {
-    const storage = new TemplateStorage();
-    await storage.initialize();
-    const manager = new TemplateManager(storage);
+    const manager = await openTemplates();
+    filePath = filePath ? expandHome(filePath) : await askForFile(t('templates.import.askFile'));
 
     // Read file
     const json = await fs.readFile(filePath, 'utf-8');

@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { RunRegistry } from '@hodor/core';
 import { fail } from '../../utils/shared.js';
+import { prompt } from '../../utils/prompt.js';
 import { t } from '../../i18n.js';
 
 /**
@@ -18,10 +19,39 @@ export async function templateStopCommand(
     return;
   }
 
-  const targets = options.all ? running : running.filter((r) => r.templateName === name);
-  if (!options.all && !name) {
-    fail(t('templates.stop.whichOne'));
+  let all = options.all;
+  if (!all && !name) {
+    const ALL = '\u0000all';
+    const { pick } = await prompt<{ pick: string }>([
+      {
+        type: 'list',
+        name: 'pick',
+        message: t('templates.stop.pick'),
+        pageSize: 15,
+        choices: [
+          ...running.map((r) => ({
+            name: `${r.templateName} ${chalk.dim(
+              r.source === 'app' ? t('templates.stop.inApp') : `pid ${r.pid}`
+            )}`,
+            value: r.templateName,
+            short: r.templateName,
+          })),
+          ...(running.length > 1
+            ? [
+                {
+                  name: chalk.yellow(t('templates.stop.all', { count: running.length })),
+                  value: ALL,
+                },
+              ]
+            : []),
+        ],
+      },
+    ]);
+    if (pick === ALL) all = true;
+    else name = pick;
   }
+
+  const targets = all ? running : running.filter((r) => r.templateName === name);
   if (targets.length === 0) {
     fail(
       t('templates.stop.notRunning', {

@@ -16,7 +16,7 @@ Port-forwards you can save, share, and run on any cluster, without seven termina
 
 ---
 
-> 🧪 **1.0 "Aerys" is in release candidate.** Grab `1.0.0-rc.1` from [Releases](https://github.com/davidemaggi/Hodor/releases), try it on your clusters, and [tell me what breaks](https://github.com/davidemaggi/Hodor/issues). What's next is in the [roadmap](ROADMAP.md).
+> 🧪 **1.0 "Aerys" is in release candidate.** Grab the latest release candidate from [Releases](https://github.com/davidemaggi/Hodor/releases), try it on your clusters, and [tell me what breaks](https://github.com/davidemaggi/Hodor/issues). What's next is in the [roadmap](ROADMAP.md).
 
 ## Why
 
@@ -70,7 +70,7 @@ Every release has a `SHA256SUMS` file and a [GitHub build attestation](https://d
 
 ```bash
 sha256sum -c SHA256SUMS --ignore-missing          # macOS: shasum -a 256 -c SHA256SUMS --ignore-missing
-gh attestation verify Hodor-1.0.0-rc.1-mac-arm64.dmg --repo davidemaggi/Hodor
+gh attestation verify Hodor-1.0.0-rc.2-mac-arm64.dmg --repo davidemaggi/Hodor
 ```
 
 ## The desktop app
@@ -83,6 +83,8 @@ gh attestation verify Hodor-1.0.0-rc.1-mac-arm64.dmg --repo davidemaggi/Hodor
 - English or Italian, Snow or Night, `⌘K` / `Ctrl+K` for the command palette.
 
 ## The `hodor` command
+
+Type `hodor` on its own and it shows a menu of everything it can do. Leave out a name and it asks: `hodor template:run` lists your templates, then your clusters. Names and options are still there for scripts and muscle memory:
 
 ```bash
 hodor clusters                    # every context in ~/.kube, who's up, ★ kubectl default
