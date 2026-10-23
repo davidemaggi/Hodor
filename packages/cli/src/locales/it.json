@@ -12,7 +12,9 @@
       "help": "Mostra l'aiuto del comando"
     },
     "args": {
-      "templateName": "Nome del template"
+      "templateName": "Nome del template",
+      "templateNameOrPick": "Nome del template (se lo ometti scegli da una lista)",
+      "templateNameOrGuide": "Nome del template (se lo ometti Hodor ti chiede tutto)"
     },
     "clusters": {
       "description": "Elenca tutti i context in ~/.kube e controlla quali rispondono",
@@ -72,7 +74,8 @@
     "templateExport": {
       "description": "Esporta un template",
       "output": "Percorso del file di output",
-      "multiple": "Esporta più template"
+      "multiple": "Esporta più template",
+      "names": "Nomi dei template (se li ometti scegli da una lista)"
     },
     "templateImport": {
       "description": "Importa un template",
@@ -87,7 +90,12 @@
     "clusterNotFound": "Cluster '{{name}}' non trovato. Dai un'occhiata a: hodor clusters",
     "noClusters": "Nessun cluster trovato in ~/.kube. Hodor tiene le porte, ma qui di porte non ce ne sono.",
     "pickCluster": "Su quale cluster lo avvio? {{hint}}",
-    "pickClusterHint": "(★ = default di kubectl)"
+    "pickClusterHint": "(★ = default di kubectl)",
+    "needsTerminal": "Serve una risposta ma non c'è un terminale a cui chiederla. Passala sulla riga di comando (vedi hodor <comando> --help).",
+    "noTemplates": "Ancora nessun template. Creane uno con: hodor template:create (o dall'app)",
+    "checkboxHint": "(spazio per selezionare, invio per confermare)",
+    "pickAtLeastOne": "Selezionane almeno uno",
+    "fileMissing": "Nessun file in '{{file}}'"
   },
   "clusters": {
     "looking": "Cerco i kubeconfig...",
@@ -131,7 +139,9 @@
     "merged_one": "Unito {{count}} file in {{target}}",
     "merged_many": "Uniti {{count}} file in {{target}}",
     "merged_other": "Uniti {{count}} file in {{target}}",
-    "failed": "Merge fallito: {{error}}"
+    "failed": "Merge fallito: {{error}}",
+    "askFile": "Percorso del kubeconfig da unire",
+    "askMore": "Aggiungi un altro file?"
   },
   "ctx": {
     "noContexts": "Nessun context in {{path}}",
@@ -152,7 +162,17 @@
     "command": {
       "unknownPlatform": "Piattaforma '{{platform}}' sconosciuta. Usane una tra: {{platforms}}",
       "forwardNotFound": "Forward '{{forward}}' non trovato in '{{template}}'",
-      "contextHint": "# Usa il context corrente di kubectl. Aggiungi --context <nome> per puntarne un altro."
+      "contextHint": "# Usa il context corrente di kubectl. Aggiungi --context <nome> per puntarne un altro.",
+      "pick": "Comandi per quale template?",
+      "askPlatform": "Per quale shell?",
+      "askForward": "Quali forward?",
+      "allForwards_one": "Tutti ({{count}})",
+      "allForwards_other": "Tutti ({{count}})",
+      "askContext": "Su quale contesto di kubectl?",
+      "currentContext": "Il contesto corrente di kubectl, qualunque sia",
+      "askFormat": "Come?",
+      "formatLines": "Un comando per forward",
+      "formatScript": "Uno script che li avvia tutti e li ferma con Ctrl+C"
     },
     "create": {
       "title": "🚪 Creazione template di Hodor",
@@ -192,7 +212,8 @@
       "notFound": "Template '{{name}}' non trovato.",
       "confirm": "Vuoi davvero eliminare il template '{{name}}'?",
       "cancelled": "Eliminazione annullata.",
-      "deleted": "Template '{{name}}' eliminato."
+      "deleted": "Template '{{name}}' eliminato.",
+      "pick": "Quale template vuoi eliminare?"
     },
     "edit": {
       "whatNow": "E adesso?",
@@ -222,24 +243,24 @@
       "saved": "'{{name}}' salvato",
       "restartPrompt": "Questo template è in esecuzione. Lo riavvio con le nuove impostazioni?",
       "restartRequested": "Riavvio richiesto, l'Hodor in esecuzione se ne accorge tra un secondo.",
-      "keepsOld": "L'istanza in esecuzione tiene le vecchie impostazioni finché non la riavvii."
+      "keepsOld": "L'istanza in esecuzione tiene le vecchie impostazioni finché non la riavvii.",
+      "pick": "Quale template vuoi modificare?"
     },
     "export": {
       "notFoundSkipping": "Template '{{name}}' non trovato, lo salto...",
       "noneToExport": "Nessun template da esportare.",
-      "exportingMany_one": "Esporto {{count}} template...",
-      "exportingMany_many": "Esporto {{count}} template...",
-      "exportingMany_other": "Esporto {{count}} template...",
-      "exportingOne": "Esporto il template '{{name}}'...",
       "exported_one": "Template esportato in: {{file}}",
       "exported_many": "Template esportati in: {{file}}",
-      "exported_other": "Template esportati in: {{file}}"
+      "exported_other": "Template esportati in: {{file}}",
+      "pick": "Quali template esporti?",
+      "askFile": "Salva in"
     },
     "import": {
       "importedMany_one": "Importato {{count}} template:",
       "importedMany_many": "Importati {{count}} template:",
       "importedMany_other": "Importati {{count}} template:",
-      "imported": "Template '{{name}}' importato!"
+      "imported": "Template '{{name}}' importato!",
+      "askFile": "Percorso del file da importare"
     },
     "list": {
       "loading": "Carico i template...",
@@ -274,13 +295,45 @@
       "lettingGo": "Lascio andare la porta...",
       "stopped": "Fermato. Hodor si riposa.",
       "ctrlC": "Ctrl+C per fermare",
-      "logsHint": "aggiungi --logs per vedere cosa succede"
+      "logsHint": "aggiungi --logs per vedere cosa succede",
+      "pick": "Quale template?",
+      "alreadyRunningShort": "già in esecuzione"
     },
     "stop": {
       "nothingRunning": "Non c'è niente in esecuzione. Le porte sono già tutte chiuse.",
-      "whichOne": "Dimmi quale template fermare, oppure usa --all",
       "notRunning": "'{{name}}' non è in esecuzione. In esecuzione: {{running}}",
-      "stopped": "{{name}} fermato"
+      "stopped": "{{name}} fermato",
+      "pick": "Quale fermo?",
+      "inApp": "nell'app",
+      "all_one": "Tutti ({{count}})",
+      "all_other": "Tutti ({{count}})"
+    }
+  },
+  "menu": {
+    "title": "Cosa ti serve?",
+    "running_one": "{{count}} template in esecuzione",
+    "running_other": "{{count}} template in esecuzione",
+    "groups": {
+      "forwards": "Forward",
+      "templates": "Template",
+      "clusters": "Cluster e kubectl"
+    },
+    "items": {
+      "run": "Avvia un template",
+      "stop": "Ferma un template in esecuzione",
+      "list": "Elenca i template",
+      "create": "Crea un template",
+      "edit": "Modifica un template",
+      "delete": "Elimina un template",
+      "command": "Ottieni i comandi kubectl",
+      "export": "Esporta template",
+      "import": "Importa template",
+      "clusters": "Mostra i cluster",
+      "ctx": "Cambia il contesto di kubectl",
+      "ns": "Cambia il namespace di kubectl",
+      "merge": "Unisci un kubeconfig",
+      "help": "Aiuto",
+      "quit": "Esci"
     }
   }
 }

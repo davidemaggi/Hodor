@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { ClusterDiscovery, RunRegistry, TemplateExecutor } from '@hodor/core';
 import type { LogEntry, TemplateExecution } from '@hodor/core';
-import { fail, openTemplates, pickCluster, requireTemplate } from '../../utils/shared.js';
+import { chooseTemplate, fail, openTemplates, pickCluster } from '../../utils/shared.js';
 import { t } from '../../i18n.js';
 
 const LEVEL_COLORS: Record<LogEntry['level'], (s: string) => string> = {
@@ -31,13 +31,19 @@ function printExecution(execution: TemplateExecution): void {
  * Run a template in the foreground until Ctrl+C or `hodor template:stop`
  */
 export async function templateRunCommand(
-  name: string,
+  name: string | undefined,
   options: { cluster?: string; logs?: boolean }
 ): Promise<void> {
   const manager = await openTemplates();
-  const template = requireTemplate(manager, name);
-
   const registry = new RunRegistry();
+  const busy = new Set((await registry.list()).map((r) => r.templateId));
+  const template = await chooseTemplate(
+    manager,
+    name,
+    t('templates.run.pick'),
+    (candidate) => busy.has(candidate.id) && t('templates.run.alreadyRunningShort')
+  );
+
   const existing = await registry.get(template.id);
   if (existing) {
     fail(t('templates.run.alreadyRunning', { name: template.name, pid: existing.pid }));

@@ -1,8 +1,9 @@
 import chalk from 'chalk';
 import inquirer from 'inquirer';
+import { prompt } from '../../utils/prompt.js';
 import { RunRegistry } from '@hodor/core';
 import type { PortForwardConfig, Template } from '@hodor/core';
-import { fail, openTemplates, requireTemplate } from '../../utils/shared.js';
+import { chooseTemplate, fail, openTemplates } from '../../utils/shared.js';
 import { promptForForward } from './create.js';
 import { t } from '../../i18n.js';
 
@@ -17,7 +18,7 @@ function describeForward(f: PortForwardConfig): string {
 }
 
 async function pickForward(draft: Template, message: string): Promise<number> {
-  const { index } = await inquirer.prompt<{ index: number }>([
+  const { index } = await prompt<{ index: number }>([
     {
       type: 'list',
       name: 'index',
@@ -31,9 +32,9 @@ async function pickForward(draft: Template, message: string): Promise<number> {
 /**
  * Interactive editor for every part of a template
  */
-export async function templateEditCommand(name: string): Promise<void> {
+export async function templateEditCommand(name?: string): Promise<void> {
   const manager = await openTemplates();
-  const original = requireTemplate(manager, name);
+  const original = await chooseTemplate(manager, name, t('templates.edit.pick'));
   const draft: Template = structuredClone(original);
   let dirty = false;
 
@@ -43,7 +44,7 @@ export async function templateEditCommand(name: string): Promise<void> {
     );
     draft.forwards.forEach((f, i) => console.log(chalk.dim(`  ${i + 1}. `) + describeForward(f)));
 
-    const { action } = await inquirer.prompt<{ action: Action }>([
+    const { action } = await prompt<{ action: Action }>([
       {
         type: 'list',
         name: 'action',
@@ -83,7 +84,7 @@ export async function templateEditCommand(name: string): Promise<void> {
 
     dirty = true;
     if (action === 'details') {
-      const answers = await inquirer.prompt<{ name: string; description: string; tags: string }>([
+      const answers = await prompt<{ name: string; description: string; tags: string }>([
         {
           type: 'input',
           name: 'name',
@@ -125,7 +126,7 @@ export async function templateEditCommand(name: string): Promise<void> {
       draft.forwards.splice(await pickForward(draft, t('templates.edit.removeWhich')), 1);
     } else if (action === 'move') {
       const from = await pickForward(draft, t('templates.edit.moveWhich'));
-      const { to } = await inquirer.prompt<{ to: number }>([
+      const { to } = await prompt<{ to: number }>([
         {
           type: 'list',
           name: 'to',
@@ -158,7 +159,7 @@ export async function templateEditCommand(name: string): Promise<void> {
 
   const registry = new RunRegistry();
   if (await registry.isRunning(draft.id)) {
-    const { restart } = await inquirer.prompt<{ restart: boolean }>([
+    const { restart } = await prompt<{ restart: boolean }>([
       {
         type: 'confirm',
         name: 'restart',

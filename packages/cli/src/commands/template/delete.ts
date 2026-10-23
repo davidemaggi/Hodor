@@ -1,32 +1,24 @@
 import chalk from 'chalk';
-import inquirer from 'inquirer';
-import { TemplateManager, TemplateStorage } from '@hodor/core';
+import { prompt } from '../../utils/prompt.js';
+import { chooseTemplate, openTemplates } from '../../utils/shared.js';
 import { t } from '../../i18n.js';
 
 /**
  * Delete a template
  */
 export async function templateDeleteCommand(
-  templateName: string,
+  templateName: string | undefined,
   options: {
     force?: boolean;
   }
 ): Promise<void> {
   try {
-    const storage = new TemplateStorage();
-    await storage.initialize();
-    const manager = new TemplateManager(storage);
-
-    // Find template
-    const template = manager.getByName(templateName);
-    if (!template) {
-      console.log(chalk.red(`\n${t('templates.delete.notFound', { name: templateName })}`));
-      process.exit(1);
-    }
+    const manager = await openTemplates();
+    const template = await chooseTemplate(manager, templateName, t('templates.delete.pick'));
 
     // Confirm deletion unless --force
     if (!options.force) {
-      const answer = await inquirer.prompt<{ confirm: boolean }>([
+      const answer = await prompt<{ confirm: boolean }>([
         {
           type: 'confirm',
           name: 'confirm',

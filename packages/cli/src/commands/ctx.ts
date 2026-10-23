@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import inquirer from 'inquirer';
+import { prompt } from '../utils/prompt.js';
 import { ContextManager } from '@hodor/core';
 import { fail, requireKubectl } from '../utils/shared.js';
 import { t } from '../i18n.js';
@@ -20,7 +20,7 @@ export async function ctxCommand(contextName?: string): Promise<void> {
     }
 
     if (!contextName) {
-      const answer = await inquirer.prompt<{ context: string }>([
+      const answer = await prompt<{ context: string }>([
         {
           type: 'list',
           name: 'context',

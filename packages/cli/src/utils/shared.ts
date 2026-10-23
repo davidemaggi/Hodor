@@ -1,5 +1,8 @@
 import chalk from 'chalk';
-import inquirer from 'inquirer';
+import { existsSync } from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { prompt } from './prompt.js';
 import {
   ClusterDiscovery,
   SettingsStorage,
@@ -33,6 +36,89 @@ export function requireTemplate(manager: TemplateManager, name: string): Templat
     fail(t('common.templateNotFound', { name }));
   }
   return template;
+}
+
+/** A template as one line of a list: name, tags, local ports */
+export function templateLabel(template: Template): string {
+  const tags = template.tags.length ? chalk.magenta(` #${template.tags.join(' #')}`) : '';
+  const ports = chalk.dim(`  ${template.forwards.map((f) => `:${f.localPort}`).join(' ')}`);
+  return `${template.name}${tags}${ports}`;
+}
+
+/**
+ * The template named on the command line or, without a name, one picked from the list.
+ * `disabled` greys out templates that can't be picked, with the reason shown next to them.
+ */
+export async function chooseTemplate(
+  manager: TemplateManager,
+  name: string | undefined,
+  message: string,
+  disabled?: (template: Template) => string | false
+): Promise<Template> {
+  if (name) return requireTemplate(manager, name);
+  const templates = manager.getAll();
+  if (templates.length === 0) fail(t('common.noTemplates'));
+  const { id } = await prompt<{ id: string }>([
+    {
+      type: 'list',
+      name: 'id',
+      message,
+      pageSize: 15,
+      choices: templates.map((template) => ({
+        name: templateLabel(template),
+        value: template.id,
+        short: template.name,
+        disabled: disabled?.(template) || false,
+      })),
+    },
+  ]);
+  return templates.find((template) => template.id === id)!;
+}
+
+/** Several templates, ticked in a list (at least one) */
+export async function chooseTemplates(
+  manager: TemplateManager,
+  message: string
+): Promise<Template[]> {
+  const templates = manager.getAll();
+  if (templates.length === 0) fail(t('common.noTemplates'));
+  const { ids } = await prompt<{ ids: string[] }>([
+    {
+      type: 'checkbox',
+      name: 'ids',
+      message: `${message} ${chalk.dim(t('common.checkboxHint'))}`,
+      pageSize: 15,
+      choices: templates.map((template) => ({
+        name: templateLabel(template),
+        value: template.id,
+        short: template.name,
+      })),
+      validate: (picked: string[]) => picked.length > 0 || t('common.pickAtLeastOne'),
+    },
+  ]);
+  return templates.filter((template) => ids.includes(template.id));
+}
+
+/** A file path typed by the user, checked to exist */
+export async function askForFile(message: string): Promise<string> {
+  const { file } = await prompt<{ file: string }>([
+    {
+      type: 'input',
+      name: 'file',
+      message,
+      filter: (input: string) => expandHome(input.trim().replace(/^["']|["']$/g, '')),
+      validate: (input: string) =>
+        (input.length > 0 && existsSync(input)) || t('common.fileMissing', { file: input }),
+    },
+  ]);
+  return file;
+}
+
+/** `~/x` → the home folder's x, as shells do (paths are often pasted that way) */
+export function expandHome(file: string): string {
+  return file === '~' || file.startsWith('~/') || file.startsWith('~\\')
+    ? path.join(os.homedir(), file.slice(1))
+    : file;
 }
 
 /**
@@ -73,7 +159,7 @@ export async function pickCluster(explicit?: string): Promise<Cluster> {
   const lastUsed = settings.get('lastUsedCluster');
   const preselected = clusters.find((c) => c.id === lastUsed) || clusters.find((c) => c.isDefault);
 
-  const { id } = await inquirer.prompt<{ id: string }>([
+  const { id } = await prompt<{ id: string }>([
     {
       type: 'list',
       name: 'id',

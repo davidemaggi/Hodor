@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import inquirer from 'inquirer';
+import { prompt } from '../../utils/prompt.js';
 import { TemplateManager, TemplateStorage, validatePort, validateResourceName } from '@hodor/core';
 import type { PortForwardConfig } from '@hodor/core';
 import { t } from '../../i18n.js';
@@ -16,7 +16,7 @@ export async function templateCreateCommand(): Promise<void> {
     const manager = new TemplateManager(storage);
 
     // Step 1: Template basic info
-    const basicInfo = await inquirer.prompt<{
+    const basicInfo = await prompt<{
       name: string;
       description: string;
       tags: string;
@@ -64,7 +64,7 @@ export async function templateCreateCommand(): Promise<void> {
       const forward = await promptForForward(forwards.map((f) => f.name));
       forwards.push(forward);
 
-      const { continue: shouldContinue } = await inquirer.prompt<{ continue: boolean }>([
+      const { continue: shouldContinue } = await prompt<{ continue: boolean }>([
         {
           type: 'confirm',
           name: 'continue',
@@ -113,7 +113,7 @@ export async function promptForForward(
   existingNames: string[],
   current?: PortForwardConfig
 ): Promise<PortForwardConfig> {
-  const answers = await inquirer.prompt<{
+  const answers = await prompt<{
     name: string;
     namespace: string;
     resourceType: 'pod' | 'service' | 'deployment';

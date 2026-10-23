@@ -1,8 +1,8 @@
 import chalk from 'chalk';
-import inquirer from 'inquirer';
+import { prompt } from '../utils/prompt.js';
 import * as fs from 'fs/promises';
 import { ContextManager, KubeConfigMerger, KubeConfigParser } from '@hodor/core';
-import { fail } from '../utils/shared.js';
+import { askForFile, expandHome, fail } from '../utils/shared.js';
 import { t } from '../i18n.js';
 
 /**
@@ -13,6 +13,7 @@ export async function configMergeCommand(
   options: { output?: string; yes?: boolean } = {}
 ): Promise<void> {
   try {
+    files = files.length > 0 ? files.map(expandHome) : await askForFiles();
     for (const file of files) {
       await fs.access(file).catch(() => fail(t('config.fileNotFound', { file })));
     }
@@ -47,7 +48,7 @@ export async function configMergeCommand(
     }
 
     if (!options.yes) {
-      const { ok } = await inquirer.prompt<{ ok: boolean }>([
+      const { ok } = await prompt<{ ok: boolean }>([
         {
           type: 'confirm',
           name: 'ok',
@@ -71,5 +72,17 @@ export async function configMergeCommand(
     console.log(chalk.green(`✔ ${t('config.merged', { count: files.length, target })}`));
   } catch (error: any) {
     fail(t('config.failed', { error: error.message }));
+  }
+}
+
+/** No files on the command line: ask for one, then offer to add more */
+async function askForFiles(): Promise<string[]> {
+  const files = [await askForFile(t('config.askFile'))];
+  for (;;) {
+    const { more } = await prompt<{ more: boolean }>([
+      { type: 'confirm', name: 'more', message: t('config.askMore'), default: false },
+    ]);
+    if (!more) return files;
+    files.push(await askForFile(t('config.askFile')));
   }
 }
