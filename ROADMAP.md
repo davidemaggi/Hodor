@@ -2,7 +2,7 @@
 
 Where Hodor is, and where it's going. No made-up dates: things ship when they work.
 
-**Now:** `1.0.0-rc.3` (release candidate) · **Next stop:** `1.0.0 "Aerys"`
+**Now:** `1.0.0-rc.4` (release candidate) · **Next stop:** `1.0.0 "Aerys"`
 
 Legend: ✅ done and tested · 🔜 next · 📋 planned · 💭 maybe
 

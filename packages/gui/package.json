@@ -1,6 +1,6 @@
 {
   "name": "@hodor/gui",
-  "version": "1.0.0-rc.3",
+  "version": "1.0.0-rc.4",
   "private": true,
   "description": "Hodor desktop app",
   "desktopName": "hodor-app.desktop",
