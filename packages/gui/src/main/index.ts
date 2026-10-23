@@ -98,6 +98,8 @@ function createWindow(): void {
     minHeight: 620,
     show: false,
     title: 'Hodor',
+    // Windows and Linux take the window icon from here; macOS uses the app bundle's icon
+    icon: path.join(app.getAppPath(), 'resources', 'icon.png'),
     backgroundColor: background,
     titleBarStyle: 'hidden',
     // macOS keeps its traffic lights; Windows and Linux get native controls drawn over our 48px top bar
@@ -157,6 +159,10 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  // In development the dock shows Electron's icon unless told otherwise
+  if (process.platform === 'darwin' && !app.isPackaged)
+    app.dock?.setIcon(path.join(app.getAppPath(), 'resources', 'icon.png'));
+
   // Writing to the clipboard ("Copy address") is the only web permission Hodor needs.
   // No camera, notifications, clipboard reading or anything else.
   const allowed = new Set(['clipboard-sanitized-write']);

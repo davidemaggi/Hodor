@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🚪 Hodor
+<img src="assets/brand/hodor-icon.svg" width="128" height="128" alt="Hodor icon: a door, held open" />
+
+# Hodor
 
 **Holds the door to your Kubernetes clusters.**
 

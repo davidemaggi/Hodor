@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Hodor">
+<polygon points="128,128 128,8 174.9,30.6" fill="#ececec" stroke="#ececec" stroke-width="0.6"/>
+<polygon points="128,128 174.9,30.6 221.8,53.2" fill="#e0e0e0" stroke="#e0e0e0" stroke-width="0.6"/>
+<polygon points="128,128 221.8,53.2 233.4,104" fill="#d6d6d6" stroke="#d6d6d6" stroke-width="0.6"/>
+<polygon points="128,128 233.4,104 245,154.7" fill="#cccccc" stroke="#cccccc" stroke-width="0.6"/>
+<polygon points="128,128 245,154.7 212.6,195.4" fill="#bfbfbf" stroke="#bfbfbf" stroke-width="0.6"/>
+<polygon points="128,128 212.6,195.4 180.1,236.1" fill="#b3b3b3" stroke="#b3b3b3" stroke-width="0.6"/>
+<polygon points="128,128 180.1,236.1 128,236.1" fill="#a6a6a6" stroke="#a6a6a6" stroke-width="0.6"/>
+<polygon points="128,128 128,236.1 75.9,236.1" fill="#afafaf" stroke="#afafaf" stroke-width="0.6"/>
+<polygon points="128,128 75.9,236.1 43.5,195.4" fill="#bababa" stroke="#bababa" stroke-width="0.6"/>
+<polygon points="128,128 43.5,195.4 11,154.7" fill="#c8c8c8" stroke="#c8c8c8" stroke-width="0.6"/>
+<polygon points="128,128 11,154.7 22.6,104" fill="#d2d2d2" stroke="#d2d2d2" stroke-width="0.6"/>
+<polygon points="128,128 22.6,104 34.2,53.2" fill="#dedede" stroke="#dedede" stroke-width="0.6"/>
+<polygon points="128,128 34.2,53.2 81.1,30.6" fill="#e8e8e8" stroke="#e8e8e8" stroke-width="0.6"/>
+<polygon points="128,128 81.1,30.6 128,8" fill="#f2f2f2" stroke="#f2f2f2" stroke-width="0.6"/>
+<polygon points="182,136 166.2,97.8 156.3,107.7 168,136" fill="#7a7a7a"/>
+<polygon points="166.2,97.8 128,82 128,96 156.3,107.7" fill="#8a8a8a"/>
+<polygon points="128,82 89.8,97.8 99.7,107.7 128,96" fill="#959595"/>
+<polygon points="89.8,97.8 74,136 88,136 99.7,107.7" fill="#858585"/>
+<polygon points="74,136 88,136 88,171 74,171" fill="#7f7f7f"/>
+<polygon points="74,171 88,171 88,206 74,206" fill="#737373"/>
+<polygon points="168,136 182,136 182,171 168,171" fill="#6a6a6a"/>
+<polygon points="168,171 182,171 182,206 168,206" fill="#5e5e5e"/>
+<polygon points="88,136 99.7,107.7 99.7,206" fill="#474747" stroke="#474747" stroke-width="0.4"/>
+<polygon points="88,136 99.7,206 88,206" fill="#3d3d3d" stroke="#3d3d3d" stroke-width="0.4"/>
+<polygon points="99.7,107.7 128,96 128,206" fill="#3f3f3f" stroke="#3f3f3f" stroke-width="0.4"/>
+<polygon points="99.7,107.7 128,206 99.7,206" fill="#363636" stroke="#363636" stroke-width="0.4"/>
+<polygon points="128,96 156.3,107.7 156.3,206" fill="#333333" stroke="#333333" stroke-width="0.4"/>
+<polygon points="128,96 156.3,206 128,206" fill="#2c2c2c" stroke="#2c2c2c" stroke-width="0.4"/>
+<polygon points="156.3,107.7 168,136 168,206" fill="#2a2a2a" stroke="#2a2a2a" stroke-width="0.4"/>
+<polygon points="156.3,107.7 168,206 156.3,206" fill="#242424" stroke="#242424" stroke-width="0.4"/>
+<polygon points="88,148 168,148 168,154 88,154" fill="#5a5a5a"/>
+<polygon points="88,184 168,184 168,190 88,190" fill="#5a5a5a"/>
+<circle cx="146" cy="168" r="5" fill="none" stroke="#a3a3a3" stroke-width="2.5"/>
+<polygon points="66,206 190,206 190,214" fill="#5c5c5c"/>
+<polygon points="66,206 190,214 66,214" fill="#4d4d4d"/>
+</svg>
