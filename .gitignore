@@ -253,3 +253,5 @@ packages/gui/playwright-report/
 
 # electron-builder's inputs (icons, installer scripts) are source, not output
 !packages/gui/build/
+# Written by scripts/release-meta.mjs
+release-notes.md
