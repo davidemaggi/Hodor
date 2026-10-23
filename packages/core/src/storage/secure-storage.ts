@@ -1,8 +1,26 @@
-import { Entry, findCredentials } from '@napi-rs/keyring';
+import type * as Keyring from '@napi-rs/keyring';
 
 import { APP_ID } from '../app-id';
 
 const SERVICE_NAME = APP_ID;
+
+let keyringModule: typeof Keyring | undefined;
+
+/**
+ * Load the native keychain binding on first use, so tools that never touch secrets (the CLI, an app
+ * build that doesn't ship it) don't need the native module at all.
+ */
+function keyring(): typeof Keyring {
+  if (!keyringModule) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      keyringModule = require('@napi-rs/keyring') as typeof Keyring;
+    } catch (error) {
+      throw new SecureStorageUnavailableError(`native keychain module not available: ${error}`);
+    }
+  }
+  return keyringModule;
+}
 
 export class SecureStorageUnavailableError extends Error {
   constructor(cause: unknown) {
@@ -24,8 +42,8 @@ export class SecureStorageUnavailableError extends Error {
 export class SecureStorage {
   constructor(private service: string = SERVICE_NAME) {}
 
-  private entry(key: string): Entry {
-    return new Entry(this.service, key);
+  private entry(key: string): Keyring.Entry {
+    return new (keyring().Entry)(this.service, key);
   }
 
   private wrap<T>(fn: () => T): T {
@@ -74,7 +92,9 @@ export class SecureStorage {
    * List the keys stored by Hodor
    */
   async findCredentials(): Promise<Array<{ account: string }>> {
-    return this.wrap(() => findCredentials(this.service)).map((c) => ({ account: c.account }));
+    return this.wrap(() => keyring().findCredentials(this.service)).map((c) => ({
+      account: c.account,
+    }));
   }
 
   /**

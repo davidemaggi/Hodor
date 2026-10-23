@@ -13,6 +13,10 @@ export interface Settings {
   lastUsedCluster?: string;
   /** Cluster ids the user marked as production: switching kubectl to them asks first */
   productionClusters?: string[];
+  /** Look for new releases on GitHub (default on) */
+  checkUpdates?: boolean;
+  /** The app already offered to put the `hodor` command on the PATH */
+  cliPromptShown?: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
