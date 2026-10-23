@@ -215,6 +215,10 @@ jobs:
     runs-on: [self-hosted, "${{ vars.SIGNING_RUNNER_LABEL || 'codesign' }}"]
     timeout-minutes: 30
     steps:
+      # A self-hosted runner keeps its workspace between runs: start from an empty one
+      - name: Empty the workspace
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+        run: Get-ChildItem -Force | Remove-Item -Recurse -Force
       - uses: actions/download-artifact@v8.0.2
         with:
           name: win-unpacked
@@ -275,6 +279,10 @@ jobs:
           path: win-unpacked/
           if-no-files-found: error
           retention-days: 1
+      - name: Empty the workspace again
+        if: always()
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+        run: Get-ChildItem -Force | Remove-Item -Recurse -Force
 
   package-signed:
     name: Installer from the signed app
@@ -314,10 +322,17 @@ jobs:
 
   sign-installer:
     name: Sign the installer (Windows)
-    needs: package-signed
+    needs: [meta, package-signed]
     runs-on: [self-hosted, "${{ vars.SIGNING_RUNNER_LABEL || 'codesign' }}"]
     timeout-minutes: 30
+    env:
+      INSTALLER: Hodor-${{ needs.meta.outputs.version }}-win-x64-signed.exe
+      ZIP: Hodor-${{ needs.meta.outputs.version }}-win-x64-signed.zip
     steps:
+      # A self-hosted runner keeps its workspace between runs: start from an empty one
+      - name: Empty the workspace
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+        run: Get-ChildItem -Force | Remove-Item -Recurse -Force
       - uses: actions/download-artifact@v8.0.2
         with:
           name: windows-signed-app
@@ -365,13 +380,16 @@ jobs:
             }
           }
 
-          $installer = Get-ChildItem out\*-signed.exe | Select-Object -First 1
-          if (-not $installer) { throw 'No installer to sign' }
+          # Exactly this release's files, nothing else
+          $files = @(Get-ChildItem out -File | Select-Object -ExpandProperty Name | Sort-Object)
+          $expected = @($env:INSTALLER, $env:ZIP) | Sort-Object
+          if (($files -join '|') -ne ($expected -join '|')) { throw "Expected $($expected -join ', '), got $($files -join ', ')" }
+          $installer = Get-Item "out\$env:INSTALLER"
           & $signtool sign @certificate /fd sha256 /tr "$env:CODESIGN_TIMESTAMP_URL" /td sha256 $installer.FullName
           if ($LASTEXITCODE) { Show-Certificates; throw "signtool sign failed ($LASTEXITCODE)" }
 
           # The app inside the zip must still carry the signature from sign-app
-          $zip = Get-ChildItem out\*-signed.zip | Select-Object -First 1
+          $zip = Get-Item "out\$env:ZIP"
           Expand-Archive $zip.FullName -DestinationPath zip-check -Force
           & $signtool verify /pa /all $installer.FullName zip-check\Hodor.exe
           if ($LASTEXITCODE) { throw "signtool verify failed ($LASTEXITCODE)" }
@@ -379,9 +397,13 @@ jobs:
         with:
           name: windows-signed
           path: |
-            out/*-signed.exe
-            out/*-signed.zip
+            out/${{ env.INSTALLER }}
+            out/${{ env.ZIP }}
           if-no-files-found: error
+      - name: Empty the workspace again
+        if: always()
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+        run: Get-ChildItem -Force | Remove-Item -Recurse -Force
 
   publish-signed:
     name: Add the signed Windows files to ${{ needs.meta.outputs.tag }}
@@ -396,6 +418,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       TAG: ${{ needs.meta.outputs.tag }}
+      INSTALLER: Hodor-${{ needs.meta.outputs.version }}-win-x64-signed.exe
+      ZIP: Hodor-${{ needs.meta.outputs.version }}-win-x64-signed.zip
     steps:
       - uses: actions/download-artifact@v8.0.2
         with:
@@ -404,14 +428,20 @@ jobs:
       - name: Checksums
         run: |
           gh release download "$TAG" --pattern SHA256SUMS --dir signed
-          (cd signed && sha256sum *-signed.exe *-signed.zip >> SHA256SUMS && cat SHA256SUMS)
+          cd signed
+          # Replace these two files' lines if a previous attempt added them
+          grep -v -F -e "  $INSTALLER" -e "  $ZIP" SHA256SUMS > SHA256SUMS.new || true
+          sha256sum "$INSTALLER" "$ZIP" >> SHA256SUMS.new
+          mv SHA256SUMS.new SHA256SUMS
+          cat SHA256SUMS
       - uses: actions/attest-build-provenance@v4.2.2
         with:
           subject-path: signed/*
       - name: Upload
         run: |
-          gh release upload "$TAG" signed/*-signed.exe signed/*-signed.zip signed/SHA256SUMS --clobber
+          gh release upload "$TAG" "signed/$INSTALLER" "signed/$ZIP" signed/SHA256SUMS --clobber
           gh release view "$TAG" --json body --jq .body > notes.md
+          grep -q '### Signed Windows build' notes.md && exit 0
           cat >> notes.md <<'NOTE'
 
           ### Signed Windows build
