@@ -1,0 +1,20 @@
+name: diag (temporary)
+on:
+  push:
+    branches: [ci/repro-windows-prompts]
+permissions:
+  contents: read
+jobs:
+  windows-console:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+      - name: Tools
+        working-directory: .github/diag
+        run: npm init -y >$null; npm i --no-audit --no-fund electron@45.0.0 @lydell/node-pty@1.2.0-beta.15
+      - name: Diagnose
+        working-directory: .github/diag
+        run: node driver.mjs "$PWD\child.js"
