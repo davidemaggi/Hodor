@@ -292,12 +292,14 @@ jobs:
           name: win-unpacked-signed
           path: signed/win-unpacked
       # --prepackaged wraps the folder as it is: Hodor.exe keeps its signature
+      # bash, single quotes: the ${…} are electron-builder's macros, not shell variables
       - name: Package
         working-directory: packages/gui
+        shell: bash
         run: >-
           pnpm exec electron-builder --win nsis zip --x64 --publish never
           --prepackaged ../../signed/win-unpacked
-          "-c.artifactName=${productName}-${version}-${os}-${arch}-signed.${ext}"
+          '-c.artifactName=${productName}-${version}-${os}-${arch}-signed.${ext}'
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - uses: actions/upload-artifact@v7.0.2
