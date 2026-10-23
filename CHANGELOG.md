@@ -5,6 +5,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [1.0.0-rc.2] - 2026-10-23
+
+The second release candidate of Hodor 1.0 "Aerys": the `hodor` command, fixed on Windows and a lot friendlier everywhere.
+
+### Fixed
+
+- **Windows:** every list or question in `hodor` failed with `ERR_USE_AFTER_CLOSE`. The installed command runs on the app's own Electron, whose input isn't the console on Windows; Hodor now reads answers from the console directly
+
+### Changed
+
+- `hodor` on its own opens a menu of every command
+- Leave out the argument and the command asks for it: `template:run`, `template:edit` and `template:delete` let you pick the template, `template:stop` picks among the running ones (or all of them), `template:command` asks for shell, forwards, context and format, `template:export` lets you tick templates and choose the file, `template:import` and `config:merge` ask for the file
+- With no terminal to ask in (a script, a pipe), a missing argument is an error with a hint instead of a hang
+
+### Downloads
+
+Same files as rc.1, each with its `SHA256SUMS` entry and build attestation. The builds are still unsigned: see the README for opening them on macOS and Windows.
+
 ## [1.0.0-rc.1] - 2026-10-23
 
 The first release candidate of Hodor 1.0 "Aerys". Hodor holds your Kubernetes port-forwards open: save them as templates, run them on any cluster, from the desktop app or the `hodor` command.
