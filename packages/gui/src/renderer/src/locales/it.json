@@ -416,7 +416,12 @@
     "starting": "Avvio…",
     "prod": "Cluster di produzione. Questi forward raggiungono servizi veri e dati veri.",
     "clash": "Già in uso da un altro template in esecuzione: {{list}}. Quei forward falliranno.",
-    "runOn": "Avvia su {{cluster}}"
+    "runOn": "Avvia su {{cluster}}",
+    "confirmTitle": "Avviare su un cluster di produzione?",
+    "confirmBody_one": "<strong>{{cluster}}</strong> è segnato come produzione. Questo forward raggiungerà i suoi servizi e dati reali.",
+    "confirmBody_other": "<strong>{{cluster}}</strong> è segnato come produzione. Questi {{count}} forward raggiungeranno i suoi servizi e dati reali.",
+    "confirmRun": "Sì, avvia su {{cluster}}",
+    "back": "Indietro"
   },
   "values": {
     "secret": "Secret",

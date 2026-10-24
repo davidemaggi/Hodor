@@ -207,6 +207,32 @@ test('config:merge at a terminal: tick contexts, choose the kubeconfig, see the 
   expect(readFileSync(join(home, '.kube', 'config'), 'utf-8')).toContain('name: qa');
 });
 
+test('a production cluster takes an explicit yes', async () => {
+  const id = `${resolve(home, '.kube', 'config')}::alpha`;
+  writeFileSync(
+    join(home, '.hodor', 'settings.json'),
+    JSON.stringify({ productionClusters: [id] })
+  );
+  const hodor = terminal('template:run', 'dns', '-c', 'alpha');
+  await hodor.steps(async () => {
+    // The default answer is No
+    await hodor.answer('Run dns on alpha?', ENTER);
+    expect(await hodor.ends('Left alone')).toBe(0);
+  });
+  expect(hodor.output()).not.toContain('Holding');
+
+  if (!WINDOWS) {
+    const piped = spawnSync(launcher, ['template:run', 'dns', '-c', 'alpha'], {
+      cwd: home,
+      env,
+      encoding: 'utf-8',
+      timeout: 20_000,
+    });
+    expect(piped.status).toBe(1);
+    expect(piped.stderr).toContain('pass --yes');
+  }
+});
+
 test('without a terminal it asks for the argument instead of hanging', async () => {
   // On Windows the CLI opens the console itself, so a pipe alone doesn't make it non-interactive
   test.skip(WINDOWS, 'Windows reads answers from the console');

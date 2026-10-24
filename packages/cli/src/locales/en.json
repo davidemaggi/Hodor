@@ -85,6 +85,9 @@
       "description": "Save some contexts (with their clusters and users) as a new kubeconfig",
       "contexts": "Context names (leave them out to pick from a list)",
       "output": "File to write (default: ask, or print when redirected)"
+    },
+    "common": {
+      "yesProd": "Don't ask before acting on a production cluster"
     }
   },
   "common": {
@@ -100,7 +103,12 @@
     "noTemplates": "No templates yet. Make one with: hodor template:create (or in the app)",
     "checkboxHint": "(space to tick, enter to confirm)",
     "pickAtLeastOne": "Tick at least one",
-    "fileMissing": "No file at '{{file}}'"
+    "fileMissing": "No file at '{{file}}'",
+    "prod": {
+      "warning": "{{name}} is marked as production in Hodor.",
+      "needsYes": "{{name}} is marked as production: pass --yes to go ahead without a terminal to ask in.",
+      "cancelled": "Left alone. Nothing changed."
+    }
   },
   "clusters": {
     "looking": "Looking for kubeconfigs...",
@@ -175,7 +183,8 @@
     "pick": "Pick the new kubectl default:",
     "alreadyDefault": "'{{name}}' is already the default. Hodor approves.",
     "switched": "kubectl now points to '{{name}}'",
-    "notFoundHint": "{{error}} in {{path}}. If it lives in another kubeconfig, merge it first: hodor config:merge <file>"
+    "notFoundHint": "{{error}} in {{path}}. If it lives in another kubeconfig, merge it first: hodor config:merge <file>",
+    "prodConfirm": "Point kubectl at {{name}}? Every terminal using the default context will talk to production."
   },
   "ns": {
     "noContext": "kubectl has no current context. Pick one first: hodor ctx",
@@ -320,7 +329,8 @@
       "ctrlC": "Ctrl+C to stop",
       "logsHint": "add --logs to watch what happens",
       "pick": "Which template?",
-      "alreadyRunningShort": "already running"
+      "alreadyRunningShort": "already running",
+      "prodConfirm": "Run {{name}} on {{cluster}}? Its forwards reach real services and data."
     },
     "stop": {
       "nothingRunning": "Nothing is running. All doors are already closed.",

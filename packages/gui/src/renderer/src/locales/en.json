@@ -416,7 +416,12 @@
     "starting": "Starting…",
     "prod": "Production cluster. These forwards reach real services and real data.",
     "clash": "Already in use by another running template: {{list}}. Those forwards will fail.",
-    "runOn": "Run on {{cluster}}"
+    "runOn": "Run on {{cluster}}",
+    "confirmTitle": "Run on a production cluster?",
+    "confirmBody_one": "<strong>{{cluster}}</strong> is marked as production. This forward will reach its real services and data.",
+    "confirmBody_other": "<strong>{{cluster}}</strong> is marked as production. These {{count}} forwards will reach its real services and data.",
+    "confirmRun": "Yes, run on {{cluster}}",
+    "back": "Back"
   },
   "values": {
     "secret": "Secret",

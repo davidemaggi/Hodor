@@ -1,13 +1,16 @@
 import chalk from 'chalk';
 import { prompt } from '../utils/prompt.js';
-import { ContextManager } from '@hodor/core';
-import { fail, requireKubectl } from '../utils/shared.js';
+import { ContextManager, clusterId } from '@hodor/core';
+import { confirmProduction, fail, requireKubectl } from '../utils/shared.js';
 import { t } from '../i18n.js';
 
 /**
  * Switch kubectl's default context
  */
-export async function ctxCommand(contextName?: string): Promise<void> {
+export async function ctxCommand(
+  contextName?: string,
+  options: { yes?: boolean } = {}
+): Promise<void> {
   await requireKubectl();
 
   try {
@@ -42,6 +45,11 @@ export async function ctxCommand(contextName?: string): Promise<void> {
       return;
     }
 
+    await confirmProduction(
+      { id: clusterId(manager.getConfigPath(), contextName), name: contextName },
+      t('ctx.prodConfirm', { name: contextName }),
+      options.yes
+    );
     await manager.switchContext(contextName);
 
     console.log(chalk.green(`✔ ${t('ctx.switched', { name: contextName })}`));
