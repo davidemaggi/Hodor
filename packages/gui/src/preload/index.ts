@@ -28,15 +28,18 @@ const api: HodorApi = {
       ipcRenderer.invoke(CHANNELS.kubectlSetNamespace, { clusterId, namespace }),
   },
   kubeconfig: {
-    chooseAndPreview: () => ipcRenderer.invoke(CHANNELS.kubeconfigChoose),
+    files: () => ipcRenderer.invoke(CHANNELS.kubeconfigFiles),
     // File objects can't cross IPC; their paths are resolved here, in the preload
-    previewDropped: (files) =>
+    openDropped: (files) =>
       ipcRenderer.invoke(
-        CHANNELS.kubeconfigPreview,
+        CHANNELS.kubeconfigOpenDropped,
         files.map((f) => webUtils.getPathForFile(f))
       ),
-    previewCluster: (clusterId) => ipcRenderer.invoke(CHANNELS.kubeconfigPreviewCluster, clusterId),
-    applyMerge: (token) => ipcRenderer.invoke(CHANNELS.kubeconfigApply, token),
+    chooseSources: () => ipcRenderer.invoke(CHANNELS.kubeconfigChooseSources),
+    openKnown: (paths) => ipcRenderer.invoke(CHANNELS.kubeconfigOpenKnown, paths),
+    planMerge: (request) => ipcRenderer.invoke(CHANNELS.kubeconfigPlan, request),
+    applyMerge: (request) => ipcRenderer.invoke(CHANNELS.kubeconfigApply, request),
+    exportContexts: (clusterIds) => ipcRenderer.invoke(CHANNELS.kubeconfigExport, clusterIds),
   },
   templates: {
     list: () => ipcRenderer.invoke(CHANNELS.templatesList),

@@ -328,7 +328,7 @@ export const RunningView: React.FC = () => {
         body={<p>{t('running.stopAllBody', { count: list.length })}</p>}
         tone="danger"
         confirmLabel={t('running.stopAll')}
-        cancelLabel={t('merge.cancel')}
+        cancelLabel={t('common.cancel')}
         busy={stopAll.isPending}
         onConfirm={() => stopAll.mutate()}
         onCancel={() => setConfirmStopAll(false)}

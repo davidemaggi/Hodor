@@ -80,6 +80,14 @@
     "templateImport": {
       "description": "Import a template",
       "file": "Template file to import"
+    },
+    "configExport": {
+      "description": "Save some contexts (with their clusters and users) as a new kubeconfig",
+      "contexts": "Context names (leave them out to pick from a list)",
+      "output": "File to write (default: ask, or print when redirected)"
+    },
+    "common": {
+      "yesProd": "Don't ask before acting on a production cluster"
     }
   },
   "common": {
@@ -95,7 +103,12 @@
     "noTemplates": "No templates yet. Make one with: hodor template:create (or in the app)",
     "checkboxHint": "(space to tick, enter to confirm)",
     "pickAtLeastOne": "Tick at least one",
-    "fileMissing": "No file at '{{file}}'"
+    "fileMissing": "No file at '{{file}}'",
+    "prod": {
+      "warning": "{{name}} is marked as production in Hodor.",
+      "needsYes": "{{name}} is marked as production: pass --yes to go ahead without a terminal to ask in.",
+      "cancelled": "Left alone. Nothing changed."
+    }
   },
   "clusters": {
     "looking": "Looking for kubeconfigs...",
@@ -137,14 +150,41 @@
     "merged_other": "Merged {{count}} files into {{target}}",
     "failed": "Merge failed: {{error}}",
     "askFile": "Path of the kubeconfig to merge",
-    "askMore": "Add another file?"
+    "askMore": "Add another file?",
+    "export": {
+      "pick": "Export which contexts?",
+      "askFile": "Save to",
+      "ambiguous": "There's a context called '{{name}}' in several kubeconfigs ({{files}}). Run hodor config:export without names to pick the one you mean.",
+      "wouldOverwrite": "{{file}} is one of your kubeconfigs, and saving over it would drop its other contexts. Pick a new file, or merge into it with hodor config:merge.",
+      "saved_one": "Saved {{count}} context to {{file}}",
+      "saved_other": "Saved {{count}} contexts to {{file}}",
+      "renamed": "{{kind}} '{{from}}' is '{{to}}' in the file: another kubeconfig uses the same name for something else",
+      "credentials": "The file holds credentials too, and only you can read it. Share it with care.",
+      "failed": "Export failed: {{error}}"
+    },
+    "guided": {
+      "noContexts": "No contexts in those files.",
+      "pick": "Which contexts?",
+      "into": "Into which kubeconfig?",
+      "kubectlFile": "kubectl's file",
+      "contexts_one": "{{count}} context",
+      "contexts_other": "{{count}} contexts",
+      "renamed": "(was {{name}}: that name is taken by something else)",
+      "present": "(already there)",
+      "nothing": "Everything you picked is already there. Nothing written.",
+      "confirm_one": "Add {{count}} context to {{target}}? (backed up first)",
+      "confirm_other": "Add {{count}} contexts to {{target}}? (backed up first)",
+      "done_one": "Added {{count}} context to {{target}}",
+      "done_other": "Added {{count}} contexts to {{target}}"
+    }
   },
   "ctx": {
     "noContexts": "No contexts in {{path}}",
     "pick": "Pick the new kubectl default:",
     "alreadyDefault": "'{{name}}' is already the default. Hodor approves.",
     "switched": "kubectl now points to '{{name}}'",
-    "notFoundHint": "{{error}} in {{path}}. If it lives in another kubeconfig, merge it first: hodor config:merge <file>"
+    "notFoundHint": "{{error}} in {{path}}. If it lives in another kubeconfig, merge it first: hodor config:merge <file>",
+    "prodConfirm": "Point kubectl at {{name}}? Every terminal using the default context will talk to production."
   },
   "ns": {
     "noContext": "kubectl has no current context. Pick one first: hodor ctx",
@@ -289,7 +329,8 @@
       "ctrlC": "Ctrl+C to stop",
       "logsHint": "add --logs to watch what happens",
       "pick": "Which template?",
-      "alreadyRunningShort": "already running"
+      "alreadyRunningShort": "already running",
+      "prodConfirm": "Run {{name}} on {{cluster}}? Its forwards reach real services and data."
     },
     "stop": {
       "nothingRunning": "Nothing is running. All doors are already closed.",
@@ -325,7 +366,8 @@
       "ns": "Switch kubectl's namespace",
       "merge": "Merge a kubeconfig",
       "help": "Help",
-      "quit": "Quit"
+      "quit": "Quit",
+      "export_kubeconfig": "Export a kubeconfig"
     }
   }
 }

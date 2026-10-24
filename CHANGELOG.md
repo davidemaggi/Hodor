@@ -5,6 +5,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-24
+
+Merging gets a page of its own, clusters can be exported, and production clusters ask before they're touched.
+
+### Added
+
+- **Merge kubeconfigs page** (Clusters → Merge kubeconfig, or drop files on Clusters): add files, or take contexts from one of your own kubeconfigs; tick the contexts to bring over and choose which of your kubeconfigs receives them. Each context shows what will happen (new, under another name, already there) before you merge. The target is backed up first and keeps its comments
+- **Export a kubeconfig** from the clusters you tick on the Clusters page: just those contexts with their clusters and users, in a new file only you can read. Names that clash between kubeconfigs are renamed, relative certificate paths become absolute
+- `hodor config:export [contexts...]`: the same from the terminal (tick from a list without names, print it when redirected)
+- `hodor config:merge` at a terminal asks which contexts and which kubeconfig, and shows the plan before writing
+- Production clusters take an explicit yes: running a template on one asks again in the app, and `hodor template:run` / `hodor ctx` ask too (default No; `--yes` for scripts)
+
+### Fixed
+
+- Dragging forwards into a new order in the template editor did nothing
+- The production switch and the "new version" toggle in Settings didn't save
+- Windows: the signed installer is built and signed from a clean workspace, so it can't pick up another version's files
+
 ## [1.0.0] - 2026-10-23
 
 **Hodor 1.0 "Aerys"**, the first stable release. Hodor holds your Kubernetes port-forwards open: save them as templates, run them on any cluster, from the desktop app or the `hodor` command. Four release candidates went before it; the app is the same as `1.0.0-rc.4`.

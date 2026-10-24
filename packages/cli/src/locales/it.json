@@ -80,6 +80,14 @@
     "templateImport": {
       "description": "Importa un template",
       "file": "File del template da importare"
+    },
+    "configExport": {
+      "description": "Salva alcuni context (con i loro cluster e utenti) in un nuovo kubeconfig",
+      "contexts": "Nomi dei context (se li ometti scegli da una lista)",
+      "output": "File da scrivere (predefinito: lo chiede, o lo stampa se rediretto)"
+    },
+    "common": {
+      "yesProd": "Non chiedere conferma sui cluster di produzione"
     }
   },
   "common": {
@@ -95,7 +103,12 @@
     "noTemplates": "Ancora nessun template. Creane uno con: hodor template:create (o dall'app)",
     "checkboxHint": "(spazio per selezionare, invio per confermare)",
     "pickAtLeastOne": "Selezionane almeno uno",
-    "fileMissing": "Nessun file in '{{file}}'"
+    "fileMissing": "Nessun file in '{{file}}'",
+    "prod": {
+      "warning": "{{name}} è segnato come produzione in Hodor.",
+      "needsYes": "{{name}} è segnato come produzione: usa --yes per procedere senza un terminale a cui chiedere.",
+      "cancelled": "Lasciato com'era. Niente è cambiato."
+    }
   },
   "clusters": {
     "looking": "Cerco i kubeconfig...",
@@ -141,14 +154,41 @@
     "merged_other": "Uniti {{count}} file in {{target}}",
     "failed": "Merge fallito: {{error}}",
     "askFile": "Percorso del kubeconfig da unire",
-    "askMore": "Aggiungi un altro file?"
+    "askMore": "Aggiungi un altro file?",
+    "export": {
+      "pick": "Quali context esporti?",
+      "askFile": "Salva in",
+      "ambiguous": "C'è un context chiamato '{{name}}' in più kubeconfig ({{files}}). Lancia hodor config:export senza nomi per scegliere quello giusto.",
+      "wouldOverwrite": "{{file}} è uno dei tuoi kubeconfig, e salvarci sopra cancellerebbe gli altri context. Scegli un file nuovo, oppure uniscili con hodor config:merge.",
+      "saved_one": "Salvato {{count}} context in {{file}}",
+      "saved_other": "Salvati {{count}} context in {{file}}",
+      "renamed": "{{kind}} '{{from}}' si chiama '{{to}}' nel file: un altro kubeconfig usa lo stesso nome per altro",
+      "credentials": "Il file contiene anche le credenziali, e solo tu puoi leggerlo. Condividilo con cura.",
+      "failed": "Export non riuscito: {{error}}"
+    },
+    "guided": {
+      "noContexts": "Nessun context in quei file.",
+      "pick": "Quali context?",
+      "into": "In quale kubeconfig?",
+      "kubectlFile": "il file di kubectl",
+      "contexts_one": "{{count}} context",
+      "contexts_other": "{{count}} context",
+      "renamed": "(era {{name}}: quel nome è già usato per altro)",
+      "present": "(già presente)",
+      "nothing": "Tutto quello che hai scelto è già presente. Non è stato scritto nulla.",
+      "confirm_one": "Aggiungo {{count}} context a {{target}}? (prima ne faccio un backup)",
+      "confirm_other": "Aggiungo {{count}} context a {{target}}? (prima ne faccio un backup)",
+      "done_one": "Aggiunto {{count}} context a {{target}}",
+      "done_other": "Aggiunti {{count}} context a {{target}}"
+    }
   },
   "ctx": {
     "noContexts": "Nessun context in {{path}}",
     "pick": "Scegli il nuovo default di kubectl:",
     "alreadyDefault": "'{{name}}' è già il default. Hodor approva.",
     "switched": "Ora kubectl punta a '{{name}}'",
-    "notFoundHint": "{{error}} in {{path}}. Se sta in un altro kubeconfig, prima fai il merge: hodor config:merge <file>"
+    "notFoundHint": "{{error}} in {{path}}. Se sta in un altro kubeconfig, prima fai il merge: hodor config:merge <file>",
+    "prodConfirm": "Faccio puntare kubectl a {{name}}? Ogni terminale che usa il context di default parlerà con la produzione."
   },
   "ns": {
     "noContext": "kubectl non ha un context corrente. Scegline uno prima: hodor ctx",
@@ -297,7 +337,8 @@
       "ctrlC": "Ctrl+C per fermare",
       "logsHint": "aggiungi --logs per vedere cosa succede",
       "pick": "Quale template?",
-      "alreadyRunningShort": "già in esecuzione"
+      "alreadyRunningShort": "già in esecuzione",
+      "prodConfirm": "Avvio {{name}} su {{cluster}}? I suoi forward raggiungono servizi e dati reali."
     },
     "stop": {
       "nothingRunning": "Non c'è niente in esecuzione. Le porte sono già tutte chiuse.",
@@ -333,7 +374,8 @@
       "ns": "Cambia il namespace di kubectl",
       "merge": "Unisci un kubeconfig",
       "help": "Aiuto",
-      "quit": "Esci"
+      "quit": "Esci",
+      "export_kubeconfig": "Esporta un kubeconfig"
     }
   }
 }

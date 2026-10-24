@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { Play } from 'lucide-react';
 import type { TemplateSummary } from '../../../shared/api';
 import { api, errorMessage } from '../api';
@@ -21,6 +21,8 @@ export const StartDialog: React.FC<StartDialogProps> = ({ template, onClose }) =
   const running = useRunning();
   const production = useProduction();
   const [clusterId, setClusterId] = useState('');
+  // Production clusters take a second, explicit yes
+  const [confirming, setConfirming] = useState(false);
 
   const start = useMutation({
     mutationFn: () => api.running.start(template!.id, clusterId),
@@ -37,6 +39,7 @@ export const StartDialog: React.FC<StartDialogProps> = ({ template, onClose }) =
     if (!dialog) return;
     if (template && !dialog.open) {
       start.reset();
+      setConfirming(false);
       const list = clusters.data ?? [];
       const preferred =
         list.find((c) => c.id === settings.data?.lastUsedCluster) ??
@@ -55,6 +58,7 @@ export const StartDialog: React.FC<StartDialogProps> = ({ template, onClose }) =
     for (const f of r.forwards) busy.set(f.localPort, r.templateName);
   const clashes = template?.forwards.filter((f) => busy.has(f.localPort)) ?? [];
   const isProd = !!clusterId && production.isProduction(clusterId);
+  const clusterName = clusters.data?.find((c) => c.id === clusterId)?.name;
 
   return (
     <dialog
@@ -63,12 +67,55 @@ export const StartDialog: React.FC<StartDialogProps> = ({ template, onClose }) =
       aria-labelledby="start-title"
       onCancel={() => onClose(false)}
     >
-      {template && (
+      {template && confirming && (
         <form
           method="dialog"
           onSubmit={(e) => {
             e.preventDefault();
-            if (clusterId) start.mutate();
+            start.mutate();
+          }}
+        >
+          <h2 id="start-title">{t('start.confirmTitle')}</h2>
+          <p className="dialog-block">
+            <Trans
+              i18nKey="start.confirmBody"
+              values={{ cluster: clusterName, count: template.forwards.length }}
+              components={{ strong: <strong /> }}
+            />
+          </p>
+          <ul className="name-list dialog-block">
+            {template.forwards.map((f) => (
+              <li key={f.name}>
+                :{f.localPort} → {f.namespace}/{f.resourceName}:{f.remotePort}
+              </li>
+            ))}
+          </ul>
+          {start.isError && (
+            <p className="inline-error" role="alert">
+              {errorMessage(start.error)}
+            </p>
+          )}
+          <div className="dialog-actions">
+            <button type="button" className="btn" onClick={() => setConfirming(false)} autoFocus>
+              {t('start.back')}
+            </button>
+            <button type="submit" className="btn danger-fill" disabled={start.isPending}>
+              <Play aria-hidden="true" />
+              {start.isPending
+                ? t('start.starting')
+                : t('start.confirmRun', { cluster: clusterName })}
+            </button>
+          </div>
+        </form>
+      )}
+      {template && !confirming && (
+        <form
+          method="dialog"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!clusterId) return;
+            if (isProd) setConfirming(true);
+            else start.mutate();
           }}
         >
           <h2 id="start-title">{t('start.title', { name: template.name })}</h2>
@@ -120,16 +167,14 @@ export const StartDialog: React.FC<StartDialogProps> = ({ template, onClose }) =
 
           <div className="dialog-actions">
             <button type="button" className="btn" onClick={() => onClose(false)}>
-              {t('merge.cancel')}
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn primary" disabled={!clusterId || start.isPending}>
               <Play aria-hidden="true" />
               {start.isPending
                 ? t('start.starting')
                 : isProd
-                  ? t('start.runOn', {
-                      cluster: clusters.data?.find((c) => c.id === clusterId)?.name,
-                    })
+                  ? t('start.runOn', { cluster: clusterName })
                   : t('start.run')}
             </button>
           </div>

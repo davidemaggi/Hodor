@@ -79,7 +79,9 @@ gh attestation verify Hodor-1.0.0-mac-arm64.dmg --repo davidemaggi/Hodor
 - **Templates:** click ports on a cluster to build a template; edit, tag, search, drag into order, import and export.
 - **Running:** start and stop single forwards, templates or everything; live state, connections and logs; the values of linked secrets and config maps, masked until you ask.
 - **Tray:** close the window and the forwards keep running. Copy addresses and values from the tray.
-- **kubectl:** switch its default context and namespace, merge kubeconfigs (dropped on the window or picked), and get the plain `kubectl port-forward` commands.
+- **kubectl:** switch its default context and namespace, and get the plain `kubectl port-forward` commands.
+- **Merge and export kubeconfigs:** drop or pick kubeconfigs, tick the contexts you want and choose which of your kubeconfigs gets them, with a preview first. Or tick some clusters and export them as a new kubeconfig.
+- **Production clusters:** mark them and Hodor asks before running anything on them or pointing kubectl there.
 - English or Italian, Snow or Night, `⌘K` / `Ctrl+K` for the command palette.
 
 ## The `hodor` command
@@ -90,7 +92,8 @@ Type `hodor` on its own and it shows a menu of everything it can do. Leave out a
 hodor clusters                    # every context in ~/.kube, who's up, ★ kubectl default
 hodor ctx                         # change kubectl's default context (needs kubectl)
 hodor ns                          # change kubectl's default namespace (needs kubectl)
-hodor config:merge ~/Downloads/staging.yaml   # merge into your kubeconfig (backed up first)
+hodor config:merge ~/Downloads/staging.yaml   # pick contexts and target; backed up first
+hodor config:export shop-dev shop-ci -o shop.yaml   # some contexts as a new kubeconfig
 
 hodor template:create             # interactive wizard
 hodor template:list --tags dev    # list, filter, search

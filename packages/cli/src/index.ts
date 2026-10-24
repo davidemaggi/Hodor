@@ -40,9 +40,10 @@ program
   .alias('context')
   .description(t('help.ctx.description'))
   .argument('[context]', t('help.ctx.context'))
-  .action(async (context?: string) => {
+  .option('-y, --yes', t('help.common.yesProd'))
+  .action(async (context: string | undefined, options: { yes?: boolean }) => {
     const { ctxCommand } = await import('./commands/ctx.js');
-    await ctxCommand(context);
+    await ctxCommand(context, options);
   });
 
 // Namespace command
@@ -73,6 +74,16 @@ program
   .action(async (files: string[], options: { output?: string; yes?: boolean }) => {
     const { configMergeCommand } = await import('./commands/config.js');
     await configMergeCommand(files, options);
+  });
+
+program
+  .command('config:export')
+  .description(t('help.configExport.description'))
+  .argument('[contexts...]', t('help.configExport.contexts'))
+  .option('-o, --output <file>', t('help.configExport.output'))
+  .action(async (contexts: string[], options: { output?: string }) => {
+    const { configExportCommand } = await import('./commands/config.js');
+    await configExportCommand(contexts, options);
   });
 
 // Template commands
@@ -109,10 +120,16 @@ program
   .argument('[name]', t('help.args.templateNameOrPick'))
   .option('-c, --cluster <cluster>', t('help.templateRun.cluster'))
   .option('-l, --logs', t('help.templateRun.logs'))
-  .action(async (name: string | undefined, options: { cluster?: string; logs?: boolean }) => {
-    const { templateRunCommand } = await import('./commands/template/run.js');
-    await templateRunCommand(name, options);
-  });
+  .option('-y, --yes', t('help.common.yesProd'))
+  .action(
+    async (
+      name: string | undefined,
+      options: { cluster?: string; logs?: boolean; yes?: boolean }
+    ) => {
+      const { templateRunCommand } = await import('./commands/template/run.js');
+      await templateRunCommand(name, options);
+    }
+  );
 
 program
   .command('template:stop')

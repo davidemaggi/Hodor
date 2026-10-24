@@ -47,6 +47,7 @@ export async function mainMenu(): Promise<string | null> {
         item('ctx', t('menu.items.ctx')),
         item('ns', t('menu.items.ns')),
         item('config:merge', t('menu.items.merge')),
+        item('config:export', t('menu.items.export_kubeconfig')),
         new inquirer.Separator(' '),
         item('help', t('menu.items.help')),
         { name: t('menu.items.quit'), value: '' },

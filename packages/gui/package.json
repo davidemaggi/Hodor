@@ -1,6 +1,6 @@
 {
   "name": "@hodor/gui",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Hodor desktop app",
   "desktopName": "hodor-app.desktop",
@@ -29,10 +29,12 @@
     "@lydell/node-pty": "1.2.0-beta.15",
     "@playwright/test": "^1.64.1",
     "@tanstack/react-query": "^5.104.5",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20.9.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "canvas-confetti": "^1.9.4",
     "electron": "^45.0.0",
     "electron-builder": "26",
     "electron-vite": "^6.0.0",
@@ -45,6 +47,7 @@
     "typescript": "^5.2.2",
     "vite": "^8.3.5",
     "vitest": "^0.34.6",
+    "yaml": "^2.9.1",
     "zod": "^3.22.4"
   },
   "homepage": "https://github.com/davidemaggi/Hodor",

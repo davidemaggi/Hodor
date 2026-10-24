@@ -494,7 +494,7 @@ export const TemplatesView: React.FC = () => {
           </>
         }
         confirmLabel={deleting?.running ? t('templates.deleteStop') : t('templates.deleteYes')}
-        cancelLabel={t('merge.cancel')}
+        cancelLabel={t('common.cancel')}
         busy={remove.isPending}
         onConfirm={() => deleting && remove.mutate(deleting.id)}
         onCancel={() => setDeleting(null)}

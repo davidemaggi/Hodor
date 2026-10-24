@@ -1,15 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useIsFetching, useQueries, useQueryClient } from '@tanstack/react-query';
+import { useIsFetching, useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { FilePlus2, History, RotateCw, Star } from 'lucide-react';
+import { Download, FilePlus2, History, RotateCw, Star } from 'lucide-react';
 import type { Cluster } from '@hodor/core';
 import { api, errorMessage } from '../api';
 import { useClusterHealth, useClusters, useProduction, useSettings } from '../queries';
 import { ErrorBlock, Skeleton } from '../components/states';
 import { Command } from '../components/command';
-import { MergeDialog } from '../components/merge-dialog';
-import { useMergeFlow } from '../merge';
+import { mergePath, type MergeState } from './merge';
 import { formatTime, tildify } from '../format';
 
 export const clusterPath = (id: string) => `/clusters/${encodeURIComponent(id)}`;
@@ -47,18 +46,13 @@ export const ClustersView: React.FC = () => {
   const production = useProduction();
   const checking = useIsFetching({ queryKey: ['health'] }) > 0;
   const navigate = useNavigate();
-  const merge = useMergeFlow();
   const [dragging, setDragging] = useState(false);
-
-  // Design-review hook for the browser preview only (?merge=1); dropped from real builds
-  useEffect(() => {
-    if (
-      import.meta.env.MODE === 'fixtures' &&
-      new URLSearchParams(window.location.search).has('merge')
-    )
-      merge.choose();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const [dropError, setDropError] = useState<string | null>(null);
+  const openMerge = (state?: MergeState) => navigate(mergePath, { state });
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const exporting = useMutation({
+    mutationFn: (ids: string[]) => api.kubeconfig.exportContexts(ids),
+  });
 
   const list = clusters.data ?? [];
   const healths = useQueries({
@@ -75,6 +69,16 @@ export const ClustersView: React.FC = () => {
   const lastUsed = settings.data?.lastUsedCluster;
   const multipleFiles = new Set(list.map((c) => c.sourceFile)).size > 1;
   const empty = clusters.isSuccess && list.length === 0;
+  // Clusters that disappeared (a kubeconfig changed) drop out of the selection
+  const chosen = list.filter((c) => selected.has(c.id)).map((c) => c.id);
+  const allSelected = list.length > 0 && chosen.length === list.length;
+  const toggle = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['clusters'] });
@@ -106,7 +110,12 @@ export const ClustersView: React.FC = () => {
         e.preventDefault();
         setDragging(false);
         const files = Array.from(e.dataTransfer.files);
-        if (files.length) merge.dropped(files);
+        if (!files.length) return;
+        setDropError(null);
+        api.kubeconfig
+          .openDropped(files)
+          .then((sources) => openMerge({ sources }))
+          .catch((error) => setDropError(errorMessage(error)));
       }}
     >
       {dragging && (
@@ -124,6 +133,17 @@ export const ClustersView: React.FC = () => {
           </p>
         </div>
         <div className="actions">
+          {chosen.length > 0 && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => exporting.mutate(chosen)}
+              disabled={exporting.isPending}
+            >
+              <Download aria-hidden="true" />
+              {t('clusters.exportSelected', { count: chosen.length })}
+            </button>
+          )}
           {checkedAt > 0 && settled.length === list.length && (
             <span className="stamp num">
               {t('common.checkedAt', { time: formatTime(checkedAt) })}
@@ -136,27 +156,34 @@ export const ClustersView: React.FC = () => {
             </button>
           )}
           {!empty && (
-            <button type="button" className="btn" onClick={merge.choose} disabled={merge.busy}>
+            <Link to={mergePath} className="btn">
               <FilePlus2 aria-hidden="true" />
               {t('clusters.merge')}
-            </button>
+            </Link>
           )}
         </div>
       </div>
 
-      {merge.error && (
+      {exporting.isError && (
         <p className="inline-error" role="alert">
-          {t('merge.failedFiles', { message: merge.error })}
+          {t('clusters.exportFailed', { message: errorMessage(exporting.error) })}
         </p>
       )}
-      {merge.outcome && (
+      {exporting.data && (
         <p className="inline-success" role="status">
-          {merge.outcome.added.length
-            ? t('merge.done', {
-                count: merge.outcome.added.length,
-                names: merge.outcome.added.join(', '),
-              })
-            : t('merge.doneNothing')}
+          {t('clusters.exported', {
+            count: exporting.data.contexts.length,
+            file: tildify(exporting.data.file),
+          })}
+          {exporting.data.renamed.length > 0 &&
+            ` ${t('clusters.exportRenamed', {
+              list: exporting.data.renamed.map((r) => `${r.from} → ${r.to}`).join(', '),
+            })}`}
+        </p>
+      )}
+      {dropError && (
+        <p className="inline-error" role="alert">
+          {t('merge.failedFiles', { message: dropError })}
         </p>
       )}
 
@@ -170,15 +197,10 @@ export const ClustersView: React.FC = () => {
           <h2>{t('clusters.emptyTitle')}</h2>
           <p>{t('clusters.emptyBody')}</p>
           <div className="start-actions">
-            <button
-              type="button"
-              className="btn primary"
-              onClick={merge.choose}
-              disabled={merge.busy}
-            >
+            <Link to={mergePath} className="btn primary">
               <FilePlus2 aria-hidden="true" />
               {t('clusters.chooseFile')}
-            </button>
+            </Link>
             <span className="muted">{t('clusters.orTerminal')}</span>
             <Command value="hodor config:merge ~/Downloads/kubeconfig.yaml" />
           </div>
@@ -188,6 +210,17 @@ export const ClustersView: React.FC = () => {
           <table>
             <thead>
               <tr>
+                <th className="check-col">
+                  <input
+                    type="checkbox"
+                    aria-label={t('clusters.selectAll')}
+                    checked={allSelected}
+                    disabled={list.length === 0}
+                    onChange={() =>
+                      setSelected(allSelected ? new Set() : new Set(list.map((c) => c.id)))
+                    }
+                  />
+                </th>
                 <th>
                   <span className="visually-hidden">{t('clusters.colMarks')}</span>
                 </th>
@@ -201,6 +234,7 @@ export const ClustersView: React.FC = () => {
               {clusters.isPending
                 ? [0, 1, 2].map((i) => (
                     <tr key={i}>
+                      <td className="check-col" />
                       <td className="mark" />
                       <td className="identity">
                         <Skeleton width={140} />
@@ -221,10 +255,18 @@ export const ClustersView: React.FC = () => {
                       key={cluster.id}
                       className="clickable"
                       onClick={(e) => {
-                        if ((e.target as HTMLElement).closest('a, button')) return;
+                        if ((e.target as HTMLElement).closest('a, button, input, label')) return;
                         navigate(clusterPath(cluster.id));
                       }}
                     >
+                      <td className="check-col">
+                        <input
+                          type="checkbox"
+                          aria-label={t('clusters.select', { name: cluster.name })}
+                          checked={selected.has(cluster.id)}
+                          onChange={() => toggle(cluster.id)}
+                        />
+                      </td>
                       <td className="mark">
                         {cluster.isDefault ? (
                           <span role="img" aria-label={t('clusters.defaultMark')}>
@@ -274,8 +316,6 @@ export const ClustersView: React.FC = () => {
           )}
         </>
       )}
-
-      <MergeDialog preview={merge.preview} onClose={merge.close} />
     </section>
   );
 };

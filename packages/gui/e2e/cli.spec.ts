@@ -1,7 +1,15 @@
 import { test, expect } from '@playwright/test';
 import * as pty from '@lydell/node-pty';
 import { spawnSync } from 'child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, chmodSync, existsSync } from 'fs';
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  rmSync,
+  chmodSync,
+  existsSync,
+} from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 
@@ -170,6 +178,59 @@ test('hodor on its own: the menu leads to deleting a template', async () => {
     expect(await hodor.ends("Template 'dns' deleted")).toBe(0);
     expect(hodor.output()).not.toContain('ERR_USE_AFTER_CLOSE');
   });
+});
+
+test('config:export without names: tick the contexts, then choose the file', async () => {
+  const hodor = terminal('config:export');
+  await hodor.steps(async () => {
+    await hodor.answer('Export which contexts?', ' ' + ENTER);
+    await hodor.answer('Save to', ENTER);
+    expect(await hodor.ends('Saved 1 context to alpha.kubeconfig.yaml')).toBe(0);
+  });
+  const saved = readFileSync(join(home, 'alpha.kubeconfig.yaml'), 'utf-8');
+  expect(saved).toContain('name: alpha');
+  expect(saved).toContain('token: x');
+});
+
+test('config:merge at a terminal: tick contexts, choose the kubeconfig, see the plan', async () => {
+  writeFileSync(
+    join(home, 'qa.yaml'),
+    KUBECONFIG.replace(/alpha/g, 'qa').replace("'https://127.0.0.1:1'", "'https://127.0.0.1:9'")
+  );
+  const hodor = terminal('config:merge', 'qa.yaml');
+  await hodor.steps(async () => {
+    await hodor.answer('Which contexts?', ENTER);
+    await hodor.answer('Into which kubeconfig?', ENTER);
+    await hodor.answer('Add 1 context to', ENTER);
+    expect(await hodor.ends('Added 1 context to')).toBe(0);
+  });
+  expect(readFileSync(join(home, '.kube', 'config'), 'utf-8')).toContain('name: qa');
+});
+
+test('a production cluster takes an explicit yes', async () => {
+  const id = `${resolve(home, '.kube', 'config')}::alpha`;
+  writeFileSync(
+    join(home, '.hodor', 'settings.json'),
+    JSON.stringify({ productionClusters: [id] })
+  );
+  const hodor = terminal('template:run', 'dns', '-c', 'alpha');
+  await hodor.steps(async () => {
+    // The default answer is No
+    await hodor.answer('Run dns on alpha?', ENTER);
+    expect(await hodor.ends('Left alone')).toBe(0);
+  });
+  expect(hodor.output()).not.toContain('Holding');
+
+  if (!WINDOWS) {
+    const piped = spawnSync(launcher, ['template:run', 'dns', '-c', 'alpha'], {
+      cwd: home,
+      env,
+      encoding: 'utf-8',
+      timeout: 20_000,
+    });
+    expect(piped.status).toBe(1);
+    expect(piped.stderr).toContain('pass --yes');
+  }
 });
 
 test('without a terminal it asks for the argument instead of hanging', async () => {

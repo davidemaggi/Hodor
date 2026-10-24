@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import { existsSync } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { prompt } from './prompt.js';
+import { canPrompt, prompt } from './prompt.js';
 import {
   ClusterDiscovery,
   SettingsStorage,
@@ -119,6 +119,29 @@ export function expandHome(file: string): string {
   return file === '~' || file.startsWith('~/') || file.startsWith('~\\')
     ? path.join(os.homedir(), file.slice(1))
     : file;
+}
+
+/**
+ * Clusters marked as production in the app take an explicit yes: asked at a terminal (default
+ * No), `--yes` in scripts. Exits when the answer is no.
+ */
+export async function confirmProduction(
+  cluster: { id: string; name: string },
+  question: string,
+  yes?: boolean
+): Promise<void> {
+  const settings = await openSettings();
+  if (!(settings.get('productionClusters') ?? []).includes(cluster.id)) return;
+  console.log(chalk.yellow(`⚠ ${t('common.prod.warning', { name: cluster.name })}`));
+  if (yes) return;
+  if (!canPrompt()) fail(t('common.prod.needsYes', { name: cluster.name }));
+  const { ok } = await prompt<{ ok: boolean }>([
+    { type: 'confirm', name: 'ok', message: question, default: false },
+  ]);
+  if (!ok) {
+    console.log(chalk.dim(t('common.prod.cancelled')));
+    process.exit(0);
+  }
 }
 
 /**
