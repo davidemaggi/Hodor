@@ -26,6 +26,11 @@ if hash update-desktop-database 2>/dev/null; then
     update-desktop-database /usr/share/applications || true
 fi
 
+# Hodor: refresh the icon cache so desktops that use it see the new icons
+if hash gtk-update-icon-cache 2>/dev/null; then
+    gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+fi
+
 # Install apparmor profile. (Ubuntu 24+)
 # First check if the version of AppArmor running on the device supports our profile.
 # This is in order to keep backwards compatibility with Ubuntu 22.04 which does not support abi/4.0.

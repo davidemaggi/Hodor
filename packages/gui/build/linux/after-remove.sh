@@ -30,3 +30,8 @@ fi
 if [ "$(readlink /usr/bin/hodor)" = '/opt/${sanitizedProductName}/resources/bin/hodor' ]; then
   rm -f /usr/bin/hodor
 fi
+
+# Hodor: refresh the icon cache so desktops that use it see the new icons
+if hash gtk-update-icon-cache 2>/dev/null; then
+    gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+fi
