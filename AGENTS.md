@@ -31,7 +31,7 @@ Rules for any AI agent (Claude Code, Copilot, …) touching this repo. Humans ar
 
 - [SemVer](https://semver.org/). Release candidates are `X.Y.Z-rc.N`.
 - Bump the version in the root `package.json`, every `packages/*/package.json` and `VERSION` in `packages/core/src/index.ts` together.
-- Each major has a Game of Thrones codename, one letter per major (`1.x` = **Aerys**, `2.x` = B…). Minors share the major's name, patches have none. The maintainer picks the names.
+- Every minor has a Game of Thrones codename (`CODENAMES` in `packages/core/src/utils/version.ts`): the minors of a major start with the same letter and a new major moves to the next one (`1.0` = **Aerys**, `1.1` = **Aegon**, `2.x` = B…). Patches keep their minor's name in the app, and their release title has no name. The maintainer picks the names; add one before releasing a new minor.
 
 ## Repo layout
 

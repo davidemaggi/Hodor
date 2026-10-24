@@ -154,7 +154,7 @@ Yes please. Read [CONTRIBUTING.md](CONTRIBUTING.md), branch off `develop`, keep 
 
 ## Versions
 
-[SemVer](https://semver.org/), with a Game of Thrones character for every major release: `1.x` is **Aerys**, `2.x` will start with B, and so on. Patch releases don't get a name, they're just patches.
+[SemVer](https://semver.org/), with a Game of Thrones character for every minor release. All of a major's names share a letter: `1.0` is **Aerys**, `1.1` is **Aegon**, `2.x` will start with B, and so on. Patch releases don't get a name, they're just patches.
 
 ## License
 

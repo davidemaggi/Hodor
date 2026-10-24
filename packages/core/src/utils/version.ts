@@ -1,13 +1,16 @@
 /**
- * Version helpers. Each major release has a Game of Thrones codename, one letter per major.
+ * Version helpers. Every minor release has a Game of Thrones codename; all the minors of a major
+ * start with the same letter, and a new major moves to the next letter. Patches share their
+ * minor's name.
  */
-const CODENAMES: Record<number, string> = {
-  1: 'Aerys',
+const CODENAMES: Record<string, string> = {
+  '1.0': 'Aerys',
+  '1.1': 'Aegon',
 };
 
 export function codename(version: string): string | undefined {
-  const major = Number(version.split('.')[0]);
-  return CODENAMES[major];
+  const [major, minor] = version.replace(/^v/, '').split('.');
+  return CODENAMES[`${Number(major)}.${Number(minor)}`];
 }
 
 interface Parsed {

@@ -24,9 +24,12 @@ describe('versions', () => {
     expect(compareVersions('v1.2.3', '1.2.3')).toBe(0);
   });
 
-  it('names majors after Game of Thrones characters', () => {
+  it('names every minor after a Game of Thrones character, one letter per major', () => {
     expect(codename('1.0.0-rc.1')).toBe('Aerys');
-    expect(codename('1.4.2')).toBe('Aerys');
+    expect(codename('1.0.1')).toBe('Aerys');
+    expect(codename('1.1.0')).toBe('Aegon');
+    expect(codename('v1.1.3')).toBe('Aegon');
+    expect(codename('1.2.0')).toBeUndefined();
     expect(codename('0.9.0-dev')).toBeUndefined();
   });
 
