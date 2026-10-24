@@ -266,6 +266,9 @@ a.btn { text-decoration: none; }
 .template-group[data-dragging] td { opacity: 0.5; }
 .template-group[data-drag-over="above"] tr:first-child td { box-shadow: inset 0 2px 0 var(--accent); }
 .template-group[data-drag-over="below"] tr:last-child td { box-shadow: inset 0 -2px 0 var(--accent); }
+.forward-row[data-dragging] { opacity: 0.5; }
+.forward-row[data-drag-over="above"] { box-shadow: 0 -2px 0 var(--accent); }
+.forward-row[data-drag-over="below"] { box-shadow: 0 2px 0 var(--accent); }
 .drag-handle { display: inline-grid; place-items: center; width: 24px; height: 28px; padding: 0; border: 0; border-radius: 4px; background: none; color: var(--faint); cursor: grab; }
 .drag-handle:hover { color: var(--text); background: var(--raised); }
 .drag-handle:disabled { cursor: default; opacity: 0.4; }

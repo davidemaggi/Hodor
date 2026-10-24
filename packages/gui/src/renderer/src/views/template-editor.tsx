@@ -47,6 +47,8 @@ interface ForwardRowProps {
   onChange: (f: PortForwardConfig) => void;
   onRemove: () => void;
   handleProps: ReturnType<ReturnType<typeof useReorder>['handleProps']> | Record<string, unknown>;
+  /** Drop target for drag & drop reordering */
+  rowProps: ReturnType<ReturnType<typeof useReorder>['rowProps']>;
 }
 
 const ForwardRow: React.FC<ForwardRowProps> = ({
@@ -58,6 +60,7 @@ const ForwardRow: React.FC<ForwardRowProps> = ({
   onChange,
   onRemove,
   handleProps,
+  rowProps,
 }) => {
   const { t } = useTranslation();
   const id = `fwd-${index}`;
@@ -70,7 +73,7 @@ const ForwardRow: React.FC<ForwardRowProps> = ({
   );
 
   return (
-    <div className="forward-row" data-invalid={blocking(issues) ? true : undefined}>
+    <div className="forward-row" data-invalid={blocking(issues) ? true : undefined} {...rowProps}>
       <button
         type="button"
         className="drag-handle"
@@ -484,7 +487,7 @@ export const TemplateEditorView: React.FC = () => {
   );
 
   const setForwards = (forwards: PortForwardConfig[]) => setDraft((d) => ({ ...d, forwards }));
-  const { handleProps } = useReorder((from, to) => {
+  const { rowProps, handleProps } = useReorder((from, to) => {
     setForwards(moveItem(draft.forwards, from, to));
     setKeys((k) => moveItem(k, from, to));
   });
@@ -683,6 +686,7 @@ export const TemplateEditorView: React.FC = () => {
                     setKeys((k) => k.filter((_, i) => i !== index));
                   }}
                   handleProps={handleProps(index, draft.forwards.length)}
+                  rowProps={rowProps(index)}
                 />
               ))}
             </div>
