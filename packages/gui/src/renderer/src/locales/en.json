@@ -438,5 +438,23 @@
     "loading": "Loading…",
     "hint": "Values are read from the cluster when you ask and never stored by Hodor. Copied values are wiped from the clipboard after 30 seconds.",
     "prod": "Production values. Handle with care."
+  },
+  "pad": {
+    "title": "Controller",
+    "hint": "You know the code.",
+    "progress": "{{done}} of 10",
+    "keys": {
+      "up": "Up",
+      "down": "Down",
+      "left": "Left",
+      "right": "Right",
+      "b": "B",
+      "a": "A",
+      "select": "Select",
+      "start": "Start"
+    },
+    "wonTitle": "HODOR!",
+    "wonBody": "Thirty extra lives won't fix that failing deploy. Somebody has to hold the door while you play, and that somebody is me. Back to work, please.",
+    "back": "Sorry, back to work"
   }
 }

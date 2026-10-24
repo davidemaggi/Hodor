@@ -438,5 +438,23 @@
     "loading": "Carico…",
     "hint": "I valori vengono letti dal cluster quando li chiedi e Hodor non li salva mai. Quelli copiati spariscono dalla clipboard dopo 30 secondi.",
     "prod": "Valori di produzione. Maneggiare con cura."
+  },
+  "pad": {
+    "title": "Controller",
+    "hint": "Il codice lo conosci.",
+    "progress": "{{done}} su 10",
+    "keys": {
+      "up": "Su",
+      "down": "Giù",
+      "left": "Sinistra",
+      "right": "Destra",
+      "b": "B",
+      "a": "A",
+      "select": "Select",
+      "start": "Start"
+    },
+    "wonTitle": "HODOR!",
+    "wonBody": "Trenta vite in più non sistemano quel deploy che fallisce. Qualcuno deve tenere la porta mentre giochi, e quel qualcuno sono io. Torna a lavorare, per favore.",
+    "back": "Scusa, torno a lavorare"
   }
 }

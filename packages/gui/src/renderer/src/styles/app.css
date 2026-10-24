@@ -1921,3 +1921,43 @@ kbd {
 .merge-source table th:last-child, .merge-source table td:last-child { width: 160px; }
 .merge-source table .check-col { width: 40px; }
 .merge-yours .start-list .sub { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; }
+
+/* Pad: a drawn object with its own colours in both themes */
+.pad-dialog { width: 100vw; max-width: none; height: 100vh; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; color: var(--text); }
+.pad-dialog::backdrop { background: rgb(0 0 0 / 0.55); }
+.pad-confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.pad-stage, .pad-won { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 20px; }
+.pad { display: grid; width: 440px; height: 190px; padding: 18px; border-radius: 12px; background: #d4d4d2; }
+.pad.shake { animation: pad-shake 320ms ease-in-out; }
+@keyframes pad-shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.pad-face { display: grid; grid-template-columns: 120px 1fr 130px; align-items: center; gap: 16px; padding: 0 18px; border-radius: 6px; background: #1c1c1c; }
+.pad-cross { display: grid; grid-template-columns: repeat(3, 34px); grid-template-rows: repeat(3, 34px); }
+.pad-cross button, .pad-hub { border: 0; background: #0b0b0b; padding: 0; }
+.pad-up { grid-column: 2; grid-row: 1; border-radius: 4px 4px 0 0; }
+.pad-left { grid-column: 1; grid-row: 2; border-radius: 4px 0 0 4px; }
+.pad-hub { grid-column: 2; grid-row: 2; }
+.pad-right { grid-column: 3; grid-row: 2; border-radius: 0 4px 4px 0; }
+.pad-down { grid-column: 2; grid-row: 3; border-radius: 0 0 4px 4px; }
+.pad-middle { display: grid; gap: 6px; justify-items: center; }
+.pad-labels, .pad-pills { display: flex; gap: 14px; }
+.pad-labels span { width: 52px; text-align: center; color: #c8102e; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; }
+.pad-pill { width: 52px; height: 14px; border: 3px solid #9a9a9a; border-radius: 999px; background: #0b0b0b; padding: 0; }
+.pad-ab { display: flex; gap: 18px; }
+.pad-ab > div { display: grid; justify-items: center; gap: 6px; padding: 8px 8px 4px; border-radius: 8px; background: #d4d4d2; }
+.pad-ab span { color: #c8102e; font-size: 13px; font-weight: 700; }
+.pad-round { width: 40px; height: 40px; border: 0; border-radius: 50%; background: #c8102e; padding: 0; }
+.pad button { cursor: pointer; transition: transform var(--t-hover) ease; }
+.pad button.down, .pad button:active { transform: scale(0.9); }
+.pad button:focus-visible { outline: 2px solid #ffd23f; outline-offset: 2px; }
+.pad-progress { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.pad-progress li { width: 10px; height: 10px; border-radius: 50%; background: rgb(255 255 255 / 0.25); }
+.pad-progress li.on { background: #ffd23f; }
+.pad-hint { color: #f2f4f5; }
+.pad-won { width: min(520px, calc(100vw - 48px)); height: max-content; margin: auto; padding: 32px; border-radius: var(--radius-sheet); background: var(--surface); text-align: center; }
+.pad-won h2 { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; }
+.pad-won p { max-width: 42ch; font-size: 16px; }
+@media (prefers-reduced-motion: reduce) {
+  .pad.shake { animation: none; }
+  .pad button { transition: none; }
+}
+.pad-stage:focus { outline: none; }
