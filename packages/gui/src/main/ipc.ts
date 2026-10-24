@@ -92,6 +92,9 @@ const settingsPatchSchema = z
       .string()
       .regex(/^[a-z]{2}(-[A-Z]{2})?$/)
       .optional(),
+    // Cluster ids ("<kubeconfig path>::<context>") marked as production
+    productionClusters: z.array(z.string().min(1).max(4096)).max(1000).optional(),
+    checkUpdates: z.boolean().optional(),
   })
   .strict();
 
