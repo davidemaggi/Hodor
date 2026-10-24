@@ -67,19 +67,20 @@ User data lives in `~/.hodor/` (templates, settings, run registry, kubeconfig ba
   - `HODOR_KEYCHAIN_IT=1 …` touches the real OS keychain under a throwaway service name
 - **Manual CLI checks**: run with `HOME` pointing at a temp dir containing a _copy_ of the kubeconfig, so `ctx`/`ns`/`merge` never touch the real one.
 - **GUI checks**:
-  - `pnpm --filter @hodor/gui preview:web` serves the renderer in a browser with sample data (`fixtures.ts`). Query flags: `?theme=light|dark`, `?empty=1` (first run), `?idle=1` (nothing running), `?cli=1` (run started from the terminal), `?merge=1`, `?palette=1`, `?cmd=1`, `?start=1`, `?panel=logs|values`. Fixtures never reach a real build; check with `grep -r northwind packages/gui/out`.
+  - `pnpm --filter @hodor/gui preview:web` serves the renderer in a browser with sample data (`fixtures.ts`). Query flags: `?theme=light|dark`, `?empty=1` (first run), `?idle=1` (nothing running), `?cli=1` (run started from the terminal), `?merge=1` (on `#/clusters/merge`: starts with a downloaded file), `?palette=1`, `?cmd=1`, `?start=1`, `?panel=logs|values`. Fixtures never reach a real build; check with `grep -r northwind packages/gui/out`.
   - The real app: `pnpm --filter @hodor/gui build`, then run Electron with `--remote-debugging-port` and a sandboxed `HOME` to drive it over the DevTools protocol.
   - If Electron starts as plain Node ("Cannot read properties of undefined (reading 'enableSandbox')"), the shell has `ELECTRON_RUN_AS_NODE=1` (set by VS Code/Electron-based terminals). Run with `env -u ELECTRON_RUN_AS_NODE`.
 - Native gestures (tray menu clicks, the window's close button, file dialogs) can't be driven over CDP and macOS blocks synthetic keystrokes: keep their decisions in small pure functions with unit tests (e.g. `close-policy.ts`) and say they weren't clicked.
 - **E2E** (Playwright, `packages/gui/e2e`, run with `pnpm e2e` after `pnpm build`):
   - `e2e/fixtures.ts` starts the built app with a throwaway `HOME`/`USERPROFILE` and `HODOR_USER_DATA` (moves Electron's data folder and with it the single-instance lock, so a Hodor already open doesn't swallow the test).
-  - `smoke.spec.ts` runs everywhere. `cluster.spec.ts` needs `HODOR_E2E_KUBECONFIG` (a kubeconfig whose default context has `kube-system/kube-dns`); the fixture copies it into the throwaway HOME.
+  - `smoke.spec.ts`, `cli.spec.ts` (the installed `hodor` in a real terminal, ConPTY on Windows), `reorder`, `settings`, `export`, `merge` and `prod` run everywhere. The `seed` fixture option writes templates and kubeconfigs into the throwaway HOME; native dialogs are answered from the main process (`app.evaluate(({ dialog }) => …)`). `cluster.spec.ts` needs `HODOR_E2E_KUBECONFIG` (a kubeconfig whose default context has `kube-system/kube-dns`); the fixture copies it into the throwaway HOME.
   - Locally, a throwaway cluster: download `kind` into a temp dir, `kind create cluster --kubeconfig <tmp>/kubeconfig`, point `HODOR_E2E_KUBECONFIG` (and `KUBECONFIG` + `HODOR_IT=1` for the core) at it, delete the cluster afterwards.
   - On Linux run under `xvfb-run -a`; the fixture adds `--no-sandbox` there.
 - **CI** (`.github/workflows/ci.yml`): lint and format; build, unit tests, the CLI bundle and the smoke E2E on Linux, macOS and Windows; the core integration test and the cluster E2E on kind for every supported Kubernetes version. Adding a Kubernetes version means adding its kind image (pinned by digest) to the matrix.
 
 ## Packaging
 
+- `scripts/test-build.sh <version>` builds installers to try out (macOS for this machine's arch and Windows x64, `--linux` for Linux too) with the version set only in the build, into `~/Hodor-test-builds/<version>`.
 - `pnpm dist` builds installers for the current OS into `packages/gui/dist` (electron-builder, config in `packages/gui/electron-builder.yml`, inputs in `packages/gui/build/`).
 - The Electron main process is bundled with its dependencies, so no `node_modules` ship and every dependency of `@hodor/gui` is a devDependency. A native module must be listed as `external` in `electron.vite.config.mts` and shipped on purpose.
 - The CLI ships inside the app: `pnpm --filter @hodor/cli bundle` makes one file, `packages/cli/bundle/hodor.mjs`, run by `resources/bin/hodor` (sh) and `hodor.cmd` with the app's own Electron in Node mode (`ELECTRON_RUN_AS_NODE=1`). No Node.js needed on the user's machine.
