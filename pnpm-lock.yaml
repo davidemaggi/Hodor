@@ -65,6 +65,9 @@ importers:
       ora:
         specifier: ^7.0.1
         version: 7.0.1
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
     devDependencies:
       '@types/inquirer':
         specifier: ^9.0.7
@@ -80,7 +83,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: '8'
-        version: 8.3.5(@types/node@20.19.43)
+        version: 8.3.5(@types/node@20.19.43)(yaml@2.9.1)
       vitest:
         specifier: ^0.34.6
         version: 0.34.6
@@ -133,6 +136,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.104.5
         version: 5.104.5(@types/react@19.3.0)(react@19.3.1)
+      '@types/canvas-confetti':
+        specifier: ^1.9.0
+        version: 1.9.0
       '@types/node':
         specifier: ^20.9.0
         version: 20.19.43
@@ -145,6 +151,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.1.2
         version: 6.1.2(vite@8.3.5)
+      canvas-confetti:
+        specifier: ^1.9.4
+        version: 1.9.4
       electron:
         specifier: ^45.0.0
         version: 45.0.0
@@ -177,10 +186,13 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^8.3.5
-        version: 8.3.5(@types/node@20.19.43)
+        version: 8.3.5(@types/node@20.19.43)(yaml@2.9.1)
       vitest:
         specifier: ^0.34.6
         version: 0.34.6
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
       zod:
         specifier: ^3.22.4
         version: 3.25.76
@@ -1543,6 +1555,10 @@ packages:
       '@types/responselike': 1.0.3
     dev: true
 
+  /@types/canvas-confetti@1.9.0:
+    resolution: {integrity: sha512-aBGj/dULrimR1XDZLtG9JwxX1b4HPRF6CX9Yfwh3NvstZEm1ZL7RBnel4keCPSqs1ANRu1u2Aoz9R+VmtjYuTg==}
+    dev: true
+
   /@types/caseless@0.12.5:
     resolution: {integrity: sha512-hWtVTC2q7hc7xZ/RLbxapMvDMgUnDvKvMOpKal4DrMyfGBUfB1oKaZlIRr6mJL+If3bAP6sV/QneGzF6tJjZDg==}
     dev: false
@@ -1821,7 +1837,7 @@ packages:
         optional: true
     dependencies:
       '@rolldown/pluginutils': 1.0.1
-      vite: 8.3.5(@types/node@20.19.43)
+      vite: 8.3.5(@types/node@20.19.43)(yaml@2.9.1)
     dev: true
 
   /@vitest/coverage-v8@0.34.6(vitest@0.34.6):
@@ -2386,6 +2402,10 @@ packages:
     resolution: {integrity: sha512-LFUqIIAwpzsIuevnKnsR9qnStBcgzPShTX61lBwN9uFkkf8o8zLiebEjbW8AYtZiF+1YKDWfdt/pWDtMuG8Xwg==}
     dev: true
 
+  /canvas-confetti@1.9.4:
+    resolution: {integrity: sha512-yxQbJkAVrFXWNbTUjPqjF7G+g6pDotOUHGbkZq2NELZUMDpiJ85rIEazVb8GTaAptNW2miJAXbs1BtioA251Pw==}
+    dev: true
+
   /caseless@0.12.0:
     resolution: {integrity: sha512-4tYFyifaFfGacoiObjJegolkwSU4xQNGbVgUiNYVUxbQ2x2lUsFvY4hVgVzGiIe6WLOPqycWXA40l+PWsxthUw==}
     dev: false
@@ -2867,7 +2887,7 @@ packages:
       magic-string: 1.4.3
       picocolors: 1.1.1
       rolldown: 1.2.15
-      vite: 8.3.5(@types/node@20.19.43)
+      vite: 8.3.5(@types/node@20.19.43)(yaml@2.9.1)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -6446,7 +6466,7 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vite@8.3.5(@types/node@20.19.43):
+  /vite@8.3.5(@types/node@20.19.43)(yaml@2.9.1):
     resolution: {integrity: sha512-z1YpjieJ9g0ebTmQpLBv/oq9E3F9EIlOe+7LahW8SrE3LTiG3udBRUXQOlYXP9b+IC2q2phHeVxj9xGlw34OEQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
@@ -6495,6 +6515,7 @@ packages:
       postcss: 8.5.31
       rolldown: 1.2.15
       tinyglobby: 0.2.17
+      yaml: 2.9.1
     optionalDependencies:
       fsevents: 2.3.3
     dev: true

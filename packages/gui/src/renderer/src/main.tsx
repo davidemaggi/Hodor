@@ -2,6 +2,7 @@ import { StrictMode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Navigate, RouterProvider, createHashRouter } from 'react-router-dom';
 import { ClusterDetailView } from './views/cluster-detail';
+import { MergeView } from './views/merge';
 import { TemplateEditorView } from './views/template-editor';
 import { clusterPath } from './views/clusters';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -43,6 +44,7 @@ const router = createHashRouter([
     element: <Shell />,
     children: [
       { path: '/clusters', element: <ClustersView /> },
+      { path: '/clusters/merge', element: <MergeView /> },
       { path: '/clusters/:id', element: <ClusterDetailView /> },
       { path: '/templates', element: <TemplatesView /> },
       { path: '/templates/new', element: <TemplateEditorView key="new" /> },

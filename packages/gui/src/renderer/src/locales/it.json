@@ -24,7 +24,8 @@
     "copy": "Copia",
     "copied": "Copiato",
     "copyCommand": "Copia il comando",
-    "copyFailed": "Copia non riuscita"
+    "copyFailed": "Copia non riuscita",
+    "cancel": "Annulla"
   },
   "clusters": {
     "title": "Cluster",
@@ -52,7 +53,15 @@
     "dropLegend": "Trascina qui un kubeconfig per unirlo",
     "chooseFile": "Scegli un kubeconfig",
     "orTerminal": "oppure da terminale",
-    "error": "Non riesco a leggere i tuoi kubeconfig: {{message}}"
+    "error": "Non riesco a leggere i tuoi kubeconfig: {{message}}",
+    "selectAll": "Seleziona tutti i cluster",
+    "select": "Seleziona {{name}}",
+    "exportSelected_one": "Esporta kubeconfig ({{count}})",
+    "exportSelected_other": "Esporta kubeconfig ({{count}})",
+    "exported_one": "Salvato {{count}} context in {{file}}. Dentro ci sono anche le sue credenziali: condividilo con cura.",
+    "exported_other": "Salvati {{count}} context in {{file}}. Dentro ci sono anche le loro credenziali: condividilo con cura.",
+    "exportRenamed": "Rinominati per evitare conflitti: {{list}}.",
+    "exportFailed": "Export non riuscito: {{message}}"
   },
   "templates": {
     "title": "Template",
@@ -194,28 +203,54 @@
     "openRelease": "Guarda le novità"
   },
   "merge": {
-    "title": "Unisci in {{target}}",
-    "from": "Da {{files}}",
-    "added_one": "1 context nuovo",
-    "added_other": "{{count}} context nuovi",
-    "nothingNew": "Niente di nuovo: tutti i context di questi file sono già nel tuo kubeconfig.",
-    "skipped_one": "1 voce lasciata com'è",
-    "skipped_other": "{{count}} voci lasciate come sono",
-    "skippedHint": "Il tuo kubeconfig ha già voci con questi nomi. Le tue restano, quelle in arrivo vengono saltate, come fa kubectl.",
-    "kind": {
-      "cluster": "Cluster",
-      "user": "Utente",
-      "context": "Context"
+    "title": "Unisci kubeconfig",
+    "sub": "Porta context da altri kubeconfig in uno dei tuoi. Prima ne viene fatto un backup, e i commenti restano.",
+    "addFiles": "Aggiungi file",
+    "dropTitle": "Trascina qui i kubeconfig",
+    "dropBody": "Oppure scegli dei file, o prendi i context da uno dei tuoi kubeconfig. Poi spunti quali portare.",
+    "dropMore": "Trascina altri file in un punto qualsiasi della pagina.",
+    "yours": "I tuoi kubeconfig",
+    "takeFrom": "Prendi i context da qui",
+    "remove": "Rimuovi {{file}}",
+    "colContext": "Context",
+    "colServer": "Server",
+    "colNamespace": "Namespace",
+    "colResult": "Diventa",
+    "selectAllIn": "Seleziona tutti i context di {{file}}",
+    "select": "Porta {{name}}",
+    "noContexts": "Nessun context in questo file.",
+    "status": {
+      "added": "Nuovo",
+      "renamed": "Come {{name}}",
+      "present": "Già presente"
     },
-    "backup": "Prima viene fatto un backup del tuo kubeconfig in ~/.hodor/backups, e i suoi commenti restano.",
-    "cancel": "Annulla",
-    "confirm": "Unisci",
-    "merging": "Unisco…",
-    "done_one": "Fatto. {{names}} adesso è nel tuo kubeconfig.",
-    "done_other": "Fatto. {{names}} adesso sono nel tuo kubeconfig.",
-    "doneNothing": "Fatto. Non c'era niente di nuovo da aggiungere.",
+    "into": "In",
+    "kubectlFile": "il file di kubectl",
+    "newFile": "non esiste ancora",
+    "contextsCount_one": "{{count}} context",
+    "contextsCount_other": "{{count}} context",
+    "sameAsTarget": "È il file in cui stai unendo.",
+    "summaryNew_one": "{{count}} nuovo",
+    "summaryNew_other": "{{count}} nuovi",
+    "summaryRenamed_one": "{{count}} con un altro nome",
+    "summaryRenamed_other": "{{count}} con altri nomi",
+    "summaryPresent_one": "{{count}} già presente",
+    "summaryPresent_other": "{{count}} già presenti",
+    "renamedHint": "Stesso nome, ma cluster o utente diverso: entra con un altro nome, così niente di tuo cambia.",
+    "alsoRenamed": "Cluster e utenti rinominati per lo stesso motivo: {{list}}.",
+    "pickSome": "Spunta i context da portare.",
+    "planning": "Calcolo in corso…",
+    "confirm_one": "Unisci {{count}} context",
+    "confirm_other": "Unisci {{count}} context",
+    "nothingToDo": "Tutto quello che hai spuntato è già presente.",
+    "merging": "Unione in corso…",
+    "backup": "Prima viene fatto un backup del file in ~/.hodor/backups, e i suoi commenti restano.",
+    "done_one": "Unito in {{target}}: {{names}}.",
+    "done_other": "Uniti in {{target}}: {{names}}.",
+    "doneBackup": "Backup: {{path}}",
     "failedFiles": "Non riesco a leggere quei file: {{message}}",
-    "failedCluster": "Non riesco a preparare l'unione: {{message}}"
+    "failedPlan": "Non riesco a calcolare l'unione: {{message}}",
+    "failedMerge": "L'unione non è riuscita e non è stato scritto nulla: {{message}}"
   },
   "detail": {
     "gone": "Questo context non è più nei tuoi kubeconfig.",
@@ -381,7 +416,12 @@
     "starting": "Avvio…",
     "prod": "Cluster di produzione. Questi forward raggiungono servizi veri e dati veri.",
     "clash": "Già in uso da un altro template in esecuzione: {{list}}. Quei forward falliranno.",
-    "runOn": "Avvia su {{cluster}}"
+    "runOn": "Avvia su {{cluster}}",
+    "confirmTitle": "Avviare su un cluster di produzione?",
+    "confirmBody_one": "<strong>{{cluster}}</strong> è segnato come produzione. Questo forward raggiungerà i suoi servizi e dati reali.",
+    "confirmBody_other": "<strong>{{cluster}}</strong> è segnato come produzione. Questi {{count}} forward raggiungeranno i suoi servizi e dati reali.",
+    "confirmRun": "Sì, avvia su {{cluster}}",
+    "back": "Indietro"
   },
   "values": {
     "secret": "Secret",
@@ -398,5 +438,23 @@
     "loading": "Carico…",
     "hint": "I valori vengono letti dal cluster quando li chiedi e Hodor non li salva mai. Quelli copiati spariscono dalla clipboard dopo 30 secondi.",
     "prod": "Valori di produzione. Maneggiare con cura."
+  },
+  "pad": {
+    "title": "Controller",
+    "hint": "Il codice lo conosci.",
+    "progress": "{{done}} su 10",
+    "keys": {
+      "up": "Su",
+      "down": "Giù",
+      "left": "Sinistra",
+      "right": "Destra",
+      "b": "B",
+      "a": "A",
+      "select": "Select",
+      "start": "Start"
+    },
+    "wonTitle": "HODOR!",
+    "wonBody": "Trenta vite in più non sistemano quel deploy che fallisce. Qualcuno deve tenere la porta mentre giochi, e quel qualcuno sono io. Torna a lavorare, per favore.",
+    "back": "Scusa, torno a lavorare"
   }
 }

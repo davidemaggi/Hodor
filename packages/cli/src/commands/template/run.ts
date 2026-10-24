@@ -2,7 +2,13 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { ClusterDiscovery, RunRegistry, TemplateExecutor } from '@hodor/core';
 import type { LogEntry, TemplateExecution } from '@hodor/core';
-import { chooseTemplate, fail, openTemplates, pickCluster } from '../../utils/shared.js';
+import {
+  chooseTemplate,
+  confirmProduction,
+  fail,
+  openTemplates,
+  pickCluster,
+} from '../../utils/shared.js';
 import { t } from '../../i18n.js';
 
 const LEVEL_COLORS: Record<LogEntry['level'], (s: string) => string> = {
@@ -32,7 +38,7 @@ function printExecution(execution: TemplateExecution): void {
  */
 export async function templateRunCommand(
   name: string | undefined,
-  options: { cluster?: string; logs?: boolean }
+  options: { cluster?: string; logs?: boolean; yes?: boolean }
 ): Promise<void> {
   const manager = await openTemplates();
   const registry = new RunRegistry();
@@ -50,6 +56,11 @@ export async function templateRunCommand(
   }
 
   const cluster = await pickCluster(options.cluster);
+  await confirmProduction(
+    cluster,
+    t('templates.run.prodConfirm', { name: template.name, cluster: cluster.name }),
+    options.yes
+  );
   const spinner = ora(
     t('templates.run.holding', { count: template.forwards.length, cluster: cluster.name })
   ).start();

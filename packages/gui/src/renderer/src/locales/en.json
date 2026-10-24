@@ -24,7 +24,8 @@
     "copy": "Copy",
     "copied": "Copied",
     "copyCommand": "Copy command",
-    "copyFailed": "Couldn't copy"
+    "copyFailed": "Couldn't copy",
+    "cancel": "Cancel"
   },
   "clusters": {
     "title": "Clusters",
@@ -52,7 +53,15 @@
     "dropLegend": "Drop a kubeconfig anywhere here to merge it",
     "chooseFile": "Choose a kubeconfig",
     "orTerminal": "or from the terminal",
-    "error": "Couldn't read your kubeconfigs: {{message}}"
+    "error": "Couldn't read your kubeconfigs: {{message}}",
+    "selectAll": "Select every cluster",
+    "select": "Select {{name}}",
+    "exportSelected_one": "Export kubeconfig ({{count}})",
+    "exportSelected_other": "Export kubeconfig ({{count}})",
+    "exported_one": "Saved {{count}} context to {{file}}. Its credentials are in there too: share it with care.",
+    "exported_other": "Saved {{count}} contexts to {{file}}. Their credentials are in there too: share it with care.",
+    "exportRenamed": "Renamed to avoid clashes: {{list}}.",
+    "exportFailed": "Couldn't export: {{message}}"
   },
   "templates": {
     "title": "Templates",
@@ -194,28 +203,54 @@
     "openRelease": "See what's new"
   },
   "merge": {
-    "title": "Merge into {{target}}",
-    "from": "From {{files}}",
-    "added_one": "1 new context",
-    "added_other": "{{count}} new contexts",
-    "nothingNew": "Nothing new: every context in these files is already in your kubeconfig.",
-    "skipped_one": "1 entry kept as it is",
-    "skipped_other": "{{count}} entries kept as they are",
-    "skippedHint": "Your kubeconfig already has entries with these names. Yours stay, the incoming ones are skipped, like kubectl does.",
-    "kind": {
-      "cluster": "Cluster",
-      "user": "User",
-      "context": "Context"
+    "title": "Merge kubeconfigs",
+    "sub": "Bring contexts from other kubeconfigs into one of yours. It's backed up first and keeps its comments.",
+    "addFiles": "Add files",
+    "dropTitle": "Drop kubeconfigs here",
+    "dropBody": "Or choose files, or take contexts from one of your own kubeconfigs. You'll tick which ones to bring over.",
+    "dropMore": "Drop more files anywhere on this page.",
+    "yours": "Your kubeconfigs",
+    "takeFrom": "Take contexts from it",
+    "remove": "Remove {{file}}",
+    "colContext": "Context",
+    "colServer": "Server",
+    "colNamespace": "Namespace",
+    "colResult": "Becomes",
+    "selectAllIn": "Select every context in {{file}}",
+    "select": "Bring {{name}} over",
+    "noContexts": "No contexts in this file.",
+    "status": {
+      "added": "New",
+      "renamed": "As {{name}}",
+      "present": "Already there"
     },
-    "backup": "Your current kubeconfig is backed up to ~/.hodor/backups first, and its comments are kept.",
-    "cancel": "Cancel",
-    "confirm": "Merge",
+    "into": "Into",
+    "kubectlFile": "kubectl's file",
+    "newFile": "doesn't exist yet",
+    "contextsCount_one": "{{count}} context",
+    "contextsCount_other": "{{count}} contexts",
+    "sameAsTarget": "That's the file you're merging into.",
+    "summaryNew_one": "{{count}} new",
+    "summaryNew_other": "{{count}} new",
+    "summaryRenamed_one": "{{count}} under another name",
+    "summaryRenamed_other": "{{count}} under other names",
+    "summaryPresent_one": "{{count}} already there",
+    "summaryPresent_other": "{{count}} already there",
+    "renamedHint": "Same name, different cluster or user: it comes in under another name, so nothing of yours changes.",
+    "alsoRenamed": "Clusters and users renamed for the same reason: {{list}}.",
+    "pickSome": "Tick the contexts to bring over.",
+    "planning": "Working it out…",
+    "confirm_one": "Merge {{count}} context",
+    "confirm_other": "Merge {{count}} contexts",
+    "nothingToDo": "Everything you ticked is already there.",
     "merging": "Merging…",
-    "done_one": "Merged. {{names}} is now in your kubeconfig.",
-    "done_other": "Merged. {{names}} are now in your kubeconfig.",
-    "doneNothing": "Merged. Nothing new was added.",
+    "backup": "The file is backed up to ~/.hodor/backups first, and its comments are kept.",
+    "done_one": "Merged into {{target}}: {{names}}.",
+    "done_other": "Merged into {{target}}: {{names}}.",
+    "doneBackup": "Backup: {{path}}",
     "failedFiles": "Couldn't read those files: {{message}}",
-    "failedCluster": "Couldn't prepare the merge: {{message}}"
+    "failedPlan": "Couldn't work out the merge: {{message}}",
+    "failedMerge": "The merge failed and nothing was written: {{message}}"
   },
   "detail": {
     "gone": "This context isn't in your kubeconfigs anymore.",
@@ -381,7 +416,12 @@
     "starting": "Starting…",
     "prod": "Production cluster. These forwards reach real services and real data.",
     "clash": "Already in use by another running template: {{list}}. Those forwards will fail.",
-    "runOn": "Run on {{cluster}}"
+    "runOn": "Run on {{cluster}}",
+    "confirmTitle": "Run on a production cluster?",
+    "confirmBody_one": "<strong>{{cluster}}</strong> is marked as production. This forward will reach its real services and data.",
+    "confirmBody_other": "<strong>{{cluster}}</strong> is marked as production. These {{count}} forwards will reach its real services and data.",
+    "confirmRun": "Yes, run on {{cluster}}",
+    "back": "Back"
   },
   "values": {
     "secret": "Secret",
@@ -398,5 +438,23 @@
     "loading": "Loading…",
     "hint": "Values are read from the cluster when you ask and never stored by Hodor. Copied values are wiped from the clipboard after 30 seconds.",
     "prod": "Production values. Handle with care."
+  },
+  "pad": {
+    "title": "Controller",
+    "hint": "You know the code.",
+    "progress": "{{done}} of 10",
+    "keys": {
+      "up": "Up",
+      "down": "Down",
+      "left": "Left",
+      "right": "Right",
+      "b": "B",
+      "a": "A",
+      "select": "Select",
+      "start": "Start"
+    },
+    "wonTitle": "HODOR!",
+    "wonBody": "Thirty extra lives won't fix that failing deploy. Somebody has to hold the door while you play, and that somebody is me. Back to work, please.",
+    "back": "Sorry, back to work"
   }
 }

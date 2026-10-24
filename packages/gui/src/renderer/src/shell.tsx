@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { DoorOpen, Layers, Search, Server, Settings, Star } from 'lucide-react';
@@ -14,6 +14,7 @@ import {
 import { api } from './api';
 import { clusterPath } from './views/clusters';
 import { Palette } from './components/palette';
+import { Pad } from './components/pad';
 import { useShortcuts } from './hooks/use-shortcuts';
 
 export const Shell: React.FC = () => {
@@ -25,6 +26,18 @@ export const Shell: React.FC = () => {
   const production = useProduction();
   const update = useUpdateCheck();
   const [palette, setPalette] = useState(false);
+  const [pad, setPad] = useState(false);
+  const taps = useRef({ count: 0, last: 0 });
+  const tap = () => {
+    const now = Date.now();
+    const t = taps.current;
+    t.count = now - t.last < 1500 ? t.count + 1 : 1;
+    t.last = now;
+    if (t.count >= 7) {
+      t.count = 0;
+      setPad(true);
+    }
+  };
   const openPalette = useCallback(() => setPalette(true), []);
   useShortcuts(openPalette);
   // Design-review hook for the browser preview only (?palette=1); dropped from real builds
@@ -109,7 +122,7 @@ export const Shell: React.FC = () => {
             </button>
           )}
           {info.data && (
-            <p className="version num">
+            <p className="version num" onClick={tap}>
               v{info.data.version}
               {info.data.codename ? ` · ${info.data.codename}` : ''}
             </p>
@@ -121,6 +134,7 @@ export const Shell: React.FC = () => {
         <Outlet />
       </main>
       <Palette open={palette} onClose={() => setPalette(false)} />
+      <Pad open={pad} onClose={() => setPad(false)} />
     </div>
   );
 };

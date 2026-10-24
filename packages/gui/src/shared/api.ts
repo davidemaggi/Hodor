@@ -43,14 +43,23 @@ export interface HodorApi {
     setNamespace(clusterId: string, namespace: string): Promise<void>;
   };
   kubeconfig: {
-    /** Open a file dialog and preview merging the chosen files; null if cancelled */
-    chooseAndPreview(): Promise<MergePreview | null>;
-    /** Preview merging files dropped on the window */
-    previewDropped(files: File[]): Promise<MergePreview>;
-    /** Preview merging the kubeconfig a context comes from into the default one */
-    previewCluster(clusterId: string): Promise<MergePreview>;
-    /** Apply a previewed merge. The token is single-use. */
-    applyMerge(token: string): Promise<MergeOutcome>;
+    /** Your kubeconfigs: the ones in ~/.kube and $KUBECONFIG, plus kubectl's (even if missing) */
+    files(): Promise<KubeconfigFile[]>;
+    /** Read files dropped on the window as merge sources */
+    openDropped(files: File[]): Promise<MergeSource[]>;
+    /** Pick files with a dialog as merge sources; null if cancelled */
+    chooseSources(): Promise<MergeSource[] | null>;
+    /** Use some of your kubeconfigs (paths from files()) as merge sources */
+    openKnown(paths: string[]): Promise<MergeSource[]>;
+    /** What a merge would do, without writing */
+    planMerge(request: MergeRequest): Promise<MergePlan>;
+    /** Merge: backs the target up first and keeps its comments */
+    applyMerge(request: MergeRequest): Promise<MergeOutcome>;
+    /**
+     * Save the chosen contexts (with their clusters and users) as a new kubeconfig, through a save
+     * dialog. Null if cancelled.
+     */
+    exportContexts(clusterIds: string[]): Promise<ExportOutcome | null>;
   };
   templates: {
     list(): Promise<TemplateSummary[]>;
@@ -121,20 +130,51 @@ export interface AppInfo {
   defaultKubeconfig: string;
 }
 
-export interface MergePreview {
-  token: string;
-  target: string;
-  files: string[];
-  /** Context names that will be new in the target */
-  added: string[];
-  /** Every context in the result */
+export interface KubeconfigFile {
+  path: string;
+  /** Context names, empty when the file doesn't exist yet */
   contexts: string[];
-  skipped: Array<{ kind: 'cluster' | 'user' | 'context'; name: string; file: string }>;
+  /** The file kubectl writes to */
+  isDefault: boolean;
+  exists: boolean;
 }
 
-export interface MergeOutcome {
+/** A file read for merging. Its id stands for it in later calls. */
+export interface MergeSource {
+  id: string;
+  file: string;
+  contexts: Array<{ name: string; server: string; user: string; namespace?: string }>;
+}
+
+export interface MergeRequest {
+  /** One of the paths from kubeconfig.files() */
   target: string;
+  picks: Array<{ source: string; context: string }>;
+}
+
+export interface MergePlan {
+  target: string;
+  /** Each chosen context and what happens to it: new, new under another name, or already there */
+  contexts: Array<{
+    source: string;
+    context: string;
+    as: string;
+    status: 'added' | 'renamed' | 'present';
+  }>;
+  /** Clusters and users that need another name too */
+  renamed: Array<{ kind: 'cluster' | 'user' | 'context'; from: string; to: string }>;
+}
+
+export interface ExportOutcome {
+  file: string;
+  contexts: string[];
+  /** Names changed because two kubeconfigs used the same name for different things */
+  renamed: Array<{ kind: 'cluster' | 'user' | 'context'; from: string; to: string }>;
+}
+
+export interface MergeOutcome extends MergePlan {
   backup: string | null;
+  /** Names of the contexts now in the target that weren't before */
   added: string[];
 }
 
@@ -276,10 +316,13 @@ export const CHANNELS = {
   runningCopyValue: 'hodor:running:copy-value',
   kubectlSetContext: 'hodor:kubectl:set-context',
   kubectlSetNamespace: 'hodor:kubectl:set-namespace',
-  kubeconfigChoose: 'hodor:kubeconfig:choose',
-  kubeconfigPreview: 'hodor:kubeconfig:preview',
-  kubeconfigPreviewCluster: 'hodor:kubeconfig:preview-cluster',
+  kubeconfigFiles: 'hodor:kubeconfig:files',
+  kubeconfigOpenDropped: 'hodor:kubeconfig:open-dropped',
+  kubeconfigChooseSources: 'hodor:kubeconfig:choose-sources',
+  kubeconfigOpenKnown: 'hodor:kubeconfig:open-known',
+  kubeconfigPlan: 'hodor:kubeconfig:plan',
   kubeconfigApply: 'hodor:kubeconfig:apply',
+  kubeconfigExport: 'hodor:kubeconfig:export',
   settingsGet: 'hodor:settings:get',
   settingsUpdate: 'hodor:settings:update',
 } as const;

@@ -127,6 +127,13 @@ Released after four release candidates (`1.0.0-rc.1` to `rc.4`), installed and u
 - ✅ Windows artifacts signed with a **Certum** certificate on a self-hosted runner: `Hodor.exe` and the installer carry the "Open Source Developer Davide Maggi" signature, with checksums and attestations (first done for `1.0.0-rc.4`)
 - ✅ Every release publishes both: the unsigned artifacts always, the signed ones when the signing runner is online (see "Decisions")
 
+## ✅ 1.0.1 · Merge, export, production guard
+
+- ✅ A Merge page: pick the contexts to bring over and the kubeconfig that receives them, with a preview of what happens to each (app and `hodor config:merge`)
+- ✅ Export a kubeconfig from the clusters you pick (app and `hodor config:export`)
+- ✅ Production clusters ask before a template runs on them or kubectl points at them (app and CLI)
+- ✅ Fixed: reordering forwards by drag & drop, the production switch, the update toggle
+
 ## 📋 1.1 · Package managers
 
 - Homebrew, winget, Chocolatey (and friends); check Homebrew's current rules for unsigned/un-notarized casks first

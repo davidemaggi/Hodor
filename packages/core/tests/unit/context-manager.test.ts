@@ -102,3 +102,79 @@ describe('ContextManager.mergeFiles', () => {
     expect(await manager.getCurrentContext()).toBe('qa');
   });
 });
+
+describe('ContextManager.mergeContexts', () => {
+  async function withSource() {
+    const env = await setup();
+    const source = path.join(path.dirname(env.configPath), 'incoming.yaml');
+    // prod: same cluster, user and context as the target · dev: same name, other namespace
+    await fs.writeFile(
+      source,
+      kubeconfig({
+        contexts: [
+          { name: 'staging' },
+          { name: 'prod', namespace: 'web' },
+          { name: 'dev', namespace: 'other' },
+          { name: 'unpicked' },
+        ],
+      })
+    );
+    return { ...env, source };
+  }
+
+  it('adds only the chosen contexts, reuses identical entries, renames clashes, keeps comments', async () => {
+    const { configPath, backupDir, manager, source } = await withSource();
+
+    const plan = await manager.planContexts([
+      { file: source, context: 'staging' },
+      { file: source, context: 'prod' },
+      { file: source, context: 'dev' },
+    ]);
+    expect(plan.contexts.map((c) => [c.from.context, c.as, c.status])).toEqual([
+      ['staging', 'staging', 'added'],
+      ['prod', 'prod', 'present'],
+      ['dev', 'dev-2', 'renamed'],
+    ]);
+    expect(await fs.readdir(backupDir).catch(() => [])).toHaveLength(0);
+
+    const result = await manager.mergeContexts([
+      { file: source, context: 'staging' },
+      { file: source, context: 'prod' },
+      { file: source, context: 'dev' },
+    ]);
+    expect(result.backup).toBeTruthy();
+
+    const updated = await fs.readFile(configPath, 'utf-8');
+    expect(updated).toContain('# my precious kubeconfig comment');
+    const contexts = (await manager.listContexts()).map((c) => c.name);
+    expect(contexts).toEqual(['dev', 'prod', 'staging', 'dev-2']);
+    expect(contexts).not.toContain('unpicked');
+    // The dev cluster and the user "me" are identical: reused, not duplicated
+    expect(updated.match(/- name: me\b/g)).toHaveLength(1);
+    expect(await manager.getCurrentContext()).toBe('dev');
+  });
+
+  it("doesn't touch the file when everything is already there", async () => {
+    const { configPath, backupDir, manager, source } = await withSource();
+    const before = await fs.readFile(configPath, 'utf-8');
+    const result = await manager.mergeContexts([{ file: source, context: 'prod' }]);
+    expect(result.backup).toBeNull();
+    expect(result.contexts[0].status).toBe('present');
+    expect(await fs.readFile(configPath, 'utf-8')).toBe(before);
+    expect(await fs.readdir(backupDir).catch(() => [])).toHaveLength(0);
+  });
+
+  it('creates the kubeconfig when there is none yet', async () => {
+    const dir = await tmpDir();
+    const source = path.join(dir, 'incoming.yaml');
+    await fs.writeFile(source, kubeconfig({ contexts: [{ name: 'a' }, { name: 'b' }] }));
+    const manager = new ContextManager({
+      configPath: path.join(dir, 'new', 'config'),
+      backupDir: path.join(dir, 'backups'),
+    });
+    const result = await manager.mergeContexts([{ file: source, context: 'b' }]);
+    expect(result.backup).toBeNull();
+    expect((await manager.listContexts()).map((c) => c.name)).toEqual(['b']);
+    expect(await manager.getCurrentContext()).toBe('b');
+  });
+});
