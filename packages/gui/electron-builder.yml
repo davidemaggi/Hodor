@@ -58,7 +58,8 @@ nsis:
   include: build/installer.nsh
 
 linux:
-  icon: build/icon.png
+  # One PNG per size: hicolor themes have no 1024x1024 folder, so a lone big icon goes unseen
+  icon: build/icons
   category: Development
   # "hodor" on the PATH is the CLI; the desktop app binary gets its own name
   executableName: hodor-app
