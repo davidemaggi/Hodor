@@ -41,6 +41,12 @@ test.beforeEach(async ({ page, home }) => {
   );
 });
 
+// A template started for real keeps the app from quitting without asking (a native dialog no one
+// can click here): stop everything before the fixture closes the app
+test.afterEach(async ({ page }) => {
+  await page.evaluate(() => window.hodor!.running.stopAll());
+});
+
 test('running a template on a production cluster asks first', async ({ page }) => {
   await page.goto(page.url().replace(/#.*$/, '#/templates'));
   await page.getByRole('row', { name: /api/ }).getByRole('button', { name: 'Run' }).click();

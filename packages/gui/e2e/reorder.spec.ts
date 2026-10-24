@@ -21,21 +21,24 @@ test.use({
 });
 
 test('forwards can be dragged into a new order in the editor', async ({ page }) => {
+  // A fixed window, and two neighbouring rows: both stay on screen during the drag
+  await page.setViewportSize({ width: 1280, height: 820 });
   await page.goto(page.url().replace(/#.*$/, `#/templates/${seedId(0)}`));
   const names = page.locator('.forward-row .name-input');
   const order = () => names.evaluateAll((els) => els.map((el) => (el as HTMLInputElement).value));
   await expect.poll(order).toEqual(['api', 'db', 'cache']);
 
-  // Drag "cache" by its handle onto the first row
+  // Drag "db" by its handle onto the first row
   await page
     .locator('.forward-row')
-    .nth(2)
+    .nth(1)
     .locator('.drag-handle')
     .dragTo(page.locator('.forward-row').nth(0));
-  await expect.poll(order).toEqual(['cache', 'api', 'db']);
+  await expect.poll(order).toEqual(['db', 'api', 'cache']);
 });
 
 test('templates can be dragged into a new order in the list', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
   await page.goto(page.url().replace(/#.*$/, '#/templates'));
   const groups = page.locator('.template-group');
   await expect(groups.first()).toContainText('alpha');
