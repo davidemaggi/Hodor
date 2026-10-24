@@ -39,7 +39,8 @@ const releaseUrl = `https://github.com/${args.repo}/releases/tag/${tag}`;
 const notes = releaseNotes(version);
 
 // ── winget ──────────────────────────────────────────────────────────────────────────────────────
-const MANIFEST_VERSION = '1.12.0';
+// 1.10: the newest schema that the winget clients people have (and the CI runner's) all read
+const MANIFEST_VERSION = '1.10.0';
 const id = meta.winget.id;
 const wingetDir = join(
   args.out,
