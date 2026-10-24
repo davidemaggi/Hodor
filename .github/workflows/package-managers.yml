@@ -76,10 +76,15 @@ jobs:
           $productCode = $key.PSChildName
           Write-Host "Product code: $productCode"
           Write-Host "DisplayName: $($app.DisplayName) · DisplayVersion: $($app.DisplayVersion) · Publisher: $($app.Publisher)"
-          Write-Host "InstallLocation: $($app.InstallLocation)"
+          if ($app.UninstallString -notmatch '^"([^"]+)"\s*(.*)$') { throw "Unexpected UninstallString: $($app.UninstallString)" }
+          $uninstaller = $Matches[1]
+          $uninstallArgs = $Matches[2]
+          # electron-builder writes no InstallLocation here; the uninstaller sits in the app's folder
+          $location = Split-Path $uninstaller
+          Write-Host "Installed in: $location"
 
           # The command is installed and answers
-          $hodor = Join-Path $app.InstallLocation 'resources\bin\hodor.cmd'
+          $hodor = Join-Path $location 'resources\bin\hodor.cmd'
           $said = (& $hodor --version | Out-String).Trim()
           if ($said -ne $version) { throw "hodor --version says '$said', expected $version" }
           $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
@@ -90,8 +95,7 @@ jobs:
           "installer=$exe" >> $env:GITHUB_OUTPUT
 
           # Uninstall: winget's own test below starts from a clean machine
-          if ($app.UninstallString -notmatch '^"([^"]+)"\s*(.*)$') { throw "Unexpected UninstallString: $($app.UninstallString)" }
-          Start-Process $Matches[1] -ArgumentList "$($Matches[2]) $($meta.windowsInstaller.silentArgs)" -Wait
+          Start-Process $uninstaller -ArgumentList "$uninstallArgs $($meta.windowsInstaller.silentArgs)" -Wait
           for ($i = 0; $i -lt 60 -and (Test-Path $key.PSPath); $i++) { Start-Sleep 1 }
           if (Test-Path $key.PSPath) { throw 'The uninstaller left its registry entry behind' }
 
@@ -182,7 +186,9 @@ jobs:
             Select-Object -First 1
           if (-not $key) { throw "choco install didn't install ${{ steps.pack.outputs.name }}" }
           $app = Get-ItemProperty $key.PSPath
-          $said = (& (Join-Path $app.InstallLocation 'resources\bin\hodor.cmd') --version | Out-String).Trim()
+          # electron-builder writes no InstallLocation; the uninstaller sits in the app's folder
+          if ($app.UninstallString -notmatch '^"([^"]+)"') { throw "Unexpected UninstallString: $($app.UninstallString)" }
+          $said = (& (Join-Path (Split-Path $Matches[1]) 'resources\bin\hodor.cmd') --version | Out-String).Trim()
           if ($said -ne $version) { throw "hodor --version says '$said', expected $version" }
 
           choco uninstall $id -y --no-progress
