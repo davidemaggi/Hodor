@@ -14,10 +14,18 @@ export interface ContextRef {
 }
 
 export interface ExtractResult {
-  /** A kubeconfig with just the chosen contexts, their clusters and their users */
+  /** The base (if any) plus the chosen contexts, their clusters and their users */
   config: KubeConfigFile;
   /** Entries that got a new name because another file used the same name for something else */
   renamed: Array<{ kind: 'cluster' | 'user' | 'context'; from: string; to: string; file: string }>;
+  /** What happened to each chosen context, in order */
+  contexts: Array<{
+    from: ContextRef;
+    /** Its name in the result */
+    as: string;
+    /** added: new · renamed: new, under another name · present: already there, identical */
+    status: 'added' | 'renamed' | 'present';
+  }>;
 }
 
 /** Fields holding file paths, which kubectl resolves against the kubeconfig's own folder */
@@ -25,30 +33,34 @@ const CLUSTER_PATHS = ['certificate-authority'];
 const USER_PATHS = ['client-certificate', 'client-key', 'tokenFile'];
 
 /**
- * Build a kubeconfig holding only `refs`, taken from `sources` (already parsed files).
+ * Build a kubeconfig holding only `refs`, taken from `sources` (already parsed files), or add
+ * them to `base` (a kubeconfig they're merged into: its entries keep their names and come first).
  *
  * - Clusters and users come along with the contexts that use them, once each.
  * - Two files may use the same name for different things: the later one is renamed (`name-2`)
  *   and its context follows. The same name with the same content is kept once.
  * - Relative file paths (certificates, keys, token files, exec commands) become absolute, so the
  *   result works wherever it's saved.
- * - The first context becomes the current one.
+ * - The base's current context stays; without one, the first chosen context becomes current.
  */
 export function extractContexts(
   sources: Map<string, KubeConfigFile>,
-  refs: ContextRef[]
+  refs: ContextRef[],
+  base?: KubeConfigFile
 ): ExtractResult {
-  if (refs.length === 0) throw new Error('No contexts to export');
+  if (refs.length === 0) throw new Error('No contexts chosen');
 
   const config: KubeConfigFile = {
     apiVersion: 'v1',
     kind: 'Config',
     preferences: {},
-    clusters: [],
-    users: [],
-    contexts: [],
+    ...base,
+    clusters: [...(base?.clusters ?? [])],
+    users: [...(base?.users ?? [])],
+    contexts: [...(base?.contexts ?? [])],
   };
   const renamed: ExtractResult['renamed'] = [];
+  const contexts: ExtractResult['contexts'] = [];
   const seen = new Set<string>();
 
   for (const ref of refs) {
@@ -90,7 +102,8 @@ export function extractContexts(
       ref.file,
       renamed
     );
-    place<KubeConfigContext>(
+    const before = config.contexts.length;
+    const as = place<KubeConfigContext>(
       config.contexts,
       'context',
       context.name,
@@ -98,22 +111,31 @@ export function extractContexts(
       ref.file,
       renamed
     );
+    contexts.push({
+      from: ref,
+      as,
+      status:
+        config.contexts.length === before ? 'present' : as === context.name ? 'added' : 'renamed',
+    });
   }
 
-  config['current-context'] = config.contexts[0]?.name;
-  return { config, renamed };
+  if (!config['current-context']) {
+    config['current-context'] = contexts.find((c) => c.status !== 'present')?.as ?? contexts[0]?.as;
+  }
+  return { config, renamed, contexts };
 }
 
 /** extractContexts() reading the files itself */
 export async function extractContextsFromFiles(
   refs: ContextRef[],
-  parser = new KubeConfigParser()
+  parser = new KubeConfigParser(),
+  base?: KubeConfigFile
 ): Promise<ExtractResult> {
   const sources = new Map<string, KubeConfigFile>();
   for (const file of new Set(refs.map((r) => r.file))) {
     sources.set(file, await parser.parseFile(file));
   }
-  return extractContexts(sources, refs);
+  return extractContexts(sources, refs, base);
 }
 
 type Entry = KubeConfigCluster | KubeConfigUser | KubeConfigContext;

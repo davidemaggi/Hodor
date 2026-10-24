@@ -4,6 +4,7 @@ import * as os from 'os';
 import YAML from 'yaml';
 import { KubeConfigParser, KubeConfigFile, writeFileAtomic } from './parser';
 import { KubeConfigMerger } from './merger';
+import { type ContextRef, type ExtractResult, extractContextsFromFiles } from './extract';
 
 export interface ContextManagerOptions {
   /** Kubeconfig to manage. Defaults to the file kubectl writes to. */
@@ -146,6 +147,52 @@ export class ContextManager {
     const backup = await this.backupConfig();
     await writeFileAtomic(this.configPath, doc.toString());
     return { backup, added: plan.added };
+  }
+
+  /**
+   * What adding these contexts (from other kubeconfigs, with their clusters and users) to this
+   * one would do, without writing. See mergeContexts().
+   */
+  async planContexts(refs: ContextRef[]): Promise<ExtractResult> {
+    const base = (await this.parser.configExists(this.configPath)) ? await this.read() : undefined;
+    return extractContextsFromFiles(refs, this.parser, base);
+  }
+
+  /**
+   * Add chosen contexts from other kubeconfigs to this one, with the clusters and users they use.
+   * Entries identical to ones already here are reused; a name already taken by something else
+   * gets a free variant (name-2). New entries are appended to the YAML document, so comments and
+   * formatting survive. Backs up first.
+   */
+  async mergeContexts(refs: ContextRef[]): Promise<ExtractResult & { backup: string | null }> {
+    if (!(await this.parser.configExists(this.configPath))) {
+      const plan = await this.planContexts(refs);
+      await this.parser.writeConfig(this.configPath, plan.config);
+      return { ...plan, backup: null };
+    }
+
+    const content = await fs.readFile(this.configPath, 'utf-8');
+    const base = this.parser.parseContent(content);
+    const plan = await extractContextsFromFiles(refs, this.parser, base);
+    const doc = YAML.parseDocument(content);
+
+    let changed = false;
+    for (const kind of ['clusters', 'users', 'contexts'] as const) {
+      const incoming = plan.config[kind].slice((base[kind] ?? []).length);
+      if (incoming.length === 0) continue;
+      changed = true;
+      if (!YAML.isSeq(doc.get(kind))) doc.set(kind, doc.createNode([]));
+      for (const entry of incoming) doc.addIn([kind], doc.createNode(entry));
+    }
+    if (!base['current-context'] && plan.config['current-context']) {
+      doc.set('current-context', plan.config['current-context']);
+      changed = true;
+    }
+    if (!changed) return { ...plan, backup: null };
+
+    const backup = await this.backupConfig();
+    await writeFileAtomic(this.configPath, doc.toString());
+    return { ...plan, backup };
   }
 
   /**
