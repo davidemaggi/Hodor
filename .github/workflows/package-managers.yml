@@ -27,19 +27,16 @@ on:
         description: Submit to winget and Chocolatey (off = build and test only)
         type: boolean
         default: false
-  # TEMPORARY: dry run while building this workflow
-  push:
-    branches: [feature/1.1.0]
 
 permissions:
   contents: read
 
 concurrency:
-  group: package-managers-${{ inputs.tag || 'dry-run' }}
+  group: package-managers-${{ inputs.tag }}
   cancel-in-progress: false
 
 env:
-  TAG: ${{ inputs.tag || 'v1.0.1' }}
+  TAG: ${{ inputs.tag }}
   SUBMIT: ${{ inputs.submit == true && 'true' || 'false' }}
   GH_TOKEN: ${{ github.token }}
 

@@ -421,8 +421,8 @@ export const fixtureApi: HodorApi = {
     info: () =>
       later(
         {
-          version: '1.0.1',
-          codename: 'Aerys',
+          version: '1.1.0',
+          codename: 'Aegon',
           platform: 'darwin',
           kubectl: params.has('nokubectl') ? null : '/usr/local/bin/kubectl',
           dataDir: `${home}/.hodor`,

@@ -134,9 +134,16 @@ Released after four release candidates (`1.0.0-rc.1` to `rc.4`), installed and u
 - ✅ Production clusters ask before a template runs on them or kubectl points at them (app and CLI)
 - ✅ Fixed: reordering forwards by drag & drop, the production switch, the update toggle
 
-## 📋 1.1 · Package managers
+## 🔜 1.1.0 "Aegon" · Windows package managers
 
-- Homebrew, winget, Chocolatey (and friends); check Homebrew's current rules for unsigned/un-notarized casks first
+- ✅ Every stable release goes to winget (`DavideMaggi.Hodor`) and Chocolatey (`hodor`) on its own, once the signed installer is on the release. Each package is installed for real on Windows before it's submitted (tested end to end without submitting)
+- 🔜 The first submissions accepted by winget-pkgs and the Chocolatey moderators
+- ✅ Linux: the app icon shows in KDE, GNOME and friends
+- ✅ Every minor version has its own codename
+
+## 📋 1.2 · More package managers
+
+- Homebrew; check its current rules for unsigned/un-notarized casks first. Then Linux repositories
 - Start/stop single forwards from the CLI
 
 ## 💭 Later, maybe

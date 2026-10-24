@@ -35,6 +35,13 @@ Hodor fixes that:
 
 Download the file for your system from [Releases](https://github.com/davidemaggi/Hodor/releases). One install gives you both the desktop app and the `hodor` command.
 
+On Windows, from 1.1.0 you can also use a package manager (new packages are reviewed by winget and Chocolatey first, so a release can take a few days to show up there):
+
+```powershell
+winget install DavideMaggi.Hodor
+choco install hodor
+```
+
 | System                        | File                                         | `hodor` on your PATH                         |
 | ----------------------------- | -------------------------------------------- | -------------------------------------------- |
 | macOS (Apple silicon / Intel) | `Hodor-…-mac-arm64.dmg` / `-mac-x64.dmg`     | the app offers it on first launch            |

@@ -78,6 +78,14 @@ User data lives in `~/.hodor/` (templates, settings, run registry, kubeconfig ba
   - On Linux run under `xvfb-run -a`; the fixture adds `--no-sandbox` there.
 - **CI** (`.github/workflows/ci.yml`): lint and format; build, unit tests, the CLI bundle and the smoke E2E on Linux, macOS and Windows; the core integration test and the cluster E2E on kind for every supported Kubernetes version. Adding a Kubernetes version means adding its kind image (pinned by digest) to the matrix.
 
+## Package managers
+
+- Stable releases are published to **winget** (`DavideMaggi.Hodor`) and **Chocolatey** (`hodor`) by `.github/workflows/package-managers.yml`, which `release.yml` calls after `publish-signed`: both install the signed installer, so no signature means no package-manager release. Pre-releases are never published there.
+- Names, publisher, URLs, descriptions (en-US, it-IT), tags and the icon live in `packaging/package-managers.json`; `scripts/package-managers.mjs` turns them into the winget manifests (schema 1.10.0) and the Chocolatey package. Change wording there, not in the workflow.
+- Each job installs the real thing on a Windows runner before submitting: winget reads the product code and display name from the registry, checks `hodor --version` and the PATH, validates and installs from the manifests; Chocolatey packs, installs, checks and uninstalls.
+- winget submits a PR to microsoft/winget-pkgs with `wingetcreate submit`, from the token owner's fork, on a branch of its own (so other projects of the same owner don't collide). Secret `WINGET_TOKEN`: a classic token with `public_repo`. Chocolatey pushes with secret `CHOCOLATEY_API_KEY`. Without a secret its step is skipped with a notice.
+- To retry a tag, or try without submitting: run "Package managers" by hand (Actions → Package managers → tag, submit on/off).
+
 ## Packaging
 
 - `scripts/test-build.sh <version>` builds installers to try out (macOS for this machine's arch and Windows x64, `--linux` for Linux too) with the version set only in the build, into `~/Hodor-test-builds/<version>`.

@@ -5,6 +5,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-24
+
+Hodor 1.1 "Aegon" comes to Windows package managers.
+
+### Added
+
+- **winget and Chocolatey:** every release is published there too, from the signed installer: `winget install DavideMaggi.Hodor` or `choco install hodor`. New packages are reviewed by those repositories first, so a release can take a few days to show up
+
+### Changed
+
+- Every minor version now has its own codename, all starting with its major's letter: 1.0 was Aerys, 1.1 is **Aegon**
+
+### Fixed
+
+- Linux: the app icon shows in KDE, GNOME and other desktops. The packages carried a single 1024 px icon, a size desktops don't look for; they now install 16 to 512 px, and refresh the icon cache
+
 ## [1.0.1] - 2026-10-24
 
 Merging gets a page of its own, clusters can be exported, and production clusters ask before they're touched.
