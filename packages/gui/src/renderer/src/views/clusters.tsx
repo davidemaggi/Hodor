@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useIsFetching, useQueries, useQueryClient } from '@tanstack/react-query';
+import { useIsFetching, useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { FilePlus2, History, RotateCw, Star } from 'lucide-react';
+import { Download, FilePlus2, History, RotateCw, Star } from 'lucide-react';
 import type { Cluster } from '@hodor/core';
 import { api, errorMessage } from '../api';
 import { useClusterHealth, useClusters, useProduction, useSettings } from '../queries';
@@ -49,6 +49,10 @@ export const ClustersView: React.FC = () => {
   const navigate = useNavigate();
   const merge = useMergeFlow();
   const [dragging, setDragging] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const exporting = useMutation({
+    mutationFn: (ids: string[]) => api.kubeconfig.exportContexts(ids),
+  });
 
   // Design-review hook for the browser preview only (?merge=1); dropped from real builds
   useEffect(() => {
@@ -75,6 +79,16 @@ export const ClustersView: React.FC = () => {
   const lastUsed = settings.data?.lastUsedCluster;
   const multipleFiles = new Set(list.map((c) => c.sourceFile)).size > 1;
   const empty = clusters.isSuccess && list.length === 0;
+  // Clusters that disappeared (a kubeconfig changed) drop out of the selection
+  const chosen = list.filter((c) => selected.has(c.id)).map((c) => c.id);
+  const allSelected = list.length > 0 && chosen.length === list.length;
+  const toggle = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['clusters'] });
@@ -124,6 +138,17 @@ export const ClustersView: React.FC = () => {
           </p>
         </div>
         <div className="actions">
+          {chosen.length > 0 && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => exporting.mutate(chosen)}
+              disabled={exporting.isPending}
+            >
+              <Download aria-hidden="true" />
+              {t('clusters.exportSelected', { count: chosen.length })}
+            </button>
+          )}
           {checkedAt > 0 && settled.length === list.length && (
             <span className="stamp num">
               {t('common.checkedAt', { time: formatTime(checkedAt) })}
@@ -144,6 +169,23 @@ export const ClustersView: React.FC = () => {
         </div>
       </div>
 
+      {exporting.isError && (
+        <p className="inline-error" role="alert">
+          {t('clusters.exportFailed', { message: errorMessage(exporting.error) })}
+        </p>
+      )}
+      {exporting.data && (
+        <p className="inline-success" role="status">
+          {t('clusters.exported', {
+            count: exporting.data.contexts.length,
+            file: tildify(exporting.data.file),
+          })}
+          {exporting.data.renamed.length > 0 &&
+            ` ${t('clusters.exportRenamed', {
+              list: exporting.data.renamed.map((r) => `${r.from} → ${r.to}`).join(', '),
+            })}`}
+        </p>
+      )}
       {merge.error && (
         <p className="inline-error" role="alert">
           {t('merge.failedFiles', { message: merge.error })}
@@ -188,6 +230,17 @@ export const ClustersView: React.FC = () => {
           <table>
             <thead>
               <tr>
+                <th className="check-col">
+                  <input
+                    type="checkbox"
+                    aria-label={t('clusters.selectAll')}
+                    checked={allSelected}
+                    disabled={list.length === 0}
+                    onChange={() =>
+                      setSelected(allSelected ? new Set() : new Set(list.map((c) => c.id)))
+                    }
+                  />
+                </th>
                 <th>
                   <span className="visually-hidden">{t('clusters.colMarks')}</span>
                 </th>
@@ -201,6 +254,7 @@ export const ClustersView: React.FC = () => {
               {clusters.isPending
                 ? [0, 1, 2].map((i) => (
                     <tr key={i}>
+                      <td className="check-col" />
                       <td className="mark" />
                       <td className="identity">
                         <Skeleton width={140} />
@@ -221,10 +275,18 @@ export const ClustersView: React.FC = () => {
                       key={cluster.id}
                       className="clickable"
                       onClick={(e) => {
-                        if ((e.target as HTMLElement).closest('a, button')) return;
+                        if ((e.target as HTMLElement).closest('a, button, input, label')) return;
                         navigate(clusterPath(cluster.id));
                       }}
                     >
+                      <td className="check-col">
+                        <input
+                          type="checkbox"
+                          aria-label={t('clusters.select', { name: cluster.name })}
+                          checked={selected.has(cluster.id)}
+                          onChange={() => toggle(cluster.id)}
+                        />
+                      </td>
                       <td className="mark">
                         {cluster.isDefault ? (
                           <span role="img" aria-label={t('clusters.defaultMark')}>

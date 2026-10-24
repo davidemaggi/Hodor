@@ -37,6 +37,7 @@ const api: HodorApi = {
       ),
     previewCluster: (clusterId) => ipcRenderer.invoke(CHANNELS.kubeconfigPreviewCluster, clusterId),
     applyMerge: (token) => ipcRenderer.invoke(CHANNELS.kubeconfigApply, token),
+    exportContexts: (clusterIds) => ipcRenderer.invoke(CHANNELS.kubeconfigExport, clusterIds),
   },
   templates: {
     list: () => ipcRenderer.invoke(CHANNELS.templatesList),

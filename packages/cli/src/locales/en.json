@@ -80,6 +80,11 @@
     "templateImport": {
       "description": "Import a template",
       "file": "Template file to import"
+    },
+    "configExport": {
+      "description": "Save some contexts (with their clusters and users) as a new kubeconfig",
+      "contexts": "Context names (leave them out to pick from a list)",
+      "output": "File to write (default: ask, or print when redirected)"
     }
   },
   "common": {
@@ -137,7 +142,18 @@
     "merged_other": "Merged {{count}} files into {{target}}",
     "failed": "Merge failed: {{error}}",
     "askFile": "Path of the kubeconfig to merge",
-    "askMore": "Add another file?"
+    "askMore": "Add another file?",
+    "export": {
+      "pick": "Export which contexts?",
+      "askFile": "Save to",
+      "ambiguous": "There's a context called '{{name}}' in several kubeconfigs ({{files}}). Run hodor config:export without names to pick the one you mean.",
+      "wouldOverwrite": "{{file}} is one of your kubeconfigs, and saving over it would drop its other contexts. Pick a new file, or merge into it with hodor config:merge.",
+      "saved_one": "Saved {{count}} context to {{file}}",
+      "saved_other": "Saved {{count}} contexts to {{file}}",
+      "renamed": "{{kind}} '{{from}}' is '{{to}}' in the file: another kubeconfig uses the same name for something else",
+      "credentials": "The file holds credentials too, and only you can read it. Share it with care.",
+      "failed": "Export failed: {{error}}"
+    }
   },
   "ctx": {
     "noContexts": "No contexts in {{path}}",
@@ -325,7 +341,8 @@
       "ns": "Switch kubectl's namespace",
       "merge": "Merge a kubeconfig",
       "help": "Help",
-      "quit": "Quit"
+      "quit": "Quit",
+      "export_kubeconfig": "Export a kubeconfig"
     }
   }
 }

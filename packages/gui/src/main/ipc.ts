@@ -23,6 +23,7 @@ import {
   portableTemplateSchema,
   KubeConfigMerger,
   KubeConfigParser,
+  extractContextsFromFiles,
   ResourceBrowser,
   RunRegistry,
   SettingsStorage,
@@ -39,6 +40,7 @@ import {
   type TemplateDetail,
   type ForwardSummary,
   type LinkedResources,
+  type ExportOutcome,
   type MergeOutcome,
   type MergePreview,
   type RunningTemplate,
@@ -311,6 +313,45 @@ export function registerIpc(
   handle(CHANNELS.kubeconfigPreviewCluster, async (arg) => {
     const cluster = await requireCluster(clusterIdSchema.parse(arg));
     return previewMerge([cluster.sourceFile]);
+  });
+
+  handle(CHANNELS.kubeconfigExport, async (arg): Promise<ExportOutcome | null> => {
+    // Only clusters Hodor found itself: the renderer can't name arbitrary files
+    const ids = z.array(clusterIdSchema).min(1).max(500).parse(arg);
+    const clusters = await Promise.all(ids.map(requireCluster));
+    const { config, renamed } = await extractContextsFromFiles(
+      clusters.map((c) => ({ file: c.sourceFile, context: c.name }))
+    );
+
+    const suggested =
+      clusters.length === 1
+        ? `${clusters[0].name.replace(/[^a-z0-9._-]+/gi, '-')}.kubeconfig.yaml`
+        : 'hodor-export.kubeconfig.yaml';
+    const window = getWindow();
+    const options = {
+      title: 'Export kubeconfig',
+      defaultPath: path.join(os.homedir(), suggested),
+      filters: [{ name: 'Kubeconfig', extensions: ['yaml', 'yml', 'kubeconfig'] }],
+    };
+    const result = window
+      ? await dialog.showSaveDialog(window, options)
+      : await dialog.showSaveDialog(options);
+    if (result.canceled || !result.filePath) return null;
+
+    // Writing over a kubeconfig Hodor reads would throw away its other contexts: that's a merge
+    const known = new Set((await discovery.list()).map((c) => path.resolve(c.sourceFile)));
+    if (known.has(path.resolve(result.filePath))) {
+      throw new Error(
+        `${result.filePath} is one of your kubeconfigs, and saving over it would drop its other contexts. Pick a new file, or use Merge to add contexts to it.`
+      );
+    }
+    // Credentials inside: readable by you only, like kubectl's own file
+    await new KubeConfigParser().writeConfig(result.filePath, config);
+    return {
+      file: result.filePath,
+      contexts: config.contexts.map((c) => c.name),
+      renamed: renamed.map(({ kind, from, to }) => ({ kind, from, to })),
+    };
   });
 
   handle(CHANNELS.kubeconfigApply, async (arg): Promise<MergeOutcome> => {

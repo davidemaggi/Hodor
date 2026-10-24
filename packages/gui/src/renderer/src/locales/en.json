@@ -52,7 +52,15 @@
     "dropLegend": "Drop a kubeconfig anywhere here to merge it",
     "chooseFile": "Choose a kubeconfig",
     "orTerminal": "or from the terminal",
-    "error": "Couldn't read your kubeconfigs: {{message}}"
+    "error": "Couldn't read your kubeconfigs: {{message}}",
+    "selectAll": "Select every cluster",
+    "select": "Select {{name}}",
+    "exportSelected_one": "Export kubeconfig ({{count}})",
+    "exportSelected_other": "Export kubeconfig ({{count}})",
+    "exported_one": "Saved {{count}} context to {{file}}. Its credentials are in there too: share it with care.",
+    "exported_other": "Saved {{count}} contexts to {{file}}. Their credentials are in there too: share it with care.",
+    "exportRenamed": "Renamed to avoid clashes: {{list}}.",
+    "exportFailed": "Couldn't export: {{message}}"
   },
   "templates": {
     "title": "Templates",

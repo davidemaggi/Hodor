@@ -431,6 +431,15 @@ export const fixtureApi: HodorApi = {
     },
   },
   kubeconfig: {
+    exportContexts: (ids) =>
+      later(
+        {
+          file: `${home}/hodor-export.kubeconfig.yaml`,
+          contexts: ids.map((id) => clusters.find((c) => c.id === id)?.name ?? id),
+          renamed: [],
+        },
+        300
+      ),
     chooseAndPreview: () => later(mergePreview, 300),
     previewDropped: () => later(mergePreview, 300),
     previewCluster: () =>

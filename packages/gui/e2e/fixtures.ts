@@ -26,16 +26,25 @@ export const test = base.extend<{
    * Templates written to ~/.hodor/templates.json before the app starts. Wrapped in an object:
    * test.use() reads a bare [a, b] array as [value, fixture options].
    */
-  seed: { templates?: SeedTemplate[]; kubeconfig?: string };
+  seed: {
+    templates?: SeedTemplate[];
+    /** ~/.kube/config */
+    kubeconfig?: string;
+    /** More files in ~/.kube, by name */
+    kubeFiles?: Record<string, string>;
+  };
   home: string;
   app: ElectronApplication;
   page: Page;
 }>({
   seed: [{ templates: [] }, { option: true }],
-  home: async ({ seed: { templates = [], kubeconfig } }, use) => {
+  home: async ({ seed: { templates = [], kubeconfig, kubeFiles = {} } }, use) => {
     const home = mkdtempSync(join(tmpdir(), 'hodor-e2e-'));
     mkdirSync(join(home, '.kube'));
     if (kubeconfig) writeFileSync(join(home, '.kube', 'config'), kubeconfig);
+    for (const [name, content] of Object.entries(kubeFiles)) {
+      writeFileSync(join(home, '.kube', name), content);
+    }
     if (templates.length) {
       mkdirSync(join(home, '.hodor'));
       const now = new Date().toISOString();

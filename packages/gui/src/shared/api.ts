@@ -51,6 +51,11 @@ export interface HodorApi {
     previewCluster(clusterId: string): Promise<MergePreview>;
     /** Apply a previewed merge. The token is single-use. */
     applyMerge(token: string): Promise<MergeOutcome>;
+    /**
+     * Save the chosen contexts (with their clusters and users) as a new kubeconfig, through a save
+     * dialog. Null if cancelled.
+     */
+    exportContexts(clusterIds: string[]): Promise<ExportOutcome | null>;
   };
   templates: {
     list(): Promise<TemplateSummary[]>;
@@ -130,6 +135,13 @@ export interface MergePreview {
   /** Every context in the result */
   contexts: string[];
   skipped: Array<{ kind: 'cluster' | 'user' | 'context'; name: string; file: string }>;
+}
+
+export interface ExportOutcome {
+  file: string;
+  contexts: string[];
+  /** Names changed because two kubeconfigs used the same name for different things */
+  renamed: Array<{ kind: 'cluster' | 'user' | 'context'; from: string; to: string }>;
 }
 
 export interface MergeOutcome {
@@ -280,6 +292,7 @@ export const CHANNELS = {
   kubeconfigPreview: 'hodor:kubeconfig:preview',
   kubeconfigPreviewCluster: 'hodor:kubeconfig:preview-cluster',
   kubeconfigApply: 'hodor:kubeconfig:apply',
+  kubeconfigExport: 'hodor:kubeconfig:export',
   settingsGet: 'hodor:settings:get',
   settingsUpdate: 'hodor:settings:update',
 } as const;

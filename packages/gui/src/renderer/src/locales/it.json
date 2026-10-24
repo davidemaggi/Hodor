@@ -52,7 +52,15 @@
     "dropLegend": "Trascina qui un kubeconfig per unirlo",
     "chooseFile": "Scegli un kubeconfig",
     "orTerminal": "oppure da terminale",
-    "error": "Non riesco a leggere i tuoi kubeconfig: {{message}}"
+    "error": "Non riesco a leggere i tuoi kubeconfig: {{message}}",
+    "selectAll": "Seleziona tutti i cluster",
+    "select": "Seleziona {{name}}",
+    "exportSelected_one": "Esporta kubeconfig ({{count}})",
+    "exportSelected_other": "Esporta kubeconfig ({{count}})",
+    "exported_one": "Salvato {{count}} context in {{file}}. Dentro ci sono anche le sue credenziali: condividilo con cura.",
+    "exported_other": "Salvati {{count}} context in {{file}}. Dentro ci sono anche le loro credenziali: condividilo con cura.",
+    "exportRenamed": "Rinominati per evitare conflitti: {{list}}.",
+    "exportFailed": "Export non riuscito: {{message}}"
   },
   "templates": {
     "title": "Template",

@@ -1,8 +1,17 @@
 import chalk from 'chalk';
 import { prompt } from '../utils/prompt.js';
 import * as fs from 'fs/promises';
-import { ContextManager, KubeConfigMerger, KubeConfigParser } from '@hodor/core';
-import { askForFile, expandHome, fail } from '../utils/shared.js';
+import * as path from 'path';
+import YAML from 'yaml';
+import {
+  ClusterDiscovery,
+  ContextManager,
+  KubeConfigMerger,
+  KubeConfigParser,
+  extractContextsFromFiles,
+} from '@hodor/core';
+import type { Cluster } from '@hodor/core';
+import { askForFile, clusterLabel, expandHome, fail } from '../utils/shared.js';
 import { t } from '../i18n.js';
 
 /**
@@ -84,5 +93,95 @@ async function askForFiles(): Promise<string[]> {
     ]);
     if (!more) return files;
     files.push(await askForFile(t('config.askFile')));
+  }
+}
+
+/**
+ * Save some contexts (with their clusters and users) as a new kubeconfig.
+ * Names pick contexts; without names they're ticked from a list. Without -o the file is asked
+ * for at a terminal, and printed when the output is redirected.
+ */
+export async function configExportCommand(
+  names: string[],
+  options: { output?: string } = {}
+): Promise<void> {
+  try {
+    const clusters = await new ClusterDiscovery().list();
+    if (clusters.length === 0) fail(t('common.noClusters'));
+    const showSource = new Set(clusters.map((c) => c.sourceFile)).size > 1;
+
+    let picked: Cluster[];
+    if (names.length === 0) {
+      const { ids } = await prompt<{ ids: string[] }>([
+        {
+          type: 'checkbox',
+          name: 'ids',
+          message: `${t('config.export.pick')} ${chalk.dim(t('common.checkboxHint'))}`,
+          pageSize: 15,
+          choices: clusters.map((c) => ({
+            name: clusterLabel(c, showSource),
+            value: c.id,
+            short: c.name,
+          })),
+          validate: (chosen: string[]) => chosen.length > 0 || t('common.pickAtLeastOne'),
+        },
+      ]);
+      picked = clusters.filter((c) => ids.includes(c.id));
+    } else {
+      picked = names.map((name) => {
+        const matches = clusters.filter((c) => c.name === name);
+        if (matches.length === 0) fail(t('common.clusterNotFound', { name }));
+        if (matches.length > 1) {
+          fail(
+            t('config.export.ambiguous', {
+              name,
+              files: matches.map((c) => c.sourceFile).join(', '),
+            })
+          );
+        }
+        return matches[0];
+      });
+    }
+
+    const { config, renamed } = await extractContextsFromFiles(
+      picked.map((c) => ({ file: c.sourceFile, context: c.name }))
+    );
+    const yaml = YAML.stringify(config);
+
+    let output = options.output && expandHome(options.output);
+    if (!output && !process.stdout.isTTY) {
+      process.stdout.write(yaml);
+      return;
+    }
+    if (!output) {
+      const suggested =
+        picked.length === 1 ? `${picked[0].name}.kubeconfig.yaml` : 'hodor-export.kubeconfig.yaml';
+      ({ output } = await prompt<{ output: string }>([
+        {
+          type: 'input',
+          name: 'output',
+          message: t('config.export.askFile'),
+          default: suggested,
+          filter: (input: string) => expandHome(input.trim()),
+        },
+      ]));
+    }
+
+    // Writing over a kubeconfig Hodor reads would throw away its other contexts
+    const known = new Set(clusters.map((c) => path.resolve(c.sourceFile)));
+    if (known.has(path.resolve(output!))) fail(t('config.export.wouldOverwrite', { file: output }));
+
+    await new KubeConfigParser().writeConfig(output!, config);
+    console.log(
+      chalk.green(`✔ ${t('config.export.saved', { count: config.contexts.length, file: output })}`)
+    );
+    for (const r of renamed) {
+      console.log(
+        chalk.yellow(`  ⚠ ${t('config.export.renamed', { kind: r.kind, from: r.from, to: r.to })}`)
+      );
+    }
+    console.log(chalk.dim(`  ${t('config.export.credentials')}`));
+  } catch (error: any) {
+    fail(t('config.export.failed', { error: error.message }));
   }
 }

@@ -75,6 +75,16 @@ program
     await configMergeCommand(files, options);
   });
 
+program
+  .command('config:export')
+  .description(t('help.configExport.description'))
+  .argument('[contexts...]', t('help.configExport.contexts'))
+  .option('-o, --output <file>', t('help.configExport.output'))
+  .action(async (contexts: string[], options: { output?: string }) => {
+    const { configExportCommand } = await import('./commands/config.js');
+    await configExportCommand(contexts, options);
+  });
+
 // Template commands
 program
   .command('template')
