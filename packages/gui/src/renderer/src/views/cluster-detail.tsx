@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
 import { ChevronLeft, Search, Star } from 'lucide-react';
@@ -9,8 +9,7 @@ import { useAppInfo, useClusterHealth, useClusters, useProduction } from '../que
 import { ErrorBlock, Skeleton } from '../components/states';
 import { Command } from '../components/command';
 import { ConfirmDialog } from '../components/confirm-dialog';
-import { MergeDialog } from '../components/merge-dialog';
-import { useMergeFlow } from '../merge';
+import { mergePath, type MergeState } from './merge';
 import { formatAge, tildify } from '../format';
 
 const BAD = /crash|error|fail|backoff|oomkilled|invalid|evicted/i;
@@ -56,6 +55,7 @@ type Change =
 
 export const ClusterDetailView: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { id = '' } = useParams();
   const [search, setSearch] = useSearchParams();
   const [filter, setFilter] = useState('');
@@ -65,7 +65,6 @@ export const ClusterDetailView: React.FC = () => {
   const clusters = useClusters();
   const info = useAppInfo();
   const production = useProduction();
-  const merge = useMergeFlow();
 
   const cluster = clusters.data?.find((c) => c.id === id);
   const kubectlDefault = clusters.data?.find((c) => c.isDefault);
@@ -228,8 +227,9 @@ export const ClusterDetailView: React.FC = () => {
             <button
               type="button"
               className="btn"
-              onClick={() => merge.fromCluster(cluster.id)}
-              disabled={merge.busy}
+              onClick={() =>
+                navigate(mergePath, { state: { known: [cluster.sourceFile] } satisfies MergeState })
+              }
             >
               {t('detail.mergeIntoDefault')}
             </button>
@@ -273,21 +273,9 @@ export const ClusterDetailView: React.FC = () => {
           )}
         </p>
       )}
-      {(actionError || merge.error) && (
+      {actionError && (
         <p className="inline-error" role="alert">
-          {actionError
-            ? errorMessage(actionError)
-            : merge.source === 'cluster'
-              ? t('merge.failedCluster', { message: merge.error })
-              : t('merge.failedFiles', { message: merge.error })}
-        </p>
-      )}
-      {merge.outcome && (
-        <p className="inline-success" role="status">
-          {t('merge.done', {
-            count: merge.outcome.added.length,
-            names: merge.outcome.added.join(', '),
-          })}
+          {errorMessage(actionError)}
         </p>
       )}
 
@@ -579,7 +567,6 @@ export const ClusterDetailView: React.FC = () => {
         </>
       )}
 
-      <MergeDialog preview={merge.preview} onClose={merge.close} />
       {cluster && (
         <ConfirmDialog
           open={confirming}
@@ -594,7 +581,7 @@ export const ClusterDetailView: React.FC = () => {
             </p>
           }
           confirmLabel={t('detail.confirmYes')}
-          cancelLabel={t('merge.cancel')}
+          cancelLabel={t('common.cancel')}
           busy={setContext.isPending}
           onConfirm={pointKubectlHere}
           onCancel={() => setConfirming(false)}

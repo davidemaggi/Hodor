@@ -153,6 +153,21 @@
       "renamed": "{{kind}} '{{from}}' is '{{to}}' in the file: another kubeconfig uses the same name for something else",
       "credentials": "The file holds credentials too, and only you can read it. Share it with care.",
       "failed": "Export failed: {{error}}"
+    },
+    "guided": {
+      "noContexts": "No contexts in those files.",
+      "pick": "Which contexts?",
+      "into": "Into which kubeconfig?",
+      "kubectlFile": "kubectl's file",
+      "contexts_one": "{{count}} context",
+      "contexts_other": "{{count}} contexts",
+      "renamed": "(was {{name}}: that name is taken by something else)",
+      "present": "(already there)",
+      "nothing": "Everything you picked is already there. Nothing written.",
+      "confirm_one": "Add {{count}} context to {{target}}? (backed up first)",
+      "confirm_other": "Add {{count}} contexts to {{target}}? (backed up first)",
+      "done_one": "Added {{count}} context to {{target}}",
+      "done_other": "Added {{count}} contexts to {{target}}"
     }
   },
   "ctx": {

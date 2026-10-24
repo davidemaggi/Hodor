@@ -21,7 +21,6 @@ import {
   ContextManager,
   TemplateManager,
   portableTemplateSchema,
-  KubeConfigMerger,
   KubeConfigParser,
   extractContextsFromFiles,
   ResourceBrowser,
@@ -41,8 +40,10 @@ import {
   type ForwardSummary,
   type LinkedResources,
   type ExportOutcome,
+  type KubeconfigFile,
   type MergeOutcome,
-  type MergePreview,
+  type MergePlan,
+  type MergeSource,
   type RunningTemplate,
   type TemplateSummary,
   type ValueRef,
@@ -58,7 +59,16 @@ const browseSchema = z.object({ clusterId: clusterIdSchema, namespace: namespace
 const droppedPathsSchema = z.array(z.string().min(1).max(4096)).min(1).max(10);
 const tokenSchema = z.string().uuid();
 const MAX_KUBECONFIG_BYTES = 5 * 1024 * 1024;
-const MERGE_TTL_MS = 10 * 60 * 1000;
+const MERGE_SOURCE_TTL_MS = 60 * 60 * 1000;
+const mergeRequestSchema = z
+  .object({
+    target: z.string().min(1).max(4096),
+    picks: z
+      .array(z.object({ source: tokenSchema, context: z.string().min(1).max(253) }).strict())
+      .min(1)
+      .max(500),
+  })
+  .strict();
 const CLIPBOARD_WIPE_MS = 30_000;
 const forwardNameSchema = z.string().min(1).max(63);
 const valueRefSchema = z
@@ -139,8 +149,8 @@ export function registerIpc(
   const discovery = new ClusterDiscovery();
   const registry = new RunRegistry();
   const parser = new KubeConfigParser();
-  const merger = new KubeConfigMerger();
-  const pendingMerges = new Map<string, { files: string[]; expires: number }>();
+  // Files read for merging, by id: the renderer only ever names them by id
+  const mergeSources = new Map<string, { file: string; expires: number }>();
 
   const requireCluster = async (clusterId: string) => {
     const cluster = await discovery.find(clusterId);
@@ -175,30 +185,94 @@ export function registerIpc(
     await parser.parseFile(file);
   };
 
-  const previewMerge = async (files: string[]): Promise<MergePreview> => {
-    for (const file of files) await checkKubeconfigFile(file);
-    const target = new ContextManager().getConfigPath();
-    const plan = await merger.planMerge(target, files);
-
-    const now = Date.now();
-    for (const [key, pending] of pendingMerges)
-      if (pending.expires < now) pendingMerges.delete(key);
-    const token = randomUUID();
-    pendingMerges.set(token, { files, expires: now + MERGE_TTL_MS });
-
-    return {
-      token,
-      target,
-      files,
-      added: plan.added,
-      contexts: plan.config.contexts.map((c) => c.name),
-      skipped: plan.skipped.map((s) => ({
-        kind: s.kind,
-        name: s.name,
-        file: plan.inputs[s.source],
-      })),
+  /** Your kubeconfigs: what Hodor reads in ~/.kube and $KUBECONFIG, and kubectl's own file */
+  const knownFiles = async (): Promise<KubeconfigFile[]> => {
+    const defaultPath = path.resolve(new ContextManager().getConfigPath());
+    const found = new Map<string, Set<string>>();
+    const add = (file: string, names: string[]) => {
+      const key = path.resolve(file);
+      const set = found.get(key) ?? new Set<string>();
+      names.forEach((n) => set.add(n));
+      found.set(key, set);
     };
+    for (const d of await parser.discover())
+      add(
+        d.path,
+        (d.config.contexts ?? []).map((c) => c.name)
+      );
+    for (const c of await discovery.list()) add(c.sourceFile, [c.name]);
+    const files: KubeconfigFile[] = [...found].map(([file, names]) => ({
+      path: file,
+      contexts: [...names],
+      isDefault: file === defaultPath,
+      exists: true,
+    }));
+    if (!found.has(defaultPath)) {
+      files.push({ path: defaultPath, contexts: [], isDefault: true, exists: false });
+    }
+    return files.sort(
+      (a, b) => Number(b.isDefault) - Number(a.isDefault) || a.path.localeCompare(b.path)
+    );
   };
+
+  const openSources = async (files: string[]): Promise<MergeSource[]> => {
+    const now = Date.now();
+    for (const [id, source] of mergeSources) if (source.expires < now) mergeSources.delete(id);
+    const sources: MergeSource[] = [];
+    for (const file of files) {
+      await checkKubeconfigFile(file);
+      const config = await parser.parseFile(file);
+      const id = randomUUID();
+      mergeSources.set(id, { file, expires: now + MERGE_SOURCE_TTL_MS });
+      sources.push({
+        id,
+        file,
+        contexts: (config.contexts ?? []).map((ctx) => ({
+          name: ctx.name,
+          server:
+            config.clusters?.find((c) => c.name === ctx.context?.cluster)?.cluster?.server ?? '',
+          user: ctx.context?.user ?? '',
+          namespace: ctx.context?.namespace,
+        })),
+      });
+    }
+    return sources;
+  };
+
+  /** Check a merge request: a known target, sources read by openSources() */
+  const resolveMerge = async (arg: unknown) => {
+    const request = mergeRequestSchema.parse(arg);
+    const target = path.resolve(request.target);
+    if (!(await knownFiles()).some((f) => f.path === target)) {
+      throw new Error(
+        "Hodor only merges into your own kubeconfigs (in ~/.kube, or kubectl's file)."
+      );
+    }
+    const refs = request.picks.map(({ source, context }) => {
+      const entry = mergeSources.get(source);
+      if (!entry || entry.expires < Date.now()) {
+        throw new Error('Those files were read a while ago. Add them again.');
+      }
+      return { file: entry.file, context };
+    });
+    return { target, refs, manager: new ContextManager(target) };
+  };
+
+  const toPlan = (
+    target: string,
+    result: Awaited<ReturnType<ContextManager['planContexts']>>
+  ): MergePlan => ({
+    target,
+    contexts: result.contexts.map((c) => ({
+      source: c.from.file,
+      context: c.from.context,
+      as: c.as,
+      status: c.status,
+    })),
+    renamed: result.renamed
+      .filter((r) => r.kind !== 'context')
+      .map(({ kind, from, to }) => ({ kind, from, to })),
+  });
 
   const settingsStore = async () => {
     const settings = new SettingsStorage();
@@ -293,10 +367,12 @@ export function registerIpc(
     await manager.setNamespace(namespace, cluster.name);
   });
 
-  handle(CHANNELS.kubeconfigChoose, async () => {
+  handle(CHANNELS.kubeconfigFiles, () => knownFiles());
+
+  handle(CHANNELS.kubeconfigChooseSources, async () => {
     const window = getWindow();
     const options = {
-      title: 'Merge kubeconfig',
+      title: 'Kubeconfigs to merge from',
       properties: ['openFile', 'multiSelections', 'showHiddenFiles'] as Array<
         'openFile' | 'multiSelections' | 'showHiddenFiles'
       >,
@@ -305,14 +381,22 @@ export function registerIpc(
       ? await dialog.showOpenDialog(window, options)
       : await dialog.showOpenDialog(options);
     if (result.canceled || result.filePaths.length === 0) return null;
-    return previewMerge(result.filePaths);
+    return openSources(result.filePaths);
   });
 
-  handle(CHANNELS.kubeconfigPreview, async (arg) => previewMerge(droppedPathsSchema.parse(arg)));
+  handle(CHANNELS.kubeconfigOpenDropped, async (arg) => openSources(droppedPathsSchema.parse(arg)));
 
-  handle(CHANNELS.kubeconfigPreviewCluster, async (arg) => {
-    const cluster = await requireCluster(clusterIdSchema.parse(arg));
-    return previewMerge([cluster.sourceFile]);
+  handle(CHANNELS.kubeconfigOpenKnown, async (arg) => {
+    const wanted = droppedPathsSchema.parse(arg).map((p) => path.resolve(p));
+    const known = new Set((await knownFiles()).filter((f) => f.exists).map((f) => f.path));
+    const unknown = wanted.find((p) => !known.has(p));
+    if (unknown) throw new Error(`${unknown} isn't one of your kubeconfigs`);
+    return openSources(wanted);
+  });
+
+  handle(CHANNELS.kubeconfigPlan, async (arg) => {
+    const { target, refs, manager } = await resolveMerge(arg);
+    return toPlan(target, await manager.planContexts(refs));
   });
 
   handle(CHANNELS.kubeconfigExport, async (arg): Promise<ExportOutcome | null> => {
@@ -355,16 +439,14 @@ export function registerIpc(
   });
 
   handle(CHANNELS.kubeconfigApply, async (arg): Promise<MergeOutcome> => {
-    const token = tokenSchema.parse(arg);
-    const pending = pendingMerges.get(token);
-    pendingMerges.delete(token);
-    if (!pending || pending.expires < Date.now())
-      throw new Error('This merge preview expired. Pick the files again.');
-
-    // mergeFiles re-plans from disk (the target may have changed since the preview) and keeps comments
-    const manager = new ContextManager();
-    const { backup, added } = await manager.mergeFiles(pending.files);
-    return { target: manager.getConfigPath(), backup, added };
+    // Planned again from disk: the target may have changed since the preview
+    const { target, refs, manager } = await resolveMerge(arg);
+    const result = await manager.mergeContexts(refs);
+    return {
+      ...toPlan(target, result),
+      backup: result.backup,
+      added: result.contexts.filter((c) => c.status !== 'present').map((c) => c.as),
+    };
   });
 
   handle(CHANNELS.templatesList, async (): Promise<TemplateSummary[]> => {

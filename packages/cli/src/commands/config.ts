@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { prompt } from '../utils/prompt.js';
+import { canPrompt, prompt } from '../utils/prompt.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import YAML from 'yaml';
@@ -25,6 +25,12 @@ export async function configMergeCommand(
     files = files.length > 0 ? files.map(expandHome) : await askForFiles();
     for (const file of files) {
       await fs.access(file).catch(() => fail(t('config.fileNotFound', { file })));
+    }
+
+    // At a terminal: pick the contexts and the kubeconfig that receives them
+    if (!options.output && !options.yes && canPrompt()) {
+      await guidedMerge(files);
+      return;
     }
 
     const parser = new KubeConfigParser();
@@ -184,4 +190,104 @@ export async function configExportCommand(
   } catch (error: any) {
     fail(t('config.export.failed', { error: error.message }));
   }
+}
+
+/** Your kubeconfigs (in ~/.kube, and kubectl's own file even if it doesn't exist yet) */
+async function knownKubeconfigs(): Promise<
+  Array<{ path: string; count: number; isDefault: boolean }>
+> {
+  const parser = new KubeConfigParser();
+  const defaultPath = path.resolve(new ContextManager().getConfigPath());
+  const found = new Map<string, number>();
+  for (const d of await parser.discover())
+    found.set(path.resolve(d.path), d.config.contexts?.length ?? 0);
+  if (!found.has(defaultPath)) found.set(defaultPath, 0);
+  return [...found]
+    .map(([file, count]) => ({ path: file, count, isDefault: file === defaultPath }))
+    .sort((a, b) => Number(b.isDefault) - Number(a.isDefault) || a.path.localeCompare(b.path));
+}
+
+/** Tick contexts from the files, choose the target, see what happens, confirm */
+async function guidedMerge(files: string[]): Promise<void> {
+  const parser = new KubeConfigParser();
+  const choices: Array<{ name: string; value: string; short: string }> = [];
+  for (const file of files) {
+    const config = await parser.parseFile(file);
+    for (const ctx of config.contexts ?? []) {
+      choices.push({
+        name: `${ctx.name}${files.length > 1 ? chalk.dim(` (${path.basename(file)})`) : ''}`,
+        value: JSON.stringify([file, ctx.name]),
+        short: ctx.name,
+      });
+    }
+  }
+  if (choices.length === 0) fail(t('config.guided.noContexts'));
+
+  const targets = await knownKubeconfigs();
+  const answers = await prompt<{ picked: string[]; target: string }>([
+    {
+      type: 'checkbox',
+      name: 'picked',
+      message: `${t('config.guided.pick')} ${chalk.dim(t('common.checkboxHint'))}`,
+      pageSize: 15,
+      choices: choices.map((c) => ({ ...c, checked: true })),
+      validate: (chosen: string[]) => chosen.length > 0 || t('common.pickAtLeastOne'),
+    },
+    {
+      type: 'list',
+      name: 'target',
+      message: t('config.guided.into'),
+      default: targets.find((x) => x.isDefault)?.path,
+      choices: targets.map((x) => ({
+        name: `${x.path}${chalk.dim(
+          ` · ${x.isDefault ? `${t('config.guided.kubectlFile')} · ` : ''}${t('config.guided.contexts', { count: x.count })}`
+        )}`,
+        value: x.path,
+        short: x.path,
+      })),
+    },
+  ]);
+
+  const refs = answers.picked.map((v) => {
+    const [file, context] = JSON.parse(v) as [string, string];
+    return { file, context };
+  });
+  const manager = new ContextManager(answers.target);
+  const plan = await manager.planContexts(refs);
+
+  console.log(chalk.cyan(`\n${t('config.previewTitle')}`));
+  for (const c of plan.contexts) {
+    if (c.status === 'added') console.log(chalk.green(`  + ${c.as}`));
+    else if (c.status === 'renamed')
+      console.log(
+        chalk.yellow(
+          `  + ${c.as} ${chalk.dim(t('config.guided.renamed', { name: c.from.context }))}`
+        )
+      );
+    else console.log(chalk.dim(`  = ${c.as} ${t('config.guided.present')}`));
+  }
+  const writing = plan.contexts.filter((c) => c.status !== 'present').length;
+  if (writing === 0) {
+    console.log(chalk.dim(`\n${t('config.guided.nothing')}`));
+    return;
+  }
+
+  const { ok } = await prompt<{ ok: boolean }>([
+    {
+      type: 'confirm',
+      name: 'ok',
+      message: t('config.guided.confirm', { count: writing, target: answers.target }),
+      default: true,
+    },
+  ]);
+  if (!ok) {
+    console.log(chalk.dim(t('config.cancelled')));
+    return;
+  }
+
+  const result = await manager.mergeContexts(refs);
+  console.log(
+    chalk.green(`✔ ${t('config.guided.done', { count: writing, target: answers.target })}`)
+  );
+  if (result.backup) console.log(chalk.dim(`  ${t('config.backup', { path: result.backup })}`));
 }

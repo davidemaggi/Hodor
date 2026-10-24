@@ -157,6 +157,21 @@
       "renamed": "{{kind}} '{{from}}' si chiama '{{to}}' nel file: un altro kubeconfig usa lo stesso nome per altro",
       "credentials": "Il file contiene anche le credenziali, e solo tu puoi leggerlo. Condividilo con cura.",
       "failed": "Export non riuscito: {{error}}"
+    },
+    "guided": {
+      "noContexts": "Nessun context in quei file.",
+      "pick": "Quali context?",
+      "into": "In quale kubeconfig?",
+      "kubectlFile": "il file di kubectl",
+      "contexts_one": "{{count}} context",
+      "contexts_other": "{{count}} context",
+      "renamed": "(era {{name}}: quel nome è già usato per altro)",
+      "present": "(già presente)",
+      "nothing": "Tutto quello che hai scelto è già presente. Non è stato scritto nulla.",
+      "confirm_one": "Aggiungo {{count}} context a {{target}}? (prima ne faccio un backup)",
+      "confirm_other": "Aggiungo {{count}} context a {{target}}? (prima ne faccio un backup)",
+      "done_one": "Aggiunto {{count}} context a {{target}}",
+      "done_other": "Aggiunti {{count}} context a {{target}}"
     }
   },
   "ctx": {

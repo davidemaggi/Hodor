@@ -593,7 +593,7 @@ export const TemplateEditorView: React.FC = () => {
             </div>
             <div className="actions">
               <button type="button" className="btn" onClick={leave}>
-                {t('merge.cancel')}
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"

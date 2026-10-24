@@ -120,7 +120,7 @@ export const StartDialog: React.FC<StartDialogProps> = ({ template, onClose }) =
 
           <div className="dialog-actions">
             <button type="button" className="btn" onClick={() => onClose(false)}>
-              {t('merge.cancel')}
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn primary" disabled={!clusterId || start.isPending}>
               <Play aria-hidden="true" />

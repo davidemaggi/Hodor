@@ -2,7 +2,9 @@ import type { Cluster, ClusterHealth, PodView, ServiceView, Settings } from '@ho
 import type {
   HodorApi,
   LogLine,
-  MergePreview,
+  MergePlan,
+  MergeRequest,
+  MergeSource,
   RunningTemplate,
   TemplateDetail,
 } from '../../shared/api';
@@ -344,13 +346,71 @@ const pods: PodView[] = [
 ];
 const namespaces = ['default', 'kube-system', 'monitoring', 'payments', 'shop'];
 
-const mergePreview: MergePreview = {
-  token: '6f1c2e9a-3b7d-4c55-9a1e-2d8f0b7c4e13',
-  target: `${home}/.kube/config`,
-  files: [`${home}/Downloads/qa-cluster.yaml`],
-  added: ['qa-eu'],
-  contexts: ['docker-desktop', 'kind-hodor', 'qa-eu'],
-  skipped: [{ kind: 'user', name: 'sam', file: `${home}/Downloads/qa-cluster.yaml` }],
+// A downloaded kubeconfig: one new context, one already in ~/.kube/config, one name taken by another cluster
+const downloaded: Omit<MergeSource, 'id'> = {
+  file: `${home}/Downloads/qa-cluster.yaml`,
+  contexts: [
+    {
+      name: 'qa-eu',
+      server: 'https://k8s.qa-eu.northwind.dev:6443',
+      user: 'sam',
+      namespace: 'shop',
+    },
+    {
+      name: 'kind-hodor',
+      server: 'https://127.0.0.1:52817',
+      user: 'kind-hodor',
+      namespace: 'shop',
+    },
+    { name: 'docker-desktop', server: 'https://qa-box.northwind.dev:6443', user: 'sam' },
+  ],
+};
+let sourceCount = 0;
+const asSource = (source: Omit<MergeSource, 'id'>): MergeSource => ({
+  ...source,
+  id: `00000000-0000-4000-8000-${String(++sourceCount).padStart(12, '0')}`,
+});
+const fixtureSources = new Map<string, MergeSource>();
+const kubeFiles = () =>
+  [...new Set(clusters.map((c) => c.sourceFile))].map((file) => ({
+    path: file,
+    contexts: clusters.filter((c) => c.sourceFile === file).map((c) => c.name),
+    isDefault: file === `${home}/.kube/config`,
+    exists: true,
+  }));
+const knownSource = (file: string): MergeSource =>
+  asSource({
+    file,
+    contexts: clusters
+      .filter((c) => c.sourceFile === file)
+      .map((c) => ({ name: c.name, server: c.server, user: c.user, namespace: c.namespace })),
+  });
+const planFixture = ({ target, picks }: MergeRequest): MergePlan => {
+  const inTarget = clusters.filter((c) => c.sourceFile === target);
+  return {
+    target,
+    contexts: picks.map(({ source, context }) => {
+      const from = fixtureSources.get(source)!;
+      const theirs = from.contexts.find((c) => c.name === context)!;
+      const same = inTarget.find((c) => c.name === context);
+      const status: MergePlan['contexts'][number]['status'] = !same
+        ? 'added'
+        : same.server === theirs.server
+          ? 'present'
+          : 'renamed';
+      return {
+        source: from.file,
+        context,
+        as: status === 'renamed' ? `${context}-2` : context,
+        status,
+      };
+    }),
+    renamed: [],
+  };
+};
+const remember = (sources: MergeSource[]) => {
+  sources.forEach((s) => fixtureSources.set(s.id, s));
+  return sources;
 };
 
 const later = <T>(value: T, ms = 350) =>
@@ -440,28 +500,22 @@ export const fixtureApi: HodorApi = {
         },
         300
       ),
-    chooseAndPreview: () => later(mergePreview, 300),
-    previewDropped: () => later(mergePreview, 300),
-    previewCluster: () =>
-      later(
+    files: () => later(kubeFiles(), 200),
+    openDropped: () => later(remember([asSource(downloaded)]), 300),
+    chooseSources: () => later(remember([asSource(downloaded)]), 300),
+    openKnown: (paths) => later(remember(paths.map(knownSource)), 200),
+    planMerge: (request) => later(planFixture(request), 250),
+    applyMerge: (request) => {
+      const plan = planFixture(request);
+      return later(
         {
-          ...mergePreview,
-          files: [`${home}/.kube/prod.yaml`],
-          added: ['prod-eu-west'],
-          contexts: ['docker-desktop', 'kind-hodor', 'prod-eu-west'],
-          skipped: [],
-        },
-        300
-      ),
-    applyMerge: () =>
-      later(
-        {
-          target: mergePreview.target,
-          backup: `${home}/.hodor/backups/config.2026-10-22T08-00-00-000Z.bak`,
-          added: mergePreview.added,
+          ...plan,
+          backup: `${home}/.hodor/backups/config.2026-10-24T08-00-00-000Z.bak`,
+          added: plan.contexts.filter((c) => c.status !== 'present').map((c) => c.as),
         },
         400
-      ),
+      );
+    },
   },
   templates: {
     list: () => later(templates),

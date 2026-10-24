@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useIsFetching, useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -8,8 +8,7 @@ import { api, errorMessage } from '../api';
 import { useClusterHealth, useClusters, useProduction, useSettings } from '../queries';
 import { ErrorBlock, Skeleton } from '../components/states';
 import { Command } from '../components/command';
-import { MergeDialog } from '../components/merge-dialog';
-import { useMergeFlow } from '../merge';
+import { mergePath, type MergeState } from './merge';
 import { formatTime, tildify } from '../format';
 
 export const clusterPath = (id: string) => `/clusters/${encodeURIComponent(id)}`;
@@ -47,22 +46,13 @@ export const ClustersView: React.FC = () => {
   const production = useProduction();
   const checking = useIsFetching({ queryKey: ['health'] }) > 0;
   const navigate = useNavigate();
-  const merge = useMergeFlow();
   const [dragging, setDragging] = useState(false);
+  const [dropError, setDropError] = useState<string | null>(null);
+  const openMerge = (state?: MergeState) => navigate(mergePath, { state });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const exporting = useMutation({
     mutationFn: (ids: string[]) => api.kubeconfig.exportContexts(ids),
   });
-
-  // Design-review hook for the browser preview only (?merge=1); dropped from real builds
-  useEffect(() => {
-    if (
-      import.meta.env.MODE === 'fixtures' &&
-      new URLSearchParams(window.location.search).has('merge')
-    )
-      merge.choose();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const list = clusters.data ?? [];
   const healths = useQueries({
@@ -120,7 +110,12 @@ export const ClustersView: React.FC = () => {
         e.preventDefault();
         setDragging(false);
         const files = Array.from(e.dataTransfer.files);
-        if (files.length) merge.dropped(files);
+        if (!files.length) return;
+        setDropError(null);
+        api.kubeconfig
+          .openDropped(files)
+          .then((sources) => openMerge({ sources }))
+          .catch((error) => setDropError(errorMessage(error)));
       }}
     >
       {dragging && (
@@ -161,10 +156,10 @@ export const ClustersView: React.FC = () => {
             </button>
           )}
           {!empty && (
-            <button type="button" className="btn" onClick={merge.choose} disabled={merge.busy}>
+            <Link to={mergePath} className="btn">
               <FilePlus2 aria-hidden="true" />
               {t('clusters.merge')}
-            </button>
+            </Link>
           )}
         </div>
       </div>
@@ -186,19 +181,9 @@ export const ClustersView: React.FC = () => {
             })}`}
         </p>
       )}
-      {merge.error && (
+      {dropError && (
         <p className="inline-error" role="alert">
-          {t('merge.failedFiles', { message: merge.error })}
-        </p>
-      )}
-      {merge.outcome && (
-        <p className="inline-success" role="status">
-          {merge.outcome.added.length
-            ? t('merge.done', {
-                count: merge.outcome.added.length,
-                names: merge.outcome.added.join(', '),
-              })
-            : t('merge.doneNothing')}
+          {t('merge.failedFiles', { message: dropError })}
         </p>
       )}
 
@@ -212,15 +197,10 @@ export const ClustersView: React.FC = () => {
           <h2>{t('clusters.emptyTitle')}</h2>
           <p>{t('clusters.emptyBody')}</p>
           <div className="start-actions">
-            <button
-              type="button"
-              className="btn primary"
-              onClick={merge.choose}
-              disabled={merge.busy}
-            >
+            <Link to={mergePath} className="btn primary">
               <FilePlus2 aria-hidden="true" />
               {t('clusters.chooseFile')}
-            </button>
+            </Link>
             <span className="muted">{t('clusters.orTerminal')}</span>
             <Command value="hodor config:merge ~/Downloads/kubeconfig.yaml" />
           </div>
@@ -336,8 +316,6 @@ export const ClustersView: React.FC = () => {
           )}
         </>
       )}
-
-      <MergeDialog preview={merge.preview} onClose={merge.close} />
     </section>
   );
 };

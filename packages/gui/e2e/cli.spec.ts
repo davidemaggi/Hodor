@@ -192,6 +192,21 @@ test('config:export without names: tick the contexts, then choose the file', asy
   expect(saved).toContain('token: x');
 });
 
+test('config:merge at a terminal: tick contexts, choose the kubeconfig, see the plan', async () => {
+  writeFileSync(
+    join(home, 'qa.yaml'),
+    KUBECONFIG.replace(/alpha/g, 'qa').replace("'https://127.0.0.1:1'", "'https://127.0.0.1:9'")
+  );
+  const hodor = terminal('config:merge', 'qa.yaml');
+  await hodor.steps(async () => {
+    await hodor.answer('Which contexts?', ENTER);
+    await hodor.answer('Into which kubeconfig?', ENTER);
+    await hodor.answer('Add 1 context to', ENTER);
+    expect(await hodor.ends('Added 1 context to')).toBe(0);
+  });
+  expect(readFileSync(join(home, '.kube', 'config'), 'utf-8')).toContain('name: qa');
+});
+
 test('without a terminal it asks for the argument instead of hanging', async () => {
   // On Windows the CLI opens the console itself, so a pipe alone doesn't make it non-interactive
   test.skip(WINDOWS, 'Windows reads answers from the console');
