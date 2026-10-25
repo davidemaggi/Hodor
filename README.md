@@ -35,6 +35,13 @@ Hodor fixes that:
 
 Download the file for your system from [Releases](https://github.com/davidemaggi/Hodor/releases). One install gives you both the desktop app and the `hodor` command.
 
+On Windows, from 1.1.0 you can also use a package manager (new packages are reviewed by winget and Chocolatey first, so a release can take a few days to show up there):
+
+```powershell
+winget install DavideMaggi.Hodor
+choco install hodor
+```
+
 | System                        | File                                         | `hodor` on your PATH                         |
 | ----------------------------- | -------------------------------------------- | -------------------------------------------- |
 | macOS (Apple silicon / Intel) | `Hodor-…-mac-arm64.dmg` / `-mac-x64.dmg`     | the app offers it on first launch            |
@@ -154,7 +161,7 @@ Yes please. Read [CONTRIBUTING.md](CONTRIBUTING.md), branch off `develop`, keep 
 
 ## Versions
 
-[SemVer](https://semver.org/), with a Game of Thrones character for every major release: `1.x` is **Aerys**, `2.x` will start with B, and so on. Patch releases don't get a name, they're just patches.
+[SemVer](https://semver.org/), with a Game of Thrones character for every minor release. All of a major's names share a letter: `1.0` is **Aerys**, `1.1` is **Aegon**, `2.x` will start with B, and so on. Patch releases don't get a name, they're just patches.
 
 ## License
 

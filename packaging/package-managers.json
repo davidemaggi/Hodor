@@ -1,0 +1,49 @@
+{
+  "name": "Hodor",
+  "publisher": "Davide Maggi",
+  "author": "Davide Maggi",
+  "publisherUrl": "https://github.com/davidemaggi",
+  "projectUrl": "https://github.com/davidemaggi/Hodor",
+  "supportUrl": "https://github.com/davidemaggi/Hodor/issues",
+  "docsUrl": "https://github.com/davidemaggi/Hodor#readme",
+  "license": "Apache-2.0",
+  "licenseUrl": "https://github.com/davidemaggi/Hodor/blob/main/LICENSE",
+  "copyright": "Copyright (c) Davide Maggi",
+  "icon": "packages/gui/build/icons/256x256.png",
+  "tags": [
+    "kubernetes",
+    "k8s",
+    "kubectl",
+    "kubeconfig",
+    "port-forward",
+    "port-forwarding",
+    "devops",
+    "developer-tools",
+    "cli",
+    "electron"
+  ],
+  "windowsInstaller": {
+    "asset": "Hodor-{version}-win-x64-signed.exe",
+    "silentArgs": "/S",
+    "minimumOSVersion": "10.0.17763.0",
+    "commands": ["hodor"]
+  },
+  "winget": {
+    "id": "DavideMaggi.Hodor",
+    "moniker": "hodor"
+  },
+  "chocolatey": {
+    "id": "hodor",
+    "owners": "davidemaggi"
+  },
+  "locales": {
+    "en-US": {
+      "shortDescription": "Save Kubernetes port-forwards as templates and run them on any cluster.",
+      "description": "Hodor holds the door to your Kubernetes clusters. Save the port-forwards you always need as templates, run them on any cluster with one click or one command, and stop juggling terminal tabs of kubectl port-forward.\n\n- Every kubeconfig in ~/.kube, which clusters are up, kubectl's default context\n- Templates of forwards, cluster-agnostic: you pick the cluster when you run\n- Linked secrets and config maps, readable while the forward runs\n- Tray: close the window and the forwards keep running\n- Switch kubectl's context and namespace, merge and export kubeconfigs\n- A desktop app and the interactive hodor command, installed together"
+    },
+    "it-IT": {
+      "shortDescription": "Salva i port-forward di Kubernetes come template e avviali su qualsiasi cluster.",
+      "description": "Hodor tiene la porta dei tuoi cluster Kubernetes. Salva come template i port-forward che ti servono sempre, avviali su qualsiasi cluster con un clic o un comando, e smetti di destreggiarti tra le schede del terminale con kubectl port-forward.\n\n- Tutti i kubeconfig in ~/.kube, quali cluster rispondono, il context di default di kubectl\n- Template di forward indipendenti dal cluster: lo scegli quando li avvii\n- Secret e config map collegati, leggibili mentre il forward è attivo\n- Tray: chiudi la finestra e i forward restano attivi\n- Cambia context e namespace di kubectl, unisci ed esporta kubeconfig\n- Un'app desktop e il comando interattivo hodor, installati insieme"
+    }
+  }
+}
