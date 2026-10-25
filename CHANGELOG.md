@@ -5,7 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
-## [1.1.0] - 2026-10-24
+## [1.1.0] - 2026-10-25
 
 Hodor 1.1 "Aegon" comes to Windows package managers.
 
