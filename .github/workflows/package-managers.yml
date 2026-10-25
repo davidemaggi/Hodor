@@ -1,0 +1,205 @@
+name: Package managers
+
+# Publishes a release's signed Windows installer to winget and Chocolatey. release.yml calls it
+# once the signed files are on the release; run it by hand to retry a tag, or to try it without
+# submitting anything (submit off). Each job installs the real package on Windows before it
+# submits it. Metadata: packaging/package-managers.json; files: scripts/package-managers.mjs.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+      submit:
+        type: boolean
+        default: false
+    secrets:
+      WINGET_TOKEN:
+        required: false
+      CHOCOLATEY_API_KEY:
+        required: false
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, e.g. v1.1.0
+        required: true
+      submit:
+        description: Submit to winget and Chocolatey (off = build and test only)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-managers-${{ inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ inputs.tag }}
+  SUBMIT: ${{ inputs.submit == true && 'true' || 'false' }}
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  winget:
+    name: winget
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+
+      - name: Install the signed installer and read what it registers
+        id: probe
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = $env:TAG.TrimStart('v')
+          $meta = Get-Content packaging/package-managers.json -Raw | ConvertFrom-Json
+          $asset = $meta.windowsInstaller.asset.Replace('{version}', $version)
+          gh release download $env:TAG -R $env:GITHUB_REPOSITORY -p $asset -D installer
+          $exe = Join-Path $PWD "installer\$asset"
+          Start-Process $exe -ArgumentList $meta.windowsInstaller.silentArgs -Wait
+
+          $uninstallRoot = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall'
+          $key = Get-ChildItem $uninstallRoot |
+            Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -like "$($meta.name)*" } |
+            Select-Object -First 1
+          if (-not $key) { throw "The installer registered nothing in $uninstallRoot" }
+          $app = Get-ItemProperty $key.PSPath
+          $productCode = $key.PSChildName
+          Write-Host "Product code: $productCode"
+          Write-Host "DisplayName: $($app.DisplayName) · DisplayVersion: $($app.DisplayVersion) · Publisher: $($app.Publisher)"
+          if ($app.UninstallString -notmatch '^"([^"]+)"\s*(.*)$') { throw "Unexpected UninstallString: $($app.UninstallString)" }
+          $uninstaller = $Matches[1]
+          $uninstallArgs = $Matches[2]
+          # electron-builder writes no InstallLocation here; the uninstaller sits in the app's folder
+          $location = Split-Path $uninstaller
+          Write-Host "Installed in: $location"
+
+          # The command is installed and answers
+          $hodor = Join-Path $location 'resources\bin\hodor.cmd'
+          $said = (& $hodor --version | Out-String).Trim()
+          if ($said -ne $version) { throw "hodor --version says '$said', expected $version" }
+          $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+          if ($userPath -notlike '*resources\bin*') { throw "The installer didn't add hodor to the user PATH" }
+
+          "product-code=$productCode" >> $env:GITHUB_OUTPUT
+          "display-name=$($app.DisplayName)" >> $env:GITHUB_OUTPUT
+          "installer=$exe" >> $env:GITHUB_OUTPUT
+
+          # Uninstall: winget's own test below starts from a clean machine
+          Start-Process $uninstaller -ArgumentList "$uninstallArgs $($meta.windowsInstaller.silentArgs)" -Wait
+          for ($i = 0; $i -lt 60 -and (Test-Path $key.PSPath); $i++) { Start-Sleep 1 }
+          if (Test-Path $key.PSPath) { throw 'The uninstaller left its registry entry behind' }
+
+      - name: Write the manifests
+        id: manifests
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $released = (gh release view $env:TAG -R $env:GITHUB_REPOSITORY --json publishedAt | ConvertFrom-Json).publishedAt
+          $out = node scripts/package-managers.mjs --version $env:TAG `
+            --installer '${{ steps.probe.outputs.installer }}' `
+            --product-code '${{ steps.probe.outputs.product-code }}' `
+            --display-name '${{ steps.probe.outputs.display-name }}' `
+            --date ([datetime]$released).ToString('yyyy-MM-dd') --out out | ConvertFrom-Json
+          Get-ChildItem $out.winget | ForEach-Object { Write-Host "── $($_.Name)"; Get-Content $_.FullName }
+          "dir=$($out.winget)" >> $env:GITHUB_OUTPUT
+
+      - name: Validate and install from the manifests with winget
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+            Install-PackageProvider -Name NuGet -Force | Out-Null
+            Install-Module Microsoft.WinGet.Client -Force -Repository PSGallery -Scope CurrentUser
+            Repair-WinGetPackageManager -Latest -Force
+          }
+          winget --version
+          winget settings --enable LocalManifestFiles
+          $dir = '${{ steps.manifests.outputs.dir }}'
+          winget validate --manifest $dir
+          if ($LASTEXITCODE) { throw "winget validate failed ($LASTEXITCODE)" }
+          winget install --manifest $dir --accept-package-agreements --accept-source-agreements --disable-interactivity --silent
+          if ($LASTEXITCODE) { throw "winget install failed ($LASTEXITCODE)" }
+          if (-not (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\${{ steps.probe.outputs.product-code }}')) {
+            throw 'winget installed it, but not under the product code in the manifest'
+          }
+
+      - name: Submit to winget-pkgs
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:SUBMIT -ne 'true') { Write-Host 'Dry run: nothing submitted'; exit 0 }
+          if (-not $env:WINGET_TOKEN) { Write-Host "::notice::WINGET_TOKEN isn't set: winget skipped"; exit 0 }
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          # The PR comes from the token owner's fork of microsoft/winget-pkgs, on a branch of its own
+          .\wingetcreate.exe submit --token $env:WINGET_TOKEN '${{ steps.manifests.outputs.dir }}'
+          if ($LASTEXITCODE) { throw "wingetcreate submit failed ($LASTEXITCODE)" }
+
+  chocolatey:
+    name: Chocolatey
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+
+      - name: Build the package
+        id: pack
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = $env:TAG.TrimStart('v')
+          $meta = Get-Content packaging/package-managers.json -Raw | ConvertFrom-Json
+          $asset = $meta.windowsInstaller.asset.Replace('{version}', $version)
+          gh release download $env:TAG -R $env:GITHUB_REPOSITORY -p $asset -D installer
+          $out = node scripts/package-managers.mjs --version $env:TAG --installer "installer\$asset" --out out | ConvertFrom-Json
+          Push-Location $out.chocolatey
+          Get-Content "$($meta.chocolatey.id).nuspec"
+          choco pack --no-progress
+          if ($LASTEXITCODE) { throw "choco pack failed ($LASTEXITCODE)" }
+          Pop-Location
+          "dir=$($out.chocolatey)" >> $env:GITHUB_OUTPUT
+          "id=$($meta.chocolatey.id)" >> $env:GITHUB_OUTPUT
+          "name=$($meta.name)" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Install, check and uninstall with choco
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $id = '${{ steps.pack.outputs.id }}'
+          $version = '${{ steps.pack.outputs.version }}'
+          choco install $id --source '${{ steps.pack.outputs.dir }}' --version $version -y --no-progress
+          if ($LASTEXITCODE) { throw "choco install failed ($LASTEXITCODE)" }
+          $key = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
+            Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -like '${{ steps.pack.outputs.name }}*' } |
+            Select-Object -First 1
+          if (-not $key) { throw "choco install didn't install ${{ steps.pack.outputs.name }}" }
+          $app = Get-ItemProperty $key.PSPath
+          # electron-builder writes no InstallLocation; the uninstaller sits in the app's folder
+          if ($app.UninstallString -notmatch '^"([^"]+)"') { throw "Unexpected UninstallString: $($app.UninstallString)" }
+          $said = (& (Join-Path (Split-Path $Matches[1]) 'resources\bin\hodor.cmd') --version | Out-String).Trim()
+          if ($said -ne $version) { throw "hodor --version says '$said', expected $version" }
+
+          choco uninstall $id -y --no-progress
+          if ($LASTEXITCODE) { throw "choco uninstall failed ($LASTEXITCODE)" }
+          for ($i = 0; $i -lt 60 -and (Test-Path $key.PSPath); $i++) { Start-Sleep 1 }
+          if (Test-Path $key.PSPath) { throw 'choco uninstall left the app installed' }
+
+      - name: Push to the Chocolatey community repository
+        env:
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:SUBMIT -ne 'true') { Write-Host 'Dry run: nothing pushed'; exit 0 }
+          if (-not $env:CHOCOLATEY_API_KEY) { Write-Host "::notice::CHOCOLATEY_API_KEY isn't set: Chocolatey skipped"; exit 0 }
+          $nupkg = Get-ChildItem '${{ steps.pack.outputs.dir }}\*.nupkg' | Select-Object -First 1
+          choco push $nupkg.FullName --source https://push.chocolatey.org/ --api-key $env:CHOCOLATEY_API_KEY
+          if ($LASTEXITCODE) { throw "choco push failed ($LASTEXITCODE)" }

@@ -38,8 +38,13 @@ const match = /^(\d+)\.(\d+)\.(\d+)(-.+)?$/.exec(version);
 if (!match) fail(`${version} is not a SemVer version`);
 const [, , , patch, pre] = match;
 
-// Patch releases go unnamed; the rest carry their major's codename
+// Patch releases go unnamed; every minor carries its own codename (packages/core/src/utils/version.ts)
 const name = patch === '0' ? codename(version) : undefined;
+if (patch === '0' && !name) {
+  fail(
+    `${version} is a new minor without a codename: add one to CODENAMES in packages/core/src/utils/version.ts`
+  );
+}
 const title = `Hodor ${version}${name ? ` “${name}”` : ''}`;
 
 const changelog = read('CHANGELOG.md');

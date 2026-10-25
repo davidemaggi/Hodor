@@ -462,3 +462,16 @@ jobs:
           The `-signed` installer and zip are code-signed (Certum), so Windows names the publisher instead of "Unknown publisher". Prefer them to the unsigned ones; the unsigned files stay for anyone who verifies builds through the attestations.
           NOTE
           gh release edit "$TAG" --notes-file notes.md
+
+  # ── Package managers ──────────────────────────────────────────────────────────────────────────
+  # Stable releases go to winget and Chocolatey once the signed installer is on the release:
+  # they install that file, so no signature means no package-manager release.
+  package-managers:
+    name: Package managers
+    needs: [meta, publish-signed]
+    if: needs.meta.outputs.prerelease == 'false'
+    uses: ./.github/workflows/package-managers.yml
+    with:
+      tag: ${{ needs.meta.outputs.tag }}
+      submit: true
+    secrets: inherit

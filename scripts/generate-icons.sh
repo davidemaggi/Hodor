@@ -12,6 +12,9 @@ mkdir -p "$RES" "$BUILD" packages/gui/src/renderer/src/assets
 render() { magick -background none -density "$3" "$1" -resize "${2}x${2}" "PNG32:$4"; }
 
 render "$SVG" 1024 1200 "$BUILD/icon.png"
+# Linux: one PNG per standard hicolor size (desktops don't look in 1024x1024)
+mkdir -p "$BUILD/icons"
+for s in 16 24 32 48 64 128 256 512; do render "$SVG" "$s" 1200 "$BUILD/icons/${s}x${s}.png"; done
 render "$SVG" 512 600 "$RES/icon.png"
 magick -background none -density 1200 "$SVG" -define icon:auto-resize=256,128,64,48,32,24,16 "$BUILD/icon.ico"
 
