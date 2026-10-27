@@ -45,5 +45,63 @@
       "shortDescription": "Salva i port-forward di Kubernetes come template e avviali su qualsiasi cluster.",
       "description": "Hodor tiene la porta dei tuoi cluster Kubernetes. Salva come template i port-forward che ti servono sempre, avviali su qualsiasi cluster con un clic o un comando, e smetti di destreggiarti tra le schede del terminale con kubectl port-forward.\n\n- Tutti i kubeconfig in ~/.kube, quali cluster rispondono, il context di default di kubectl\n- Template di forward indipendenti dal cluster: lo scegli quando li avvii\n- Secret e config map collegati, leggibili mentre il forward è attivo\n- Tray: chiudi la finestra e i forward restano attivi\n- Cambia context e namespace di kubectl, unisci ed esporta kubeconfig\n- Un'app desktop e il comando interattivo hodor, installati insieme"
     }
+  },
+  "homebrew": {
+    "tap": "davidemaggi/homebrew-tap",
+    "cask": "hodor",
+    "asset": "Hodor-{version}-mac-{arch}.zip",
+    "arches": {
+      "arm": "arm64",
+      "intel": "x64"
+    },
+    "app": "Hodor.app",
+    "binaries": ["Contents/Resources/bin/hodor"],
+    "minimumMacOS": "monterey",
+    "removeQuarantine": true,
+    "zap": [
+      "~/.hodor",
+      "~/Library/Application Support/Hodor",
+      "~/Library/Preferences/dev.davidemaggi.hodor.plist",
+      "~/Library/Saved Application State/dev.davidemaggi.hodor.savedState",
+      "~/Library/Logs/Hodor"
+    ]
+  },
+  "aur": {
+    "package": "hodor-bin",
+    "provides": "hodor",
+    "maintainer": "Davide Maggi <https://github.com/davidemaggi>",
+    "asset": "Hodor-{version}-linux-{arch}.deb",
+    "arches": {
+      "x86_64": "amd64",
+      "aarch64": "arm64"
+    },
+    "installDir": "/opt/Hodor",
+    "links": {
+      "/usr/bin/hodor": "/opt/Hodor/resources/bin/hodor",
+      "/usr/bin/hodor-app": "/opt/Hodor/hodor-app"
+    },
+    "depends": [
+      "gtk3",
+      "nss",
+      "alsa-lib",
+      "libxss",
+      "libxtst",
+      "at-spi2-core",
+      "libnotify",
+      "libsecret",
+      "mesa",
+      "xdg-utils",
+      "util-linux-libs"
+    ],
+    "optdepends": ["kubectl: change kubectl's default context and namespace"]
+  },
+  "cloudsmith": {
+    "owner": "TODO-cloudsmith-owner",
+    "repository": "TODO-cloudsmith-repository",
+    "package": "hodor",
+    "deb": "Hodor-{version}-linux-{arch}.deb",
+    "debArches": ["amd64", "arm64"],
+    "rpm": "Hodor-{version}-linux-{arch}.rpm",
+    "rpmArches": ["x86_64", "aarch64"]
   }
 }
