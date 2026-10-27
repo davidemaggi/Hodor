@@ -103,6 +103,10 @@ jobs:
       # kind wrote ~/.kube/config; the app runs with a throwaway HOME and gets a copy of it
       - name: App against the cluster
         run: HODOR_E2E_KUBECONFIG="$HOME/.kube/config" xvfb-run -a pnpm e2e e2e/cluster.spec.ts
+      - name: CLI against the cluster
+        run: |
+          pnpm --filter @hodor/cli bundle
+          HODOR_E2E_KUBECONFIG="$HOME/.kube/config" xvfb-run -a pnpm e2e e2e/cli.spec.ts -g "real cluster"
       - uses: actions/upload-artifact@v7.0.2
         if: failure()
         with:
