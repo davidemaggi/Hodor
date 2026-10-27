@@ -45,7 +45,11 @@ const brew = meta.homebrew;
 const brewDir = join(args.out, 'homebrew', 'Casks');
 mkdirSync(brewDir, { recursive: true });
 const brewArch = Object.entries(brew.arches); // [['arm', 'arm64'], ['intel', 'x64']]
-const sha = brewArch.map(([key, arch]) => `${key}: "${sumOf(assetFor(brew.asset, arch))}"`);
+// Keys padded to one width: brew style aligns the values of a multi-line hash
+const keyWidth = Math.max(...brewArch.map(([key]) => key.length)) + 1;
+const sha = brewArch.map(
+  ([key, arch]) => `${`${key}:`.padEnd(keyWidth)} "${sumOf(assetFor(brew.asset, arch))}"`
+);
 const urlPattern = download(
   brew.asset.replace('{version}', '#{version}').replace('{arch}', '#{arch}'),
   '#{version}'
@@ -70,7 +74,7 @@ writeFileSync(
     strategy :github_latest
   end
 
-  depends_on macos: ">= :${brew.minimumMacOS}"
+  depends_on macos: :${brew.minimumMacOS}
 
   app "${brew.app}"
 ${brew.binaries.map((b) => `  binary ${appdirPath(b)}`).join('\n')}
@@ -78,15 +82,17 @@ ${
   brew.removeQuarantine
     ? `
   # Not notarized by Apple yet: without this, macOS refuses to open it the first time
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-dr", "com.apple.quarantine", "#{appdir}/${brew.app}"]
+  postflight_steps do
+    run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{appdir}}/${brew.app}"]
   end
 `
     : ''
 }
   zap trash: [
-${brew.zap.map((p) => `    "${p}",`).join('\n')}
+${[...brew.zap]
+  .sort()
+  .map((p) => `    "${p}",`)
+  .join('\n')}
   ]
 end
 `

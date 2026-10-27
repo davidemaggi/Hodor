@@ -388,7 +388,9 @@ jobs:
             apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq /p/$(basename "$deb") >/dev/null
             [ \"\$(hodor --version)\" = $version ]"
           docker run --rm -v "$PWD/packages:/p:ro" fedora:latest bash -c "
-            dnf install -y -q /p/$(basename "$rpm") >/dev/null
+            # Cisco's openh264 repository isn't needed and its mirrors are flaky; one retry for the rest
+            dnf_install() { dnf install -y -q --disablerepo=fedora-cisco-openh264 \"\$@\" >/dev/null; }
+            dnf_install /p/$(basename "$rpm") || { sleep 15; dnf_install /p/$(basename "$rpm"); }
             [ \"\$(hodor --version)\" = $version ]"
 
       - name: Upload to Cloudsmith
@@ -421,5 +423,6 @@ jobs:
             [ \"\$(hodor --version)\" = $version ]"
           docker run --rm fedora:latest bash -c "
             curl -1sLf https://dl.cloudsmith.io/public/$repo/setup.rpm.sh | bash
-            dnf install -y -q $package-$version >/dev/null
+            dnf_install() { dnf install -y -q --disablerepo=fedora-cisco-openh264 \"\$@\" >/dev/null; }
+            dnf_install $package-$version || { sleep 15; dnf_install $package-$version; }
             [ \"\$(hodor --version)\" = $version ]"

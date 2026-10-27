@@ -56,7 +56,7 @@
     },
     "app": "Hodor.app",
     "binaries": ["Contents/Resources/bin/hodor"],
-    "minimumMacOS": "monterey",
+    "minimumMacOS": "ventura",
     "removeQuarantine": true,
     "zap": [
       "~/.hodor",
