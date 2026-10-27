@@ -49,7 +49,7 @@ choco install hodor
 curl -1sLf https://dl.cloudsmith.io/public/davidemaggi/dm-hodor/setup.deb.sh | sudo -E bash
 sudo apt install hodor
 
-# Fedora, RHEL (the package is called Hodor, with a capital H)
+# Fedora, RHEL
 sudo tee /etc/yum.repos.d/hodor.repo <<'END'
 [hodor]
 name=Hodor

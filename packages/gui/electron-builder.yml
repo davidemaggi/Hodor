@@ -90,6 +90,16 @@ deb:
   afterRemove: build/linux/after-remove.sh
 
 rpm:
+  # The package name follows package.json, which is scoped (@hodor/gui), so electron-builder falls
+  # back to the product name "Hodor"; dnf names are case-sensitive and the deb is "hodor".
+  # 1.1.0 shipped as "Hodor": replace it on upgrade and still answer to that name.
+  packageName: hodor
+  fpm:
+    - --replaces=Hodor
+    - --provides=Hodor
+    - --rpm-posttrans=build/linux/rpm-posttrans.sh
+    # Own the install folder, so removing the package removes it too (not just the files in it)
+    - --directories=/opt/Hodor
   depends:
     - gtk3
     - libnotify
