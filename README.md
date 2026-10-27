@@ -50,8 +50,16 @@ curl -1sLf https://dl.cloudsmith.io/public/davidemaggi/dm-hodor/setup.deb.sh | s
 sudo apt install hodor
 
 # Fedora, RHEL
-curl -1sLf https://dl.cloudsmith.io/public/davidemaggi/dm-hodor/setup.rpm.sh | sudo -E bash
-sudo dnf install hodor
+sudo tee /etc/yum.repos.d/hodor.repo <<'END'
+[hodor]
+name=Hodor
+baseurl=https://dl.cloudsmith.io/public/davidemaggi/dm-hodor/rpm/any-distro/any-version/$basearch
+gpgkey=https://dl.cloudsmith.io/public/davidemaggi/dm-hodor/gpg.DDB897F009160D0F.key
+gpgcheck=1
+repo_gpgcheck=1
+enabled=1
+END
+sudo dnf install Hodor
 
 ```
 
