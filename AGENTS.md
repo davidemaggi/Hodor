@@ -83,7 +83,7 @@ User data lives in `~/.hodor/` (templates, settings, run registry, kubeconfig ba
 - Stable releases are published by `.github/workflows/package-managers.yml`, which `release.yml` calls after `publish-signed`, using the release's own files (nothing is rebuilt):
   - **winget** `DavideMaggi.Hodor` and **Chocolatey** `hodor`: the signed installer, so no signature means no Windows package-manager release
   - **Homebrew**: cask `hodor` in the tap `davidemaggi/homebrew-tap` (shared with other projects), from the macOS zips; it clears the quarantine flag (not notarized)
-  - **AUR**: `hodor-bin`, from the .deb files
+  - **AUR**: `hodor-bin`, from the .deb files. Off for now (`aur.enabled: false`: built and tested on every release, not pushed) until there's an AUR account; set it to `true` and add `AUR_SSH_PRIVATE_KEY` to turn it on
   - **Cloudsmith** `davidemaggi/dm-hodor`: apt and dnf repository with the .deb and .rpm files. The open-source plan needs the Cloudsmith attribution in the README: keep it
     Pre-releases are never published there.
 - Names, publisher, URLs, descriptions (en-US, it-IT), tags, the icon and every channel's settings live in `packaging/package-managers.json`; `scripts/package-managers.mjs` writes the winget manifests (schema 1.10.0) and the Chocolatey package, `scripts/package-managers-unix.mjs` the Homebrew cask (Homebrew 7 format: `postflight_steps`, checked with `brew style` and `brew audit --online`) and the PKGBUILD. Change wording there, not in the workflow.

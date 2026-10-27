@@ -67,6 +67,7 @@
     ]
   },
   "aur": {
+    "enabled": false,
     "package": "hodor-bin",
     "provides": "hodor",
     "maintainer": "Davide Maggi <https://github.com/davidemaggi>",

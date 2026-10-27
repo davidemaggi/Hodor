@@ -144,7 +144,7 @@ Released after four release candidates (`1.0.0-rc.1` to `rc.4`), installed and u
 ## 🔜 More package managers (from 1.1.0, no new build)
 
 - ✅ Homebrew: a cask in `davidemaggi/tap` (the official `homebrew/cask` wants notarized apps)
-- ✅ AUR: `hodor-bin`
+- 🔜 AUR: `hodor-bin` is ready and tested, but off until AUR accepts new accounts again (`"enabled"` in `packaging/package-managers.json`)
 - ✅ apt and dnf: a repository on Cloudsmith
 - Each one tested by installing the real package before publishing (a dry run on 1.1.0); 🔜 the first real publication
 
