@@ -381,6 +381,9 @@ jobs:
           ls -l packages
           echo "repo=$(jq -r '"\(.cloudsmith.owner)/\(.cloudsmith.repository)"' $meta)" >> "$GITHUB_OUTPUT"
           echo "package=$(jq -r .cloudsmith.package $meta)" >> "$GITHUB_OUTPUT"
+          # electron-builder names the rpm after the product ("Hodor"); dnf names are case-sensitive
+          sudo apt-get install -y -qq rpm >/dev/null
+          echo "rpm-name=$(rpm -qp --qf '%{NAME}' packages/*.rpm 2>/dev/null | head -1)" >> "$GITHUB_OUTPUT"
 
       - name: Install the files themselves on Ubuntu and Fedora
         run: |
@@ -424,8 +427,21 @@ jobs:
             curl -1sLf https://dl.cloudsmith.io/public/$repo/setup.deb.sh | bash
             DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $package=$version >/dev/null
             [ \"\$(hodor --version)\" = $version ]"
-          docker run --rm fedora:latest bash -c "
-            curl -1sLf https://dl.cloudsmith.io/public/$repo/setup.rpm.sh | bash
+          # The same .repo file the README gives: Cloudsmith's setup.rpm.sh points sslcacert at
+          # /etc/pki/tls/certs/ca-bundle.crt, which Fedora 43+ no longer has
+          rpm_name='${{ steps.files.outputs.rpm-name }}'
+          cat > hodor.repo <<EOF
+          [hodor]
+          name=Hodor
+          baseurl=https://dl.cloudsmith.io/public/$repo/rpm/any-distro/any-version/\$basearch
+          gpgkey=$(jq -r .cloudsmith.gpgKey packaging/package-managers.json)
+          gpgcheck=1
+          repo_gpgcheck=1
+          enabled=1
+          EOF
+          sed -i 's/^ *//' hodor.repo
+          cat hodor.repo
+          docker run --rm -v "$PWD/hodor.repo:/etc/yum.repos.d/hodor.repo:ro" fedora:latest bash -c "
             dnf_install() { dnf install -y -q --disablerepo=fedora-cisco-openh264 \"\$@\" >/dev/null; }
-            dnf_install $package-$version || { sleep 15; dnf_install $package-$version; }
+            dnf_install $rpm_name-$version || { sleep 15; dnf_install $rpm_name-$version; }
             [ \"\$(hodor --version)\" = $version ]"
