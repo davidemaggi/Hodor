@@ -9,6 +9,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 - More package managers, with the files of each release as they are: Homebrew on macOS (`brew install --cask davidemaggi/tap/hodor`) and an apt/dnf repository for Debian, Ubuntu, Fedora and RHEL, hosted by Cloudsmith
 
+### Fixed
+
+- Linux rpm: the package is now called `hodor`, like everywhere else (1.1.0 was `Hodor`). It replaces the old one on upgrade, and `dnf install Hodor` still works
+- Linux rpm: upgrading no longer removes the `hodor` and `hodor-app` commands, and removing Hodor removes `/opt/Hodor` too
+
 ## [1.1.0] - 2026-10-25
 
 Hodor 1.1 "Aegon" comes to Windows package managers.
