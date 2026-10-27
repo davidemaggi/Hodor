@@ -80,11 +80,17 @@ User data lives in `~/.hodor/` (templates, settings, run registry, kubeconfig ba
 
 ## Package managers
 
-- Stable releases are published to **winget** (`DavideMaggi.Hodor`) and **Chocolatey** (`hodor`) by `.github/workflows/package-managers.yml`, which `release.yml` calls after `publish-signed`: both install the signed installer, so no signature means no package-manager release. Pre-releases are never published there.
-- Names, publisher, URLs, descriptions (en-US, it-IT), tags and the icon live in `packaging/package-managers.json`; `scripts/package-managers.mjs` turns them into the winget manifests (schema 1.10.0) and the Chocolatey package. Change wording there, not in the workflow.
+- Stable releases are published by `.github/workflows/package-managers.yml`, which `release.yml` calls after `publish-signed`, using the release's own files (nothing is rebuilt):
+  - **winget** `DavideMaggi.Hodor` and **Chocolatey** `hodor`: the signed installer, so no signature means no Windows package-manager release
+  - **Homebrew**: cask `hodor` in the tap `davidemaggi/homebrew-tap` (shared with other projects), from the macOS zips; it clears the quarantine flag (not notarized)
+  - **AUR**: `hodor-bin`, from the .deb files
+  - **Cloudsmith** `davidemaggi/dm-hodor`: apt and dnf repository with the .deb and .rpm files. The open-source plan needs the Cloudsmith attribution in the README: keep it
+    Pre-releases are never published there.
+- Names, publisher, URLs, descriptions (en-US, it-IT), tags, the icon and every channel's settings live in `packaging/package-managers.json`; `scripts/package-managers.mjs` writes the winget manifests (schema 1.10.0) and the Chocolatey package, `scripts/package-managers-unix.mjs` the Homebrew cask (Homebrew 7 format: `postflight_steps`, checked with `brew style` and `brew audit --online`) and the PKGBUILD. Change wording there, not in the workflow.
 - Each job installs the real thing on a Windows runner before submitting: winget reads the product code and display name from the registry, checks `hodor --version` and the PATH, validates and installs from the manifests; Chocolatey packs, installs, checks and uninstalls.
-- winget submits a PR to microsoft/winget-pkgs with `wingetcreate submit`, from the token owner's fork, on a branch of its own (so other projects of the same owner don't collide). Secret `WINGET_TOKEN`: a classic token with `public_repo`. Chocolatey pushes with secret `CHOCOLATEY_API_KEY`. Without a secret its step is skipped with a notice.
-- To retry a tag, or try without submitting: run "Package managers" by hand (Actions → Package managers → tag, submit on/off).
+- Before publishing, every job installs the real package: brew on a macOS runner, makepkg in an Arch container, the .deb/.rpm on Ubuntu and Fedora containers, and after the upload the same packages again through apt and dnf from Cloudsmith.
+- winget submits a PR to microsoft/winget-pkgs with `wingetcreate submit`, from the token owner's fork, on a branch of its own (so other projects of the same owner don't collide). The tap push rebases and retries when another project pushed first. Secrets: `WINGET_TOKEN` (classic, `public_repo`), `CHOCOLATEY_API_KEY`, `HOMEBREW_TAP_TOKEN` (fine-grained, Contents read/write on the tap), `AUR_SSH_PRIVATE_KEY` (the AUR account's key), `CLOUDSMITH_API_KEY`. Without a secret its step is skipped with a notice.
+- To retry a tag, publish an existing release on some channels only, or try without publishing: run "Package managers" by hand (Actions → Package managers → tag, channels, publish on/off).
 
 ## Packaging
 

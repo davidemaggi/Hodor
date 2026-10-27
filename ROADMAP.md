@@ -141,10 +141,17 @@ Released after four release candidates (`1.0.0-rc.1` to `rc.4`), installed and u
 - ✅ Linux: the app icon shows in KDE, GNOME and friends
 - ✅ Every minor version has its own codename
 
-## 📋 1.2 · More package managers
+## 🔜 More package managers (from 1.1.0, no new build)
 
-- Homebrew; check its current rules for unsigned/un-notarized casks first. Then Linux repositories
+- ✅ Homebrew: a cask in `davidemaggi/tap` (the official `homebrew/cask` wants notarized apps)
+- ✅ AUR: `hodor-bin`
+- ✅ apt and dnf: a repository on Cloudsmith
+- Each one tested by installing the real package before publishing (a dry run on 1.1.0); 🔜 the first real publication
+
+## 📋 1.2
+
 - Start/stop single forwards from the CLI
+- Maybe Flathub and the Snap Store (both need Hodor's access to ~/.kube and kubectl reviewed)
 
 ## 💭 Later, maybe
 

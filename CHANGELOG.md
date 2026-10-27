@@ -5,6 +5,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Added
+
+- More package managers, with the files of each release as they are: Homebrew on macOS (`brew install --cask davidemaggi/tap/hodor`), the AUR on Arch (`hodor-bin`) and an apt/dnf repository for Debian, Ubuntu, Fedora and RHEL, hosted by Cloudsmith
+
 ## [1.1.0] - 2026-10-25
 
 Hodor 1.1 "Aegon" comes to Windows package managers.
