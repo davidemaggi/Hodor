@@ -246,6 +246,9 @@ jobs:
           echo "file=out/homebrew/Casks/$name.rb" >> "$GITHUB_OUTPUT"
 
       - name: Audit, install, check and uninstall with brew
+        env:
+          # brew audit --online asks GitHub's API; anonymously, shared runners hit the rate limit
+          HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           name='${{ steps.cask.outputs.name }}'

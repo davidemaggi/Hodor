@@ -96,8 +96,8 @@
     "optdepends": ["kubectl: change kubectl's default context and namespace"]
   },
   "cloudsmith": {
-    "owner": "TODO-cloudsmith-owner",
-    "repository": "TODO-cloudsmith-repository",
+    "owner": "davidemaggi",
+    "repository": "dm-hodor",
     "package": "hodor",
     "deb": "Hodor-{version}-linux-{arch}.deb",
     "debArches": ["amd64", "arm64"],
