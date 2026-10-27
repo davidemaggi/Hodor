@@ -8,6 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 ### Added
 
 - More package managers, with the files of each release as they are: Homebrew on macOS (`brew install --cask davidemaggi/tap/hodor`) and an apt/dnf repository for Debian, Ubuntu, Fedora and RHEL, hosted by Cloudsmith
+- **CLI: forwards are picked, not typed.** `hodor template:create` and `template:edit` ask which cluster to look in, then let you pick the namespace, the service, deployment or pod and its port from lists you filter by typing. The forward's name and a free local port are suggested, linked secrets and config maps are ticked from the namespace's own. A Deployment's pods show up as the Deployment, like in the app, so the forward survives a restart. "Type it myself" is always there, and a cluster that doesn't answer within 8 seconds drops you back to typing
 
 ### Fixed
 

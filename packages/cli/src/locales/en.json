@@ -108,6 +108,11 @@
       "warning": "{{name}} is marked as production in Hodor.",
       "needsYes": "{{name}} is marked as production: pass --yes to go ahead without a terminal to ask in.",
       "cancelled": "Left alone. Nothing changed."
+    },
+    "keys": {
+      "navigate": "move",
+      "select": "pick",
+      "filter": "type to filter"
     }
   },
   "clusters": {
@@ -242,7 +247,25 @@
       "linkSecrets": "Link secrets to this forward?",
       "secretNames": "Secret names (comma-separated):",
       "linkConfigMaps": "Link configmaps to this forward?",
-      "configMapNames": "ConfigMap names (comma-separated):"
+      "configMapNames": "ConfigMap names (comma-separated):",
+      "pickCluster": "Which cluster should I look names up in?",
+      "typeEverything": "✎ None, I'll type everything myself",
+      "connecting": "Knocking on {{cluster}}...",
+      "unreachable": "{{cluster}} isn't answering ({{error}}). No lists then: type the names yourself.",
+      "pickNamespace": "Namespace:",
+      "typeIt": "✎ Not in the list, I'll type it",
+      "loading": "Looking around {{namespace}}...",
+      "listFailed": "Couldn't list what's in {{namespace}} ({{error}}). Type the rest yourself.",
+      "nothingHere": "Nothing running in {{namespace}} with a port to forward. Type the rest yourself.",
+      "pickTarget": "Forward to which service, deployment or pod in {{namespace}}?",
+      "onlyPort": "Remote port: {{port}} (the only one it has)",
+      "pickPort": "Remote port:",
+      "otherPort": "✎ Another port",
+      "secretsPick": "Secrets to link:",
+      "configMapsPick": "Config maps to link:",
+      "optionalHint": "(space to tick, enter to go on, none is fine)",
+      "secretsTyped": "Secret names to link (comma-separated, I can't list them here):",
+      "configMapsTyped": "Config map names to link (comma-separated, I can't list them here):"
     },
     "delete": {
       "notFound": "Template '{{name}}' not found.",

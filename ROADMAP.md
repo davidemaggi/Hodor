@@ -148,6 +148,11 @@ Released after four release candidates (`1.0.0-rc.1` to `rc.4`), installed and u
 - ✅ apt and dnf: a repository on Cloudsmith
 - Each one tested by installing the real package before publishing (a dry run on 1.1.0); 🔜 the first real publication
 
+## 🔜 1.1.1 · CLI pickers
+
+- ✅ `hodor template:create` and `template:edit` pick namespace, service/deployment/pod and port from searchable lists of a cluster you choose, with name and local port suggested and secrets/config maps ticked; typing by hand stays available, and is the fallback when the cluster doesn't answer
+- ✅ The rpm is called `hodor`, and upgrades keep the `hodor` commands
+
 ## 📋 1.2
 
 - Start/stop single forwards from the CLI

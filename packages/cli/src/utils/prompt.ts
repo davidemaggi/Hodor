@@ -1,6 +1,9 @@
 import * as fs from 'fs';
 import * as tty from 'tty';
+import chalk from 'chalk';
 import inquirer from 'inquirer';
+import search from '@inquirer/search';
+import { filterChoices } from './forward-choices.js';
 import { t } from '../i18n.js';
 
 type PromptModule = ReturnType<typeof inquirer.createPromptModule>;
@@ -57,3 +60,53 @@ export const prompt: PromptModule = ((questions: any, answers?: any) => {
   }
   return pending;
 }) as PromptModule;
+
+export interface SearchChoice<T> {
+  name: string;
+  value: T;
+  description?: string;
+  /** Shown once picked, when the name is too busy for that */
+  short?: string;
+  disabled?: boolean | string;
+}
+
+/**
+ * A list you filter by typing, shown a page at a time (arrows move, Enter picks). `pinned`
+ * choices (e.g. "type it myself") stay at the end whatever is typed.
+ */
+export async function searchSelect<T>(
+  message: string,
+  choices: SearchChoice<T>[],
+  options: { pinned?: SearchChoice<T>[]; pageSize?: number } = {}
+): Promise<T> {
+  const input = terminalInput();
+  if (!input) {
+    console.error(`\n✖ ${t('common.needsTerminal')}`);
+    process.exit(1);
+  }
+  if (input !== process.stdin) input.ref();
+  try {
+    return await search<T>(
+      {
+        message,
+        pageSize: options.pageSize ?? 12,
+        source: async (term) => [...filterChoices(choices, term), ...(options.pinned ?? [])],
+        theme: {
+          style: {
+            keysHelpTip: () =>
+              chalk.dim(
+                [
+                  `↑↓ ${t('common.keys.navigate')}`,
+                  `⏎ ${t('common.keys.select')}`,
+                  t('common.keys.filter'),
+                ].join(' • ')
+              ),
+          },
+        },
+      },
+      { input, output: process.stdout }
+    );
+  } finally {
+    if (input !== process.stdin) input.unref();
+  }
+}
