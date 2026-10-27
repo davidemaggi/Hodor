@@ -30,9 +30,6 @@ on:
         required: false
       CLOUDSMITH_API_KEY:
         required: false
-  # TEMPORARY dry run
-  push:
-    branches: [feature/more-package-managers]
   workflow_dispatch:
     inputs:
       tag:
@@ -50,18 +47,18 @@ permissions:
   contents: read
 
 concurrency:
-  group: package-managers-${{ inputs.tag || 'dry-run' }}
+  group: package-managers-${{ inputs.tag }}
   cancel-in-progress: false
 
 env:
-  TAG: ${{ inputs.tag || 'v1.1.0' }}
+  TAG: ${{ inputs.tag }}
   SUBMIT: ${{ inputs.submit == true && 'true' || 'false' }}
   GH_TOKEN: ${{ github.token }}
 
 jobs:
   winget:
     name: winget
-    if: contains(format(',{0},', inputs.channels || 'homebrew,aur,cloudsmith'), ',winget,')
+    if: contains(format(',{0},', inputs.channels), ',winget,')
     runs-on: windows-latest
     defaults:
       run:
@@ -161,7 +158,7 @@ jobs:
 
   chocolatey:
     name: Chocolatey
-    if: contains(format(',{0},', inputs.channels || 'homebrew,aur,cloudsmith'), ',chocolatey,')
+    if: contains(format(',{0},', inputs.channels), ',chocolatey,')
     runs-on: windows-latest
     defaults:
       run:
@@ -226,7 +223,7 @@ jobs:
 
   homebrew:
     name: Homebrew
-    if: contains(format(',{0},', inputs.channels || 'homebrew,aur,cloudsmith'), ',homebrew,')
+    if: contains(format(',{0},', inputs.channels), ',homebrew,')
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7.0.1
@@ -299,7 +296,7 @@ jobs:
 
   aur:
     name: AUR
-    if: contains(format(',{0},', inputs.channels || 'homebrew,aur,cloudsmith'), ',aur,')
+    if: contains(format(',{0},', inputs.channels), ',aur,')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
@@ -360,7 +357,7 @@ jobs:
 
   cloudsmith:
     name: Cloudsmith (apt, dnf)
-    if: contains(format(',{0},', inputs.channels || 'homebrew,aur,cloudsmith'), ',cloudsmith,')
+    if: contains(format(',{0},', inputs.channels), ',cloudsmith,')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
