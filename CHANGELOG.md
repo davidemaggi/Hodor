@@ -7,7 +7,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
-- More package managers, with the files of each release as they are: Homebrew on macOS (`brew install --cask davidemaggi/tap/hodor`), the AUR on Arch (`hodor-bin`) and an apt/dnf repository for Debian, Ubuntu, Fedora and RHEL, hosted by Cloudsmith
+- More package managers, with the files of each release as they are: Homebrew on macOS (`brew install --cask davidemaggi/tap/hodor`) and an apt/dnf repository for Debian, Ubuntu, Fedora and RHEL, hosted by Cloudsmith
 
 ## [1.1.0] - 2026-10-25
 

@@ -53,8 +53,6 @@ sudo apt install hodor
 curl -1sLf https://dl.cloudsmith.io/public/davidemaggi/dm-hodor/setup.rpm.sh | sudo -E bash
 sudo dnf install hodor
 
-# Arch (AUR)
-yay -S hodor-bin
 ```
 
 The Homebrew cask clears macOS's quarantine flag on install, so the first launch isn't blocked: the builds aren't notarized by Apple yet, and the cask installs the very file you'd download from Releases ([check it](#check-your-download)).

@@ -338,6 +338,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$SUBMIT" != true ]; then echo 'Dry run: nothing pushed'; exit 0; fi
+          if [ "$(jq -r '.aur.enabled' packaging/package-managers.json)" = false ]; then
+            echo "::notice::AUR is turned off in packaging/package-managers.json: built and tested, not pushed"; exit 0
+          fi
           if [ -z "$AUR_SSH_PRIVATE_KEY" ]; then echo "::notice::AUR_SSH_PRIVATE_KEY isn't set: AUR skipped"; exit 0; fi
           name='${{ steps.pkg.outputs.name }}'
           install -m 700 -d ~/.ssh
