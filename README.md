@@ -35,12 +35,29 @@ Hodor fixes that:
 
 Download the file for your system from [Releases](https://github.com/davidemaggi/Hodor/releases). One install gives you both the desktop app and the `hodor` command.
 
-On Windows, from 1.1.0 you can also use a package manager (new packages are reviewed by winget and Chocolatey first, so a release can take a few days to show up there):
+Or use a package manager. It installs the same files, keeps Hodor up to date and puts `hodor` on your PATH:
 
-```powershell
+```bash
+# macOS (Homebrew)
+brew install --cask davidemaggi/tap/hodor
+
+# Windows (new packages are reviewed by winget and Chocolatey first: a release can take a few days to show up)
 winget install DavideMaggi.Hodor
 choco install hodor
+
+# Debian, Ubuntu
+curl -1sLf https://dl.cloudsmith.io/public/davidemaggi/dm-hodor/setup.deb.sh | sudo -E bash
+sudo apt install hodor
+
+# Fedora, RHEL
+curl -1sLf https://dl.cloudsmith.io/public/davidemaggi/dm-hodor/setup.rpm.sh | sudo -E bash
+sudo dnf install hodor
+
 ```
+
+The Homebrew cask clears macOS's quarantine flag on install, so the first launch isn't blocked: the builds aren't notarized by Apple yet, and the cask installs the very file you'd download from Releases ([check it](#check-your-download)).
+
+[![Hosted By: Cloudsmith](https://img.shields.io/badge/OSS%20hosting%20by-cloudsmith-blue?logo=cloudsmith&style=flat)](https://cloudsmith.com) The apt and dnf repository is graciously hosted by [Cloudsmith](https://cloudsmith.com), free for open-source projects.
 
 | System                        | File                                         | `hodor` on your PATH                         |
 | ----------------------------- | -------------------------------------------- | -------------------------------------------- |
