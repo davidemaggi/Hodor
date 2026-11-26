@@ -246,3 +246,68 @@ test('without a terminal it asks for the argument instead of hanging', async () 
   expect(result.status).toBe(1);
   expect(result.stderr).toContain("there's no terminal to ask in");
 });
+
+test('template:create when the cluster is unreachable: warns, then the names are typed', async () => {
+  const hodor = terminal('template:create');
+  await hodor.steps(async () => {
+    await hodor.answer('Template name:', `typed${ENTER}`);
+    await hodor.answer('Description', ENTER);
+    await hodor.answer('Tags', ENTER);
+    await hodor.answer('look names up in?', ENTER);
+    await hodor.answer("alpha isn't answering", '');
+    await hodor.answer('Forward name:', `api${ENTER}`);
+    await hodor.answer('Namespace:', `shop${ENTER}`);
+    await hodor.answer('Resource type:', ENTER);
+    await hodor.answer('Resource name:', `api${ENTER}`);
+    await hodor.answer('Local port:', `18080${ENTER}`);
+    await hodor.answer('Remote port:', `80${ENTER}`);
+    await hodor.answer('Link secrets', `n${ENTER}`);
+    await hodor.answer('Link configmaps', `n${ENTER}`);
+    await hodor.answer('Add another', `n${ENTER}`);
+    expect(await hodor.ends("Template 'typed' created")).toBe(0);
+    expect(hodor.output()).not.toContain('ERR_USE_AFTER_CLOSE');
+  });
+});
+
+test('template:create on a real cluster: namespace, service and port come from lists', async () => {
+  const source = process.env.HODOR_E2E_KUBECONFIG;
+  test.skip(!source, 'needs HODOR_E2E_KUBECONFIG');
+  writeFileSync(join(home, '.kube', 'config'), readFileSync(source!, 'utf-8'));
+
+  const hodor = terminal('template:create');
+  await hodor.steps(async () => {
+    await hodor.answer('Template name:', `picked${ENTER}`);
+    await hodor.answer('Description', ENTER);
+    await hodor.answer('Tags', ENTER);
+    await hodor.answer('look names up in?', ENTER);
+    // Typing filters the lists
+    await hodor.answer('Namespace:', 'kube-sys');
+    await hodor.answer('❯ kube-system', ENTER);
+    await hodor.answer('deployment or pod in kube-system?', 'kube-dns');
+    await hodor.answer('kube-dns  53, 9153', ENTER);
+    // kube-dns has 53 (TCP; UDP is left out) and 9153
+    await hodor.answer('Remote port:', DOWN + ENTER);
+    await hodor.answer('Forward name: (kube-dns-9153)', ENTER);
+    await hodor.answer('Local port: (19153)', ENTER);
+    // kube-system may or may not have secrets: with none there's nothing to tick
+    await expect
+      .poll(() => /Secrets to link|Config maps to link/.test(hodor.output()), { timeout: 20_000 })
+      .toBe(true);
+    if (hodor.output().includes('Secrets to link')) await hodor.answer('Secrets to link', ENTER);
+    await hodor.answer('Config maps to link', ENTER);
+    await hodor.answer('Add another', `n${ENTER}`);
+    expect(await hodor.ends("Template 'picked' created")).toBe(0);
+  });
+
+  const saved = JSON.parse(readFileSync(join(home, '.hodor', 'templates.json'), 'utf-8'));
+  expect(saved.templates.find((t: { name: string }) => t.name === 'picked').forwards).toEqual([
+    {
+      name: 'kube-dns-9153',
+      namespace: 'kube-system',
+      resourceType: 'service',
+      resourceName: 'kube-dns',
+      localPort: 19153,
+      remotePort: 9153,
+    },
+  ]);
+});

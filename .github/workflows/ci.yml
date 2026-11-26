@@ -1,8 +1,12 @@
 name: CI
 
+# Every commit is tested once:
+# - pull requests into develop are tested as they are
+# - develop is tested on push, which covers the develop -> main pull request (same code, so its
+#   checks are skipped) and the merge into main (release.yml builds it again anyway)
 on:
   push:
-    branches: [develop, main]
+    branches: [develop]
   pull_request:
     branches: [develop, main]
   workflow_dispatch:
@@ -17,6 +21,7 @@ concurrency:
 jobs:
   check:
     name: Lint and format
+    if: github.event_name != 'pull_request' || github.head_ref != 'develop'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
@@ -31,6 +36,7 @@ jobs:
 
   test:
     name: Build, test and smoke (${{ matrix.os }})
+    if: github.event_name != 'pull_request' || github.head_ref != 'develop'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -67,6 +73,7 @@ jobs:
 
   kubernetes:
     name: Kubernetes ${{ matrix.k8s }}
+    if: github.event_name != 'pull_request' || github.head_ref != 'develop'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -103,6 +110,10 @@ jobs:
       # kind wrote ~/.kube/config; the app runs with a throwaway HOME and gets a copy of it
       - name: App against the cluster
         run: HODOR_E2E_KUBECONFIG="$HOME/.kube/config" xvfb-run -a pnpm e2e e2e/cluster.spec.ts
+      - name: CLI against the cluster
+        run: |
+          pnpm --filter @hodor/cli bundle
+          HODOR_E2E_KUBECONFIG="$HOME/.kube/config" xvfb-run -a pnpm e2e e2e/cli.spec.ts -g "real cluster"
       - uses: actions/upload-artifact@v7.0.2
         if: failure()
         with:

@@ -50,8 +50,16 @@ curl -1sLf https://dl.cloudsmith.io/public/davidemaggi/dm-hodor/setup.deb.sh | s
 sudo apt install hodor
 
 # Fedora, RHEL
-curl -1sLf https://dl.cloudsmith.io/public/davidemaggi/dm-hodor/setup.rpm.sh | sudo -E bash
-sudo dnf install hodor
+sudo tee /etc/yum.repos.d/hodor.repo <<'END'
+[hodor]
+name=Hodor
+baseurl=https://dl.cloudsmith.io/public/davidemaggi/dm-hodor/rpm/any-distro/any-version/$basearch
+gpgkey=https://dl.cloudsmith.io/public/davidemaggi/dm-hodor/gpg.DDB897F009160D0F.key
+gpgcheck=1
+repo_gpgcheck=1
+enabled=1
+END
+sudo dnf install Hodor
 
 ```
 
@@ -119,7 +127,7 @@ hodor ns                          # change kubectl's default namespace (needs ku
 hodor config:merge ~/Downloads/staging.yaml   # pick contexts and target; backed up first
 hodor config:export shop-dev shop-ci -o shop.yaml   # some contexts as a new kubeconfig
 
-hodor template:create             # interactive wizard
+hodor template:create             # pick namespace, service and port from the cluster
 hodor template:list --tags dev    # list, filter, search
 hodor template:run dev-stack      # pick a cluster, hold the doors
 hodor template:run dev-stack -c staging --logs

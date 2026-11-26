@@ -103,6 +103,7 @@
     "deb": "Hodor-{version}-linux-{arch}.deb",
     "debArches": ["amd64", "arm64"],
     "rpm": "Hodor-{version}-linux-{arch}.rpm",
-    "rpmArches": ["x86_64", "aarch64"]
+    "rpmArches": ["x86_64", "aarch64"],
+    "gpgKey": "https://dl.cloudsmith.io/public/davidemaggi/dm-hodor/gpg.DDB897F009160D0F.key"
   }
 }

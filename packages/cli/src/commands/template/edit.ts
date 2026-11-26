@@ -4,7 +4,7 @@ import { prompt } from '../../utils/prompt.js';
 import { RunRegistry } from '@hodor/core';
 import type { PortForwardConfig, Template } from '@hodor/core';
 import { chooseTemplate, fail, openTemplates } from '../../utils/shared.js';
-import { promptForForward } from './create.js';
+import { newForwardSession, promptForForward } from './forward-wizard.js';
 import { t } from '../../i18n.js';
 
 type Action = 'details' | 'add' | 'edit' | 'remove' | 'move' | 'save' | 'discard';
@@ -37,6 +37,7 @@ export async function templateEditCommand(name?: string): Promise<void> {
   const original = await chooseTemplate(manager, name, t('templates.edit.pick'));
   const draft: Template = structuredClone(original);
   let dirty = false;
+  const session = newForwardSession(draft.forwards.map((f) => f.localPort));
 
   for (;;) {
     console.log(
@@ -117,11 +118,17 @@ export async function templateEditCommand(name?: string): Promise<void> {
         .map((t) => t.trim())
         .filter(Boolean);
     } else if (action === 'add') {
-      draft.forwards.push(await promptForForward(draft.forwards.map((f) => f.name)));
+      draft.forwards.push(
+        await promptForForward(
+          draft.forwards.map((f) => f.name),
+          undefined,
+          session
+        )
+      );
     } else if (action === 'edit') {
       const index = await pickForward(draft, t('templates.edit.whichForward'));
       const others = draft.forwards.filter((_, i) => i !== index).map((f) => f.name);
-      draft.forwards[index] = await promptForForward(others, draft.forwards[index]);
+      draft.forwards[index] = await promptForForward(others, draft.forwards[index], session);
     } else if (action === 'remove') {
       draft.forwards.splice(await pickForward(draft, t('templates.edit.removeWhich')), 1);
     } else if (action === 'move') {

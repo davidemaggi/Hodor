@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Hodor: upgrades run this script too, and with rpm they run it after the new version's install
+# script, so removing anything here would take the new links away. $1 is the number of instances
+# left for rpm (1 on upgrade) and "upgrade" for deb: only a real removal goes on.
+case "$1" in
+  1 | 2 | upgrade | failed-upgrade) exit 0 ;;
+esac
+
 # Delete the link to the binary
 # update-alternatives --remove <name> <path>: 'path' must be the registered alternative binary,
 # not the generic symlink — see https://man7.org/linux/man-pages/man1/update-alternatives.1.html
