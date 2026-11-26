@@ -5,6 +5,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-26
+
+Pick, don't type: forwards come from lists in the CLI and the app's editor lists are searchable. Hodor also lands on Homebrew and in an apt/dnf repository.
+
 ### Added
 
 - More package managers, with the files of each release as they are: Homebrew on macOS (`brew install --cask davidemaggi/tap/hodor`) and an apt/dnf repository for Debian, Ubuntu, Fedora and RHEL, hosted by Cloudsmith
