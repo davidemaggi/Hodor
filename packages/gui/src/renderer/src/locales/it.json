@@ -25,7 +25,8 @@
     "copied": "Copiato",
     "copyCommand": "Copia il comando",
     "copyFailed": "Copia non riuscita",
-    "cancel": "Annulla"
+    "cancel": "Annulla",
+    "noMatch": "Niente corrisponde a \"{{query}}\"."
   },
   "clusters": {
     "title": "Cluster",

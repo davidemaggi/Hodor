@@ -10,6 +10,7 @@ import { useClusters, useSettings, useTemplates } from '../queries';
 import { ErrorBlock, Skeleton } from '../components/states';
 import { TagsInput } from '../components/tags-input';
 import { ConfirmDialog } from '../components/confirm-dialog';
+import { Combobox } from '../components/combobox';
 import { moveItem, useReorder } from '../hooks/use-reorder';
 import {
   blocking,
@@ -252,20 +253,15 @@ const ClusterPicker: React.FC<{
       <p className="hint">{t('editor.pickerHint')}</p>
       <label className="field">
         <span>{t('editor.cluster')}</span>
-        <select
-          className="select"
+        <Combobox
+          id="picker-cluster"
           value={clusterId}
-          onChange={(e) => {
-            onCluster(e.target.value);
+          options={(clusters.data ?? []).map((c) => ({ value: c.id, label: c.name }))}
+          onChange={(id) => {
+            onCluster(id);
             setNs('');
           }}
-        >
-          {(clusters.data ?? []).map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        />
       </label>
       {namespaces.isError ? (
         <p className="inline-error">
@@ -275,20 +271,16 @@ const ClusterPicker: React.FC<{
         <>
           <label className="field">
             <span>{t('detail.namespace')}</span>
-            <select
-              className="select"
+            <Combobox
+              id="picker-namespace"
               value={namespace}
-              onChange={(e) => setNs(e.target.value)}
+              options={(namespaces.data?.namespaces.length
+                ? namespaces.data.namespaces
+                : [namespace]
+              ).map((n) => ({ value: n, label: n }))}
+              onChange={setNs}
               disabled={!namespaces.data}
-            >
-              {(namespaces.data?.namespaces.length ? namespaces.data.namespaces : [namespace]).map(
-                (n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                )
-              )}
-            </select>
+            />
           </label>
           <label className="search full">
             <Search aria-hidden="true" />

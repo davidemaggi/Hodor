@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { prompt } from '../../utils/prompt.js';
-import { TemplateManager, TemplateStorage, validatePort, validateResourceName } from '@hodor/core';
+import { TemplateManager, TemplateStorage } from '@hodor/core';
+import { newForwardSession, promptForForward } from './forward-wizard.js';
 import type { PortForwardConfig } from '@hodor/core';
 import { t } from '../../i18n.js';
 
@@ -60,8 +61,13 @@ export async function templateCreateCommand(): Promise<void> {
 
     console.log(chalk.dim(`\n${t('templates.create.addForwards')}\n`));
 
+    const session = newForwardSession();
     while (addMore) {
-      const forward = await promptForForward(forwards.map((f) => f.name));
+      const forward = await promptForForward(
+        forwards.map((f) => f.name),
+        undefined,
+        session
+      );
       forwards.push(forward);
 
       const { continue: shouldContinue } = await prompt<{ continue: boolean }>([
@@ -104,154 +110,4 @@ export async function templateCreateCommand(): Promise<void> {
     console.error(chalk.red(`\n${t('common.error', { error: error.message })}`));
     process.exit(1);
   }
-}
-
-/**
- * Prompt for a single port-forward configuration
- */
-export async function promptForForward(
-  existingNames: string[],
-  current?: PortForwardConfig
-): Promise<PortForwardConfig> {
-  const answers = await prompt<{
-    name: string;
-    namespace: string;
-    resourceType: 'pod' | 'service' | 'deployment';
-    resourceName: string;
-    localPort: number;
-    remotePort: number;
-    addSecrets: boolean;
-    secrets?: string;
-    addConfigMaps: boolean;
-    configMaps?: string;
-  }>([
-    {
-      type: 'input',
-      name: 'name',
-      message: t('templates.forward.name'),
-      default: current?.name,
-      validate: (input: string) => {
-        if (!input || input.trim().length === 0) {
-          return t('templates.forward.nameRequired');
-        }
-        if (existingNames.includes(input)) {
-          return t('templates.forward.nameExists', { name: input });
-        }
-        return true;
-      },
-    },
-    {
-      type: 'input',
-      name: 'namespace',
-      message: t('templates.forward.namespace'),
-      default: current?.namespace || 'default',
-      validate: (input: string) => {
-        if (!input || input.trim().length === 0) {
-          return t('templates.forward.namespaceRequired');
-        }
-        if (!validateResourceName(input)) {
-          return t('templates.forward.namespaceInvalid');
-        }
-        return true;
-      },
-    },
-    {
-      type: 'list',
-      name: 'resourceType',
-      message: t('templates.forward.resourceType'),
-      choices: [
-        { name: 'Service', value: 'service' },
-        { name: 'Deployment', value: 'deployment' },
-        { name: 'Pod', value: 'pod' },
-      ],
-      default: current?.resourceType || 'service',
-    },
-    {
-      type: 'input',
-      name: 'resourceName',
-      message: t('templates.forward.resourceName'),
-      default: current?.resourceName,
-      validate: (input: string) => {
-        if (!input || input.trim().length === 0) {
-          return t('templates.forward.resourceNameRequired');
-        }
-        return true;
-      },
-    },
-    {
-      type: 'number',
-      name: 'localPort',
-      message: t('templates.forward.localPort'),
-      default: current?.localPort,
-      validate: (input: number) => {
-        if (!validatePort(input)) {
-          return t('templates.forward.portRange');
-        }
-        return true;
-      },
-    },
-    {
-      type: 'number',
-      name: 'remotePort',
-      message: t('templates.forward.remotePort'),
-      default: current?.remotePort,
-      validate: (input: number) => {
-        if (!validatePort(input)) {
-          return t('templates.forward.portRange');
-        }
-        return true;
-      },
-    },
-    {
-      type: 'confirm',
-      name: 'addSecrets',
-      message: t('templates.forward.linkSecrets'),
-      default: !!current?.secrets?.length,
-    },
-    {
-      type: 'input',
-      name: 'secrets',
-      message: t('templates.forward.secretNames'),
-      default: current?.secrets?.join(', '),
-      when: (answers) => answers.addSecrets,
-    },
-    {
-      type: 'confirm',
-      name: 'addConfigMaps',
-      message: t('templates.forward.linkConfigMaps'),
-      default: !!current?.configMaps?.length,
-    },
-    {
-      type: 'input',
-      name: 'configMaps',
-      message: t('templates.forward.configMapNames'),
-      default: current?.configMaps?.join(', '),
-      when: (answers) => answers.addConfigMaps,
-    },
-  ]);
-
-  const secrets = answers.secrets
-    ? answers.secrets
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
-    : undefined;
-
-  const configMaps = answers.configMaps
-    ? answers.configMaps
-        .split(',')
-        .map((c) => c.trim())
-        .filter((c) => c.length > 0)
-    : undefined;
-
-  return {
-    name: answers.name,
-    namespace: answers.namespace,
-    resourceType: answers.resourceType,
-    resourceName: answers.resourceName,
-    localPort: answers.localPort,
-    remotePort: answers.remotePort,
-    secrets,
-    configMaps,
-  };
 }

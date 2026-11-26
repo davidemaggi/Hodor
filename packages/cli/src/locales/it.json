@@ -108,6 +108,11 @@
       "warning": "{{name}} è segnato come produzione in Hodor.",
       "needsYes": "{{name}} è segnato come produzione: usa --yes per procedere senza un terminale a cui chiedere.",
       "cancelled": "Lasciato com'era. Niente è cambiato."
+    },
+    "keys": {
+      "navigate": "sposta",
+      "select": "scegli",
+      "filter": "scrivi per filtrare"
     }
   },
   "clusters": {
@@ -246,7 +251,25 @@
       "linkSecrets": "Colleghi dei secret a questo forward?",
       "secretNames": "Nomi dei secret (separati da virgola):",
       "linkConfigMaps": "Colleghi delle configmap a questo forward?",
-      "configMapNames": "Nomi delle ConfigMap (separati da virgola):"
+      "configMapNames": "Nomi delle ConfigMap (separati da virgola):",
+      "pickCluster": "In quale cluster cerco i nomi?",
+      "typeEverything": "✎ Nessuno, scrivo tutto io",
+      "connecting": "Busso a {{cluster}}...",
+      "unreachable": "{{cluster}} non risponde ({{error}}). Niente liste allora: scrivi tu i nomi.",
+      "pickNamespace": "Namespace:",
+      "typeIt": "✎ Non è nella lista, lo scrivo io",
+      "loading": "Do un'occhiata in {{namespace}}...",
+      "listFailed": "Non riesco a elencare cosa c'è in {{namespace}} ({{error}}). Scrivi tu il resto.",
+      "nothingHere": "In {{namespace}} non gira niente con una porta da inoltrare. Scrivi tu il resto.",
+      "pickTarget": "Verso quale service, deployment o pod in {{namespace}}?",
+      "onlyPort": "Porta remota: {{port}} (l'unica che ha)",
+      "pickPort": "Porta remota:",
+      "otherPort": "✎ Un'altra porta",
+      "secretsPick": "Secret da collegare:",
+      "configMapsPick": "Config map da collegare:",
+      "optionalHint": "(spazio per selezionare, invio per continuare, anche nessuno va bene)",
+      "secretsTyped": "Nomi dei secret da collegare (separati da virgola, qui non posso elencarli):",
+      "configMapsTyped": "Nomi delle config map da collegare (separati da virgola, qui non posso elencarli):"
     },
     "delete": {
       "notFound": "Template '{{name}}' non trovato.",

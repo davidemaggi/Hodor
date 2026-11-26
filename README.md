@@ -127,7 +127,7 @@ hodor ns                          # change kubectl's default namespace (needs ku
 hodor config:merge ~/Downloads/staging.yaml   # pick contexts and target; backed up first
 hodor config:export shop-dev shop-ci -o shop.yaml   # some contexts as a new kubeconfig
 
-hodor template:create             # interactive wizard
+hodor template:create             # pick namespace, service and port from the cluster
 hodor template:list --tags dev    # list, filter, search
 hodor template:run dev-stack      # pick a cluster, hold the doors
 hodor template:run dev-stack -c staging --logs

@@ -22,7 +22,8 @@ test('creates, runs and stops a template on the cluster', async ({ page }) => {
   await page.getByLabel('Name', { exact: true }).fill('dns-e2e');
 
   const picker = page.locator('.picker');
-  await picker.getByLabel('Namespace').selectOption('kube-system');
+  await picker.getByRole('combobox', { name: 'Namespace' }).fill('kube-sys');
+  await page.getByRole('option', { name: 'kube-system' }).click();
   await picker.getByRole('button', { name: /kube-dns:9153/ }).click();
   await expect(page.locator('.port-input')).toHaveValue('19153');
   await page.getByRole('button', { name: 'Save' }).click();
