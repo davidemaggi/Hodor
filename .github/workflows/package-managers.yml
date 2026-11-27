@@ -151,6 +151,14 @@ jobs:
           $ErrorActionPreference = 'Stop'
           if ($env:SUBMIT -ne 'true') { Write-Host 'Dry run: nothing submitted'; exit 0 }
           if (-not $env:WINGET_TOKEN) { Write-Host "::notice::WINGET_TOKEN isn't set: winget skipped"; exit 0 }
+          # wingetcreate syncs the fork itself, but GitHub refuses when upstream changed .github/workflows
+          # and the token lacks the workflow scope; say so instead of "sync your fork manually"
+          $env:GH_TOKEN = $env:WINGET_TOKEN
+          $owner = gh api user --jq .login
+          gh api -X POST "repos/$owner/winget-pkgs/merge-upstream" -f branch=master | Out-Null
+          if ($LASTEXITCODE) {
+            throw "Couldn't sync $owner/winget-pkgs with microsoft/winget-pkgs: give WINGET_TOKEN the workflow scope too, or press Sync fork on GitHub, then run Package managers for $env:TAG with winget only"
+          }
           Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
           # The PR comes from the token owner's fork of microsoft/winget-pkgs, on a branch of its own
           .\wingetcreate.exe submit --token $env:WINGET_TOKEN '${{ steps.manifests.outputs.dir }}'
@@ -252,6 +260,8 @@ jobs:
           version="${TAG#v}"
           app=$(jq -r .homebrew.app packaging/package-managers.json)
           brew tap-new --no-git ci/local
+          # Homebrew 7 only loads casks from trusted taps (install of a full name trusts it, audit doesn't)
+          brew trust --tap ci/local
           tapdir="$(brew --repository)/Library/Taps/ci/homebrew-local"
           mkdir -p "$tapdir/Casks"
           cp '${{ steps.cask.outputs.file }}' "$tapdir/Casks/"
@@ -383,7 +393,8 @@ jobs:
           echo "package=$(jq -r .cloudsmith.package $meta)" >> "$GITHUB_OUTPUT"
           # electron-builder names the rpm after the product ("Hodor"); dnf names are case-sensitive
           sudo apt-get install -y -qq rpm >/dev/null
-          echo "rpm-name=$(rpm -qp --qf '%{NAME}' packages/*.rpm 2>/dev/null | head -1)" >> "$GITHUB_OUTPUT"
+          # one name per line: x86_64 and aarch64 would otherwise glue into "hodorhodor"
+          echo "rpm-name=$(rpm -qp --qf '%{NAME}\n' packages/*.rpm 2>/dev/null | head -1)" >> "$GITHUB_OUTPUT"
 
       - name: Install the files themselves on Ubuntu and Fedora
         run: |
